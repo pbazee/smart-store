@@ -7,12 +7,12 @@ import {
   getFeaturedProducts,
   getTrendingProducts,
   getNewArrivals,
-} from "@/lib/mock-data";
+} from "@/lib/data-service";
 
-export default function HomePage() {
-  const featured = getFeaturedProducts();
-  const trending = getTrendingProducts();
-  const newArrivals = getNewArrivals();
+export default async function HomePage() {
+  const featured = await getFeaturedProducts();
+  const trending = await getTrendingProducts();
+  const newArrivals = await getNewArrivals();
 
   return (
     <div>

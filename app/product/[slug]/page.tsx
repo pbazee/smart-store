@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts } from "@/lib/mock-data";
+import { getProductBySlug, getRelatedProducts } from "@/lib/data-service";
 import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductCard } from "@/components/shop/product-card";
+import { mockProducts } from "@/lib/mock-data";
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const product = getProductBySlug(params.slug);
+export default async function ProductPage({ params }: { params: { slug: string } }) {
+  const product = await getProductBySlug(params.slug);
   if (!product) notFound();
-  const related = getRelatedProducts(product);
+  const related = await getRelatedProducts(product);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -26,6 +27,5 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 }
 
 export async function generateStaticParams() {
-  const { mockProducts } = await import("@/lib/mock-data");
   return mockProducts.map((p) => ({ slug: p.slug }));
 }
