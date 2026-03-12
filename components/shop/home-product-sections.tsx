@@ -3,29 +3,17 @@ import { NewArrivalsSection } from "@/components/shop/new-arrivals-section";
 import { RecommendationCarousel } from "@/components/shop/recommendation-carousel";
 import { TrendingSection } from "@/components/shop/trending-section";
 import {
-  getFeaturedProducts,
-  getNewArrivals,
-  getProducts,
-  getTrendingProducts,
-} from "@/lib/data-service";
-import {
-  getCityInspiredProducts,
-  getCustomersAlsoBought,
-} from "@/lib/recommendations";
+  getHomepageProductSectionsData,
+  type HomepageProductSectionsData,
+} from "@/lib/homepage-data";
 
-export async function HomeProductSections() {
-  const [featured, trending, newArrivals, allProducts] = await Promise.all([
-    getFeaturedProducts(8),
-    getTrendingProducts(8),
-    getNewArrivals(8),
-    getProducts(),
-  ]);
-
-  const referenceProduct = featured[0] ?? allProducts[0] ?? null;
-  const alsoBought = referenceProduct
-    ? getCustomersAlsoBought(allProducts, referenceProduct, 8)
-    : [];
-  const cityInspired = getCityInspiredProducts(allProducts, "Nairobi", 8);
+export async function HomeProductSections({
+  data: providedData,
+}: {
+  data?: HomepageProductSectionsData;
+}) {
+  const data = providedData ?? (await getHomepageProductSectionsData());
+  const { featured, trending, newArrivals, alsoBought, cityInspired } = data;
 
   return (
     <>

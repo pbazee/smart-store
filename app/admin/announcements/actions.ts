@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import {
   createDemoAnnouncement,
@@ -9,6 +9,7 @@ import {
   updateDemoAnnouncement,
 } from "@/lib/announcement-service";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { AnnouncementMessage } from "@/types";
@@ -84,6 +85,7 @@ function normalizeAnnouncementInput(input: AdminAnnouncementInput) {
 }
 
 function revalidateAnnouncementPaths() {
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");

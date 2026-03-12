@@ -1,0 +1,35 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { requireAdminAuth } from "@/lib/auth-utils";
+import { getNewsletterSubscribers, subscribeToNewsletter } from "@/lib/newsletter-service";
+
+const newsletterSubscriptionSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address."),
+});
+
+async function ensureAdmin() {
+  const isAdmin = await requireAdminAuth();
+  if (!isAdmin) {
+    throw new Error("Unauthorized");
+  }
+}
+
+function revalidateNewsletterPaths() {
+  revalidatePath("/admin/newsletter");
+  revalidatePath("/", "layout");
+}
+
+export async function subscribeNewsletterAction(input: { email: string }) {
+  const data = newsletterSubscriptionSchema.parse(input);
+  const subscriber = await subscribeToNewsletter(data.email);
+
+  revalidateNewsletterPaths();
+  return subscriber;
+}
+
+export async function fetchAdminNewsletterSubscribers() {
+  await ensureAdmin();
+  return getNewsletterSubscribers();
+}

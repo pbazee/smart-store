@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminAnnouncementsPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fannouncements");
+    redirect("/login?redirect_url=%2Fadmin%2Fannouncements");
   }
 
   const announcements = await fetchAdminAnnouncements();

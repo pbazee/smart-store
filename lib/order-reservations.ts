@@ -12,6 +12,14 @@ const RESERVATION_EXPIRED_NOTE = "Stock reservation expired before payment confi
 const PAYMENT_FAILED_NOTE = "Payment failed and reserved stock was released.";
 
 type TransactionClient = Prisma.TransactionClient;
+type ReservationTransactionOptions = {
+  timeoutMs?: number;
+  maxWaitMs?: number;
+};
+
+const DEFAULT_TRANSACTION_TIMEOUT_MS = 10_000;
+const DEFAULT_TRANSACTION_MAX_WAIT_MS = 5_000;
+
 const reservableOrderSelect = {
   id: true,
   status: true,
@@ -104,8 +112,19 @@ export async function releaseExpiredReservationsInTransaction(tx: TransactionCli
   return expiredOrders.length;
 }
 
-export async function releaseExpiredReservations() {
-  return prisma.$transaction(async (tx) => releaseExpiredReservationsInTransaction(tx));
+export async function releaseExpiredReservations(
+  options: ReservationTransactionOptions = {}
+) {
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TRANSACTION_TIMEOUT_MS;
+  const maxWaitMs = options.maxWaitMs ?? Math.min(timeoutMs, DEFAULT_TRANSACTION_MAX_WAIT_MS);
+
+  return prisma.$transaction(
+    async (tx) => releaseExpiredReservationsInTransaction(tx),
+    {
+      timeout: timeoutMs,
+      maxWait: maxWaitMs,
+    }
+  );
 }
 
 export async function releaseReservationForReference(reference: string) {

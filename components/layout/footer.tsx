@@ -1,11 +1,27 @@
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { CreditCard, MapPin, Shield, Smartphone } from "lucide-react";
+import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form";
+import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
+import { getSocialLinks } from "@/lib/social-link-service";
+import type { SocialLink } from "@/types";
 
-export function Footer() {
+export async function Footer({
+  socialLinks: providedSocialLinks,
+}: {
+  socialLinks?: SocialLink[];
+}) {
+  let socialLinks = providedSocialLinks;
+
+  if (!socialLinks) {
+    noStore();
+    socialLinks = await getSocialLinks({ seedIfEmpty: true });
+  }
+
   return (
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-4">
+        <div className="mb-12 grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr,0.9fr,0.9fr,0.9fr,1.2fr]">
           <div>
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-brand-500">
@@ -81,10 +97,30 @@ export function Footer() {
               </div>
             </div>
           </div>
+
+          <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900/60 p-6">
+            <FooterNewsletterForm />
+          </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-zinc-800 pt-8 text-sm sm:flex-row">
+        <div className="flex flex-col gap-5 border-t border-zinc-800 pt-8 text-sm xl:flex-row xl:items-center xl:justify-between">
           <p>&copy; 2026 Smartest Store KE. All rights reserved.</p>
+          {socialLinks.length > 0 && (
+            <div className="flex items-center justify-center gap-3 overflow-x-auto xl:flex-1 xl:justify-center">
+              {socialLinks.map((socialLink) => (
+                <a
+                  key={socialLink.id}
+                  href={socialLink.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${socialLink.platform}`}
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:bg-zinc-900 hover:text-white"
+                >
+                  <SocialPlatformIcon platform={socialLink.platform} className="h-5 w-5" />
+                </a>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-4">
             <Link href="/privacy-policy" className="transition-colors hover:text-white">
               Privacy

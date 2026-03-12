@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import {
   createDemoHomepageCategory,
   deleteDemoHomepageCategory,
@@ -96,6 +97,7 @@ function normalizeHomepageCategoryInput(input: AdminHomepageCategoryInput) {
 }
 
 function revalidateHomepageCategoryPaths() {
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");

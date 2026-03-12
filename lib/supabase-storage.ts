@@ -2,6 +2,8 @@ const DEFAULT_HOMEPAGE_CATEGORY_BUCKET =
   process.env.SUPABASE_HOMEPAGE_CATEGORY_BUCKET || "homepage-categories";
 const DEFAULT_BLOG_IMAGE_BUCKET =
   process.env.SUPABASE_BLOG_IMAGE_BUCKET || "blog-images";
+const DEFAULT_POPUP_IMAGE_BUCKET =
+  process.env.SUPABASE_POPUP_IMAGE_BUCKET || "popup-images";
 const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024;
 
 function getSupabaseUrl() {
@@ -41,6 +43,10 @@ export function getHomepageCategoryBucketName() {
 
 export function getBlogImageBucketName() {
   return DEFAULT_BLOG_IMAGE_BUCKET;
+}
+
+export function getPopupImageBucketName() {
+  return DEFAULT_POPUP_IMAGE_BUCKET;
 }
 
 async function uploadImageToBucket(input: {
@@ -178,5 +184,22 @@ export async function deleteBlogImage(imageUrl?: string | null) {
     imageUrl,
     bucket: DEFAULT_BLOG_IMAGE_BUCKET,
     contextLabel: "Blog",
+  });
+}
+
+export async function uploadPopupImage(file: File) {
+  return uploadImageToBucket({
+    file,
+    bucket: DEFAULT_POPUP_IMAGE_BUCKET,
+    fallbackName: "popup-image",
+    contextLabel: "popup image",
+  });
+}
+
+export async function deletePopupImage(imageUrl?: string | null) {
+  return deleteImageFromBucket({
+    imageUrl,
+    bucket: DEFAULT_POPUP_IMAGE_BUCKET,
+    contextLabel: "Popup",
   });
 }

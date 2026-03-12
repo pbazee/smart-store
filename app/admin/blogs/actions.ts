@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import {
   createDemoBlogPost,
   deleteDemoBlogPost,
@@ -67,6 +68,7 @@ function normalizeBlogInput(input: AdminBlogInput) {
 }
 
 function revalidateBlogPaths(slugs: string[] = []) {
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/blog");

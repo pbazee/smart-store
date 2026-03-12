@@ -3,6 +3,8 @@ import { DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS } from "../lib/default-announcements
 import { DEFAULT_BLOG_POST_SEEDS } from "../lib/default-blog-posts";
 import { DEFAULT_HOMEPAGE_CATEGORY_SEEDS } from "../lib/default-homepage-categories";
 import { DEFAULT_COUPON_SEEDS } from "../lib/default-coupons";
+import { DEFAULT_SOCIAL_LINK_SEEDS } from "../lib/default-social-links";
+import { DEFAULT_WHATSAPP_SETTINGS } from "../lib/default-whatsapp-settings";
 import { mockProducts } from "../lib/mock-data";
 import { hashPassword } from "../lib/password";
 
@@ -161,6 +163,32 @@ async function main() {
       });
       console.log(`Seeded coupon: ${coupon.code}`);
     }
+
+    console.log("Seeding social links...");
+    for (const socialLink of DEFAULT_SOCIAL_LINK_SEEDS) {
+      await prisma.socialLink.upsert({
+        where: { id: socialLink.id },
+        update: {
+          platform: socialLink.platform,
+          url: socialLink.url,
+          icon: socialLink.icon,
+        },
+        create: socialLink,
+      });
+      console.log(`Seeded social link: ${socialLink.platform}`);
+    }
+
+    console.log("Seeding WhatsApp settings...");
+    await prisma.whatsAppSettings.upsert({
+      where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
+      update: {
+        phoneNumber: DEFAULT_WHATSAPP_SETTINGS.phoneNumber,
+        defaultMessage: DEFAULT_WHATSAPP_SETTINGS.defaultMessage,
+        isActive: DEFAULT_WHATSAPP_SETTINGS.isActive,
+      },
+      create: DEFAULT_WHATSAPP_SETTINGS,
+    });
+    console.log("Seeded WhatsApp settings");
 
     console.log("Seeding products...");
     let createdCount = 0;

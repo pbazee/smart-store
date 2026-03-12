@@ -17,14 +17,29 @@ export type ProductQueryFilters = {
   take?: number;
 };
 
+type LiveDataQueryOptions = {
+  syncReservations?: boolean;
+  timeoutMs?: number | null;
+  cacheKey?: string;
+};
+
 const USE_MOCK_DATA = shouldUseMockData();
-const DEFAULT_LIVE_DATA_TIMEOUT_MS = 8000;
+const DEFAULT_LIVE_DATA_TIMEOUT_MS = 10000;
+const DEFAULT_LIVE_DATA_TRANSACTION_TIMEOUT_MS = 10000;
+const DEFAULT_RESERVATION_SYNC_INTERVAL_MS = 60_000;
 const LIVE_DATA_TIMEOUT_MS = getLiveDataTimeoutMs();
+const LIVE_DATA_TRANSACTION_TIMEOUT_MS = getLiveDataTransactionTimeoutMs();
+const RESERVATION_SYNC_INTERVAL_MS = getReservationSyncIntervalMs();
+const ENABLE_RESERVATION_SYNC_ON_READ = getEnableReservationSyncOnRead();
 
 let liveDataDisabled = USE_MOCK_DATA;
 let loggedLiveDataFailure = false;
 let liveDataVerified = USE_MOCK_DATA;
 let liveDataCheckPromise: Promise<void> | null = null;
+let reservationSyncPromise: Promise<void> | null = null;
+let lastReservationSyncAt = 0;
+const loggedLiveDataWarnings = new Set<string>();
+const liveQueryFallbackCache = new Map<string, { value: unknown; cachedAt: number }>();
 const productOrderBy: Prisma.ProductOrderByWithRelationInput[] = [
   { updatedAt: "desc" },
   { createdAt: "desc" },
@@ -138,6 +153,10 @@ function filterDemoProducts(products: Product[], filters?: ProductQueryFilters) 
 
 function getLiveDataTimeoutMs() {
   const rawValue = process.env.LIVE_DATA_TIMEOUT_MS;
+  if (process.env.NODE_ENV === "development" && rawValue === "0") {
+    return null;
+  }
+
   const parsedValue = rawValue ? Number(rawValue) : DEFAULT_LIVE_DATA_TIMEOUT_MS;
 
   return Number.isFinite(parsedValue) && parsedValue > 0
@@ -145,9 +164,35 @@ function getLiveDataTimeoutMs() {
     : DEFAULT_LIVE_DATA_TIMEOUT_MS;
 }
 
-function createLiveDataTimeoutError(context: string) {
+function getLiveDataTransactionTimeoutMs() {
+  const rawValue = process.env.LIVE_DATA_TRANSACTION_TIMEOUT_MS;
+  const parsedValue = rawValue ? Number(rawValue) : DEFAULT_LIVE_DATA_TRANSACTION_TIMEOUT_MS;
+
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : DEFAULT_LIVE_DATA_TRANSACTION_TIMEOUT_MS;
+}
+
+function getReservationSyncIntervalMs() {
+  const rawValue = process.env.RESERVATION_SYNC_INTERVAL_MS;
+  const parsedValue = rawValue ? Number(rawValue) : DEFAULT_RESERVATION_SYNC_INTERVAL_MS;
+
+  return Number.isFinite(parsedValue) && parsedValue >= 0
+    ? parsedValue
+    : DEFAULT_RESERVATION_SYNC_INTERVAL_MS;
+}
+
+function getEnableReservationSyncOnRead() {
+  if (process.env.ENABLE_RESERVATION_SYNC_ON_READ) {
+    return process.env.ENABLE_RESERVATION_SYNC_ON_READ === "true";
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+function createLiveDataTimeoutError(context: string, timeoutMs: number) {
   return new Error(
-    `Live data timed out after ${LIVE_DATA_TIMEOUT_MS}ms during ${context}.`
+    `Live data timed out after ${timeoutMs}ms during ${context}.`
   );
 }
 
@@ -156,13 +201,53 @@ function disableLiveData(context: string, error: unknown) {
   liveDataVerified = false;
   liveDataCheckPromise = null;
 
-  if (!loggedLiveDataFailure) {
-    console.warn(`[WARN] Live database access disabled during ${context}; using mock data fallback.`, error);
+  if (shouldLogLiveDataWarnings() && !loggedLiveDataFailure) {
+    console.warn(
+      `[live-data] Database access disabled during ${context}; using fallback data.`,
+      error
+    );
     loggedLiveDataFailure = true;
   }
 }
 
-async function withLiveDataTimeout<T>(context: string, task: () => Promise<T>) {
+function logLiveDataFallback(context: string, error: unknown) {
+  if (!shouldLogLiveDataWarnings() || loggedLiveDataWarnings.has(context)) {
+    return;
+  }
+
+  console.warn(`[live-data] Falling back during ${context}.`, error);
+  loggedLiveDataWarnings.add(context);
+}
+
+function shouldLogLiveDataWarnings() {
+  return process.env.NODE_ENV === "development" && process.env.DEBUG_LIVE_DATA === "true";
+}
+
+function getLiveQueryCache<T>(cacheKey?: string) {
+  if (!cacheKey) {
+    return undefined;
+  }
+
+  return liveQueryFallbackCache.get(cacheKey)?.value as T | undefined;
+}
+
+function setLiveQueryCache<T>(cacheKey: string | undefined, value: T) {
+  if (!cacheKey) {
+    return;
+  }
+
+  liveQueryFallbackCache.set(cacheKey, { value, cachedAt: Date.now() });
+}
+
+async function withLiveDataTimeout<T>(
+  context: string,
+  task: () => Promise<T>,
+  timeoutMs: number | null = LIVE_DATA_TIMEOUT_MS
+) {
+  if (!timeoutMs) {
+    return task();
+  }
+
   let timeoutHandle: NodeJS.Timeout | undefined;
 
   try {
@@ -170,8 +255,8 @@ async function withLiveDataTimeout<T>(context: string, task: () => Promise<T>) {
       task(),
       new Promise<T>((_, reject) => {
         timeoutHandle = setTimeout(() => {
-          reject(createLiveDataTimeoutError(context));
-        }, LIVE_DATA_TIMEOUT_MS);
+          reject(createLiveDataTimeoutError(context, timeoutMs));
+        }, timeoutMs);
       }),
     ]);
   } finally {
@@ -212,24 +297,53 @@ async function ensureLiveDataAvailable(context: string) {
   }
 }
 
-async function syncReservationState() {
-  if (!liveDataDisabled) {
-    await withLiveDataTimeout("reservation sync", () => releaseExpiredReservations());
+async function syncReservationState(force = false) {
+  if (liveDataDisabled || !ENABLE_RESERVATION_SYNC_ON_READ) {
+    return;
   }
+
+  const now = Date.now();
+  if (!force && now - lastReservationSyncAt < RESERVATION_SYNC_INTERVAL_MS) {
+    return;
+  }
+
+  if (reservationSyncPromise) {
+    return reservationSyncPromise;
+  }
+
+  reservationSyncPromise = withLiveDataTimeout(
+    "reservation sync",
+    () =>
+      releaseExpiredReservations({
+        timeoutMs: LIVE_DATA_TRANSACTION_TIMEOUT_MS,
+      }),
+    LIVE_DATA_TRANSACTION_TIMEOUT_MS
+  )
+    .then(() => {
+      lastReservationSyncAt = Date.now();
+    })
+    .catch((error) => {
+      logLiveDataFallback("reservation sync", error);
+    })
+    .finally(() => {
+      reservationSyncPromise = null;
+    });
+
+  await reservationSyncPromise;
 }
 
 async function withLiveData<T>(
   context: string,
   query: () => Promise<T>,
   fallback: () => T,
-  options?: { syncReservations?: boolean }
+  options: LiveDataQueryOptions = {}
 ): Promise<T> {
   if (liveDataDisabled) {
-    return fallback();
+    return getLiveQueryCache<T>(options.cacheKey) ?? fallback();
   }
 
   if (!(await ensureLiveDataAvailable(context))) {
-    return fallback();
+    return getLiveQueryCache<T>(options.cacheKey) ?? fallback();
   }
 
   try {
@@ -237,15 +351,21 @@ async function withLiveData<T>(
       await syncReservationState();
     }
 
-    return await withLiveDataTimeout(context, query);
+    const result = await withLiveDataTimeout(context, query, options.timeoutMs);
+    setLiveQueryCache(options.cacheKey, result);
+    return result;
   } catch (error) {
-    disableLiveData(context, error);
-    return fallback();
+    logLiveDataFallback(context, error);
+    return getLiveQueryCache<T>(options.cacheKey) ?? fallback();
   }
 }
 
-export async function getProducts(filters?: ProductQueryFilters): Promise<Product[]> {
+export async function getProducts(
+  filters?: ProductQueryFilters,
+  options: LiveDataQueryOptions = {}
+): Promise<Product[]> {
   const normalizedFilters = normalizeProductFilters(filters);
+  const cacheKey = options.cacheKey ?? `products:${JSON.stringify(normalizedFilters)}`;
 
   return withLiveData(
     "getProducts",
@@ -260,7 +380,11 @@ export async function getProducts(filters?: ProductQueryFilters): Promise<Produc
       return products as Product[];
     },
     () => filterDemoProducts(getDemoProducts(), normalizedFilters),
-    { syncReservations: true }
+    {
+      syncReservations: options.syncReservations ?? false,
+      timeoutMs: options.timeoutMs,
+      cacheKey,
+    }
   );
 }
 
@@ -276,7 +400,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       return product as Product | null;
     },
     () => getDemoProductBySlug(slug),
-    { syncReservations: true }
+    {
+      syncReservations: false,
+      cacheKey: `product:slug:${slug}`,
+    }
   );
 }
 
@@ -297,7 +424,10 @@ export async function getProductByIdentifier(identifier: string): Promise<Produc
       getDemoProducts().find(
         (product) => product.slug === identifier || product.id === identifier
       ) ?? getDemoProductBySlug(identifier),
-    { syncReservations: true }
+    {
+      syncReservations: false,
+      cacheKey: `product:identifier:${identifier}`,
+    }
   );
 }
 
@@ -419,6 +549,9 @@ export async function getRelatedProducts(
             (candidate.category === product.category || candidate.gender === product.gender)
         )
         .slice(0, limit),
-    { syncReservations: true }
+    {
+      syncReservations: false,
+      cacheKey: `related:${product.id}:${limit}`,
+    }
   );
 }

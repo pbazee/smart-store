@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminHomepageCategoriesPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fhomepage-categories");
+    redirect("/login?redirect_url=%2Fadmin%2Fhomepage-categories");
   }
 
   const categories = await fetchAdminHomepageCategories();

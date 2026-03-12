@@ -5,11 +5,15 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
+import { MarketingPopup } from "@/components/layout/marketing-popup";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { RootLayoutShell } from "@/components/layout/root-layout-shell";
+import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
+import { getHomepageShellData } from "@/lib/homepage-data";
 
 const sans = Space_Grotesk({ subsets: ["latin"], variable: "--font-geist-sans" });
 const display = Bricolage_Grotesque({
@@ -40,24 +44,39 @@ function NavbarFallback() {
   );
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const homepageShellData = await getHomepageShellData();
+
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <AnnouncementBar />
-            <Suspense fallback={<NavbarFallback />}>
-              <Navbar />
-            </Suspense>
-            <main className="min-h-screen pb-20 md:pb-0">{children}</main>
-            <Footer />
-            <MobileBottomNav />
-            <CartDrawer />
+            <RootLayoutShell
+              storefrontChrome={
+                <>
+                  <AnnouncementBar announcements={homepageShellData.announcements} />
+                  <Suspense fallback={<NavbarFallback />}>
+                    <Navbar />
+                  </Suspense>
+                </>
+              }
+              storefrontFooter={<Footer socialLinks={homepageShellData.socialLinks} />}
+              storefrontOverlays={
+                <>
+                  <MarketingPopup popups={homepageShellData.popups} />
+                  <WhatsAppWidget settings={homepageShellData.whatsAppSettings} />
+                  <MobileBottomNav />
+                  <CartDrawer />
+                </>
+              }
+            >
+              {children}
+            </RootLayoutShell>
             <Toaster />
           </ThemeProvider>
         </body>

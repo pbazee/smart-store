@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
 import {
@@ -10,6 +10,7 @@ import {
   updateDemoProduct,
 } from "@/lib/demo-catalog";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
@@ -50,6 +51,7 @@ async function ensureAdmin() {
 }
 
 function revalidateCatalogPaths() {
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/wishlist");

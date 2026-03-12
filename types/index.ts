@@ -58,6 +58,56 @@ export interface AnnouncementMessage {
   updatedAt: string | Date;
 }
 
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  subscribedAt: string | Date;
+}
+
+export type PopupDisplayTarget = "homepage" | "all";
+
+export interface Popup {
+  id: string;
+  title: string;
+  message: string;
+  imageUrl?: string | null;
+  ctaText: string;
+  ctaLink: string;
+  showOn: PopupDisplayTarget;
+  delaySeconds: number;
+  isActive: boolean;
+  expiresAt?: string | Date | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export type SocialPlatform =
+  | "instagram"
+  | "tiktok"
+  | "facebook"
+  | "x"
+  | "youtube"
+  | "linkedin"
+  | "whatsapp";
+
+export interface SocialLink {
+  id: string;
+  platform: SocialPlatform;
+  url: string;
+  icon?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface WhatsAppSettings {
+  id: string;
+  phoneNumber: string;
+  defaultMessage: string;
+  isActive: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 export interface HomepageCategory {
   id: string;
   title: string;
