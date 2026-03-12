@@ -7,11 +7,15 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 interface Props {
   filters: FilterState;
   onChange: (f: FilterState) => void;
+  lockedCategory?: string;
 }
 
 const categories = [
   { value: "shoes", label: "Shoes" },
   { value: "clothes", label: "Clothes" },
+  { value: "accessories", label: "Accessories" },
+  { value: "bags", label: "Bags" },
+  { value: "tshirts", label: "T-Shirts" },
   { value: "sneakers", label: "Sneakers" },
   { value: "boots", label: "Boots" },
   { value: "hoodies", label: "Hoodies" },
@@ -23,6 +27,7 @@ const categories = [
 const genders = [
   { value: "men", label: "Men" },
   { value: "women", label: "Women" },
+  { value: "children", label: "Children" },
   { value: "unisex", label: "Unisex" },
 ];
 
@@ -55,7 +60,7 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-export function ShopFilters({ filters, onChange }: Props) {
+export function ShopFilters({ filters, onChange, lockedCategory }: Props) {
   const toggle = (key: "category" | "gender" | "colors" | "sizes", value: string) => {
     const current = filters[key] as string[];
     const next = current.includes(value)
@@ -69,14 +74,23 @@ export function ShopFilters({ filters, onChange }: Props) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-bold text-sm uppercase tracking-wider">Filters</h3>
         <button
-          onClick={() => onChange({ category: [], gender: [], colors: [], sizes: [], priceRange: [1000, 20000], search: "", sortBy: filters.sortBy })}
+          onClick={() =>
+            onChange({
+              category: lockedCategory ? [lockedCategory] : [],
+              gender: [],
+              colors: [],
+              sizes: [],
+              priceRange: [1000, 20000],
+              search: "",
+              sortBy: filters.sortBy,
+            })
+          }
           className="text-xs text-brand-500 hover:underline"
         >
           Clear All
         </button>
       </div>
 
-      {/* Search */}
       <div className="mb-4">
         <input
           type="text"
@@ -87,21 +101,23 @@ export function ShopFilters({ filters, onChange }: Props) {
         />
       </div>
 
-      <FilterSection title="Category">
-        <div className="space-y-2">
-          {categories.map((cat) => (
-            <label key={cat.value} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={filters.category.includes(cat.value)}
-                onChange={() => toggle("category", cat.value)}
-                className="w-4 h-4 rounded border-border text-brand-500 focus:ring-brand-500"
-              />
-              <span className="text-sm">{cat.label}</span>
-            </label>
-          ))}
-        </div>
-      </FilterSection>
+      {!lockedCategory && (
+        <FilterSection title="Category">
+          <div className="space-y-2">
+            {categories.map((cat) => (
+              <label key={cat.value} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.category.includes(cat.value)}
+                  onChange={() => toggle("category", cat.value)}
+                  className="w-4 h-4 rounded border-border text-brand-500 focus:ring-brand-500"
+                />
+                <span className="text-sm">{cat.label}</span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
 
       <FilterSection title="Gender">
         <div className="flex gap-2 flex-wrap">

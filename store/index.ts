@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CartItem, Product, FilterState } from "@/types";
+import type { CartItem, FilterState } from "@/types";
 
-// ─── Cart Store ──────────────────────────────────────────────────────────────
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
@@ -22,48 +21,49 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
       isOpen: false,
-
       addItem: (newItem) => {
-        const existing = get().items.find((i) => i.variantId === newItem.variantId);
+        const existing = get().items.find((item) => item.variant.id === newItem.variant.id);
         if (existing) {
-          set((s) => ({
-            items: s.items.map((i) =>
-              i.variantId === newItem.variantId
-                ? { ...i, quantity: i.quantity + newItem.quantity }
-                : i
+          set((state) => ({
+            items: state.items.map((item) =>
+              item.variant.id === newItem.variant.id
+                ? { ...item, quantity: item.quantity + newItem.quantity }
+                : item
             ),
           }));
-        } else {
-          set((s) => ({ items: [...s.items, newItem] }));
+          return;
         }
+
+        set((state) => ({ items: [...state.items, newItem] }));
       },
-
       removeItem: (variantId) =>
-        set((s) => ({ items: s.items.filter((i) => i.variantId !== variantId) })),
-
+        set((state) => ({
+          items: state.items.filter((item) => item.variant.id !== variantId),
+        })),
       updateQuantity: (variantId, quantity) => {
         if (quantity <= 0) {
           get().removeItem(variantId);
           return;
         }
-        set((s) => ({
-          items: s.items.map((i) => (i.variantId === variantId ? { ...i, quantity } : i)),
+
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.variant.id === variantId ? { ...item, quantity } : item
+          ),
         }));
       },
-
       clearCart: () => set({ items: [] }),
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
-      toggleCart: () => set((s) => ({ isOpen: !s.isOpen })),
-
-      totalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
-      totalPrice: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
+      totalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
+      totalPrice: () =>
+        get().items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0),
     }),
     { name: "ske-cart" }
   )
 );
 
-// ─── Demo/Mock Store ──────────────────────────────────────────────────────────
 interface DemoStore {
   useMockData: boolean;
   toggleMockData: () => void;
@@ -71,28 +71,28 @@ interface DemoStore {
 
 export const useDemoStore = create<DemoStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       useMockData: process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "false",
-      toggleMockData: () => set((s) => ({ useMockData: !s.useMockData })),
+      toggleMockData: () => set((state) => ({ useMockData: !state.useMockData })),
     }),
     { name: "ske-demo" }
   )
 );
 
-// ─── Filter Store ─────────────────────────────────────────────────────────────
 interface FilterStore {
   filters: FilterState;
-  setCategory: (category: FilterState["category"]) => void;
+  setCategory: (category: string[]) => void;
   toggleColor: (color: string) => void;
   toggleSize: (size: string) => void;
   setPriceRange: (range: [number, number]) => void;
-  setSortBy: (sortBy: FilterState["sortBy"]) => void;
+  setSortBy: (sortBy: string) => void;
   setSearch: (search: string) => void;
   resetFilters: () => void;
 }
 
 const defaultFilters: FilterState = {
-  category: "all",
+  category: [],
+  gender: [],
   colors: [],
   sizes: [],
   priceRange: [1000, 20000],
@@ -102,39 +102,35 @@ const defaultFilters: FilterState = {
 
 export const useFilterStore = create<FilterStore>()((set) => ({
   filters: defaultFilters,
-
-  setCategory: (category) => set((s) => ({ filters: { ...s.filters, category } })),
-
+  setCategory: (category) =>
+    set((state) => ({ filters: { ...state.filters, category } })),
   toggleColor: (color) =>
-    set((s) => ({
+    set((state) => ({
       filters: {
-        ...s.filters,
-        colors: s.filters.colors.includes(color)
-          ? s.filters.colors.filter((c) => c !== color)
-          : [...s.filters.colors, color],
+        ...state.filters,
+        colors: state.filters.colors.includes(color)
+          ? state.filters.colors.filter((value) => value !== color)
+          : [...state.filters.colors, color],
       },
     })),
-
   toggleSize: (size) =>
-    set((s) => ({
+    set((state) => ({
       filters: {
-        ...s.filters,
-        sizes: s.filters.sizes.includes(size)
-          ? s.filters.sizes.filter((sz) => sz !== size)
-          : [...s.filters.sizes, size],
+        ...state.filters,
+        sizes: state.filters.sizes.includes(size)
+          ? state.filters.sizes.filter((value) => value !== size)
+          : [...state.filters.sizes, size],
       },
     })),
-
-  setPriceRange: (range) => set((s) => ({ filters: { ...s.filters, priceRange: range } })),
-
-  setSortBy: (sortBy) => set((s) => ({ filters: { ...s.filters, sortBy } })),
-
-  setSearch: (search) => set((s) => ({ filters: { ...s.filters, search } })),
-
+  setPriceRange: (priceRange) =>
+    set((state) => ({ filters: { ...state.filters, priceRange } })),
+  setSortBy: (sortBy) =>
+    set((state) => ({ filters: { ...state.filters, sortBy } })),
+  setSearch: (search) =>
+    set((state) => ({ filters: { ...state.filters, search } })),
   resetFilters: () => set({ filters: defaultFilters }),
 }));
 
-// ─── Wishlist Store ───────────────────────────────────────────────────────────
 interface WishlistStore {
   productIds: string[];
   toggle: (id: string) => void;
@@ -146,10 +142,10 @@ export const useWishlistStore = create<WishlistStore>()(
     (set, get) => ({
       productIds: [],
       toggle: (id) =>
-        set((s) => ({
-          productIds: s.productIds.includes(id)
-            ? s.productIds.filter((p) => p !== id)
-            : [...s.productIds, id],
+        set((state) => ({
+          productIds: state.productIds.includes(id)
+            ? state.productIds.filter((productId) => productId !== id)
+            : [...state.productIds, id],
         })),
       has: (id) => get().productIds.includes(id),
     }),

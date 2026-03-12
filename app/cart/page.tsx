@@ -1,5 +1,6 @@
 "use client";
 import { useCartStore } from "@/lib/store";
+import { buildProductHref } from "@/lib/product-routes";
 import { formatKES } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,8 +8,28 @@ import { Plus, Minus, X, Smartphone, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, total, clearCart } = useCartStore();
-  const cartTotal = total();
+  const { hasHydrated, items, removeItem, updateQuantity, total, clearCart, itemCount } =
+    useCartStore();
+  const cartTotal = hasHydrated ? total() : 0;
+  const totalItems = hasHydrated ? itemCount() : 0;
+
+  if (!hasHydrated) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="space-y-4">
+          <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              {[...Array(2)].map((_, index) => (
+                <div key={index} className="h-36 rounded-xl bg-muted animate-pulse" />
+              ))}
+            </div>
+            <div className="h-72 rounded-2xl bg-muted animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -29,7 +50,7 @@ export default function CartPage() {
         <Link href="/shop" className="p-2 rounded-lg hover:bg-muted transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-2xl font-black">Your Cart ({items.length} items)</h1>
+        <h1 className="text-2xl font-black">Your Cart ({totalItems} items)</h1>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -48,7 +69,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between">
-                    <Link href={`/product/${item.product.slug}`} className="font-bold hover:text-brand-500 transition-colors">
+                    <Link href={buildProductHref(item.product)} className="font-bold hover:text-brand-500 transition-colors">
                       {item.product.name}
                     </Link>
                     <button onClick={() => removeItem(item.variant.id)} className="text-muted-foreground hover:text-destructive">

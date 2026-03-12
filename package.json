@@ -4,15 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "next lint",
+    "test:integration": "node --experimental-strip-types scripts/run-integration-tests.mjs",
+    "cleanup:reservations": "node --import tsx scripts/cleanup-expired-reservations.ts",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node --loader tsx prisma/seed.ts",
+    "prisma:seed": "node --import tsx prisma/seed.ts",
     "prisma:db:push": "prisma db push"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.39.0",
     "@hookform/resolvers": "^3.9.0",
+    "@prisma/client": "^6.0.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.0",
@@ -25,6 +29,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.0",
     "@radix-ui/react-tooltip": "^1.1.0",
+    "@radix-ui/react-visually-hidden": "^1.2.4",
     "@tanstack/react-table": "^8.20.0",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.0",
@@ -32,6 +37,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.3.0",
     "framer-motion": "^11.11.0",
+    "fuse.js": "^7.1.0",
     "lucide-react": "^0.454.0",
     "next": "^15.0.0",
     "next-themes": "^0.4.3",
@@ -45,7 +51,6 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "@prisma/client": "^6.0.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.7.0",
     "@types/react": "^18.3.0",

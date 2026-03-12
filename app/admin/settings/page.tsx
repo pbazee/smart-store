@@ -1,9 +1,10 @@
 "use client";
-import { useDemoStore } from "@/lib/store";
-import { Database, Key, Zap, ExternalLink } from "lucide-react";
+
+import { Database, ExternalLink, Key, Zap } from "lucide-react";
+import { shouldUseMockData } from "@/lib/live-data-mode";
 
 export default function AdminSettings() {
-  const { isMockMode, toggleMockMode } = useDemoStore();
+  const isMockMode = shouldUseMockData();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -12,7 +13,6 @@ export default function AdminSettings() {
         <p className="text-zinc-400 text-sm">Configure your store integrations</p>
       </div>
 
-      {/* Demo Mode Card */}
       <div className={`p-6 rounded-2xl border ${isMockMode ? "bg-amber-500/10 border-amber-500/30" : "bg-green-500/10 border-green-500/30"}`}>
         <div className="flex items-center gap-3 mb-3">
           <Database className={`w-6 h-6 ${isMockMode ? "text-amber-400" : "text-green-400"}`} />
@@ -23,12 +23,9 @@ export default function AdminSettings() {
             ? "Currently using mock data (products.json + orders.json). No real database connected. Perfect for demos and development."
             : "Connected to real Supabase database. All changes persist."}
         </p>
-        <button
-          onClick={toggleMockMode}
-          className={`px-6 py-2.5 font-bold rounded-xl transition-colors ${isMockMode ? "bg-amber-500 hover:bg-amber-400 text-black" : "bg-green-500 hover:bg-green-400 text-black"}`}
-        >
-          {isMockMode ? "Switch to Live Mode" : "Switch to Demo Mode"}
-        </button>
+        <p className="text-xs text-zinc-500">
+          Switch data sources by changing <code>USE_MOCK_DATA</code> and restarting the server.
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -45,8 +42,12 @@ export default function AdminSettings() {
                 <p className="text-xs text-zinc-500 mt-0.5">{item.sub}</p>
               </div>
             </div>
-            <a href={item.href} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium whitespace-nowrap">
+            <a
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium whitespace-nowrap"
+            >
               Configure <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -57,10 +58,15 @@ export default function AdminSettings() {
         <h3 className="font-bold mb-3">Environment Variables</h3>
         <pre className="text-xs text-zinc-400 bg-zinc-950 p-3 rounded-lg overflow-x-auto">
 {`# .env.local
-USE_MOCK_DATA=true
+USE_MOCK_DATA=false
 
-# Switch to false + add these for live mode:
-DATABASE_URL="postgresql://..."
+# Runtime database (Supabase pooler)
+DATABASE_URL="postgresql://...:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1"
+
+# Migrations / prisma db push
+DIRECT_URL="postgresql://...:5432/postgres?sslmode=require"
+
+AUTH_SESSION_SECRET="change-me"
 NEXT_PUBLIC_SUPABASE_URL="https://..."
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY="pk_live_..."
 PAYSTACK_SECRET_KEY="sk_live_..."`}

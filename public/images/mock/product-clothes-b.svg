@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="140" y1="90" x2="1040" y2="1510" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#172554"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="hoodie" x1="340" y1="320" x2="860" y2="1260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1600" fill="url(#bg)"/>
+  <rect x="170" y="168" width="340" height="340" rx="170" fill="#fff" fill-opacity=".05"/>
+  <rect x="782" y="1108" width="220" height="220" rx="110" fill="#fff" fill-opacity=".04"/>
+  <path d="M465 310h270l155 129-84 148-31 541c-2 44-38 79-82 79H507c-44 0-80-35-82-79l-31-541-84-148 155-129Z" fill="url(#hoodie)"/>
+  <path d="M505 310c12 69 52 118 95 118s83-49 95-118" stroke="#fff" stroke-opacity=".28" stroke-width="20" stroke-linecap="round"/>
+  <path d="M506 767h188" stroke="#fff" stroke-opacity=".35" stroke-width="22" stroke-linecap="round"/>
+  <path d="M448 868h304" stroke="#fff" stroke-opacity=".25" stroke-width="18" stroke-linecap="round"/>
+  <text x="88" y="1360" fill="#fff" fill-opacity=".74" font-family="Arial, Helvetica, sans-serif" font-size="34" letter-spacing="6">SMARTEST STORE KE</text>
+  <text x="88" y="1452" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="94" font-weight="700">THREADS</text>
+</svg>

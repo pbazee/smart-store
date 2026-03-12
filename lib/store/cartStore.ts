@@ -6,8 +6,8 @@ interface CartStore {
   items: CartItem[];
   isOpen: boolean;
   addItem: (product: Product, color: string, size: string) => void;
-  removeItem: (variantKey: string) => void;
-  updateQuantity: (variantKey: string, quantity: number) => void;
+  removeItem: (variantId: string) => void;
+  updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -22,31 +22,51 @@ export const useCartStore = create<CartStore>()(
       items: [],
       isOpen: false,
       addItem: (product, color, size) => {
-        const variantKey = `${product.id}-${color}-${size}`;
-        const existingItem = get().items.find((i) => i.variantKey === variantKey);
+        const variant = product.variants.find(
+          (candidate) => candidate.color === color && candidate.size === size
+        );
+
+        if (!variant) {
+          return;
+        }
+
+        const existingItem = get().items.find((item) => item.variant.id === variant.id);
         if (existingItem) {
           set((state) => ({
             items: state.items.map((item) =>
-              item.variantKey === variantKey ? { ...item, quantity: item.quantity + 1 } : item
+              item.variant.id === variant.id ? { ...item, quantity: item.quantity + 1 } : item
             ),
           }));
-        } else {
-          set((state) => ({
-            items: [...state.items, { product, selectedColor: color, selectedSize: size, quantity: 1, variantKey }],
-          }));
+          return;
         }
+
+        set((state) => ({
+          items: [...state.items, { product, variant, quantity: 1 }],
+        }));
       },
-      removeItem: (variantKey) => set((state) => ({ items: state.items.filter((item) => item.variantKey !== variantKey) })),
-      updateQuantity: (variantKey, quantity) => {
-        if (quantity <= 0) { get().removeItem(variantKey); return; }
-        set((state) => ({ items: state.items.map((item) => item.variantKey === variantKey ? { ...item, quantity } : item) }));
+      removeItem: (variantId) =>
+        set((state) => ({
+          items: state.items.filter((item) => item.variant.id !== variantId),
+        })),
+      updateQuantity: (variantId, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(variantId);
+          return;
+        }
+
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.variant.id === variantId ? { ...item, quantity } : item
+          ),
+        }));
       },
       clearCart: () => set({ items: [] }),
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
       totalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
-      totalPrice: () => get().items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+      totalPrice: () =>
+        get().items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0),
     }),
     { name: "smartest-store-cart" }
   )

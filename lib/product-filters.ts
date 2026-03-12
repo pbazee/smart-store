@@ -1,0 +1,92 @@
+import type { FilterState, Product } from "@/types";
+import { getProductListFilterConfig } from "@/lib/catalog-config";
+import { smartSearchProducts } from "@/lib/smart-search";
+
+type ProductFilterOptions = {
+  filters: FilterState;
+  tag?: string | null;
+  filterKey?: string | null;
+  lockedCategory?: string;
+};
+
+export function filterProductCatalog(
+  products: Product[],
+  options: ProductFilterOptions
+): Product[] {
+  const { filters, tag, filterKey, lockedCategory } = options;
+  const selectedCategories = lockedCategory ? [lockedCategory] : filters.category;
+  const selectedGenders = filters.gender;
+  const filterConfig = getProductListFilterConfig(filterKey);
+  let results = [...products];
+
+  if (filterConfig) {
+    results = results.filter(filterConfig.predicate);
+  } else if (tag) {
+    results = results.filter((product) => product.tags.includes(tag));
+  }
+
+  if (filters.search) {
+    results = smartSearchProducts(results, filters.search).results;
+  }
+
+  if (selectedCategories.length > 0) {
+    results = results.filter((product) =>
+      selectedCategories.some(
+        (category) =>
+          product.category === category || product.subcategory === category
+      )
+    );
+  }
+
+  if (selectedGenders.length > 0) {
+    results = results.filter((product) =>
+      selectedGenders.some(
+        (gender) => product.gender === gender || product.gender === "unisex"
+      )
+    );
+  }
+
+  results = results.filter(
+    (product) =>
+      product.basePrice >= filters.priceRange[0] &&
+      product.basePrice <= filters.priceRange[1]
+  );
+
+  if (filters.colors.length > 0) {
+    results = results.filter((product) =>
+      product.variants.some((variant) =>
+        filters.colors.some((color) =>
+          variant.color.toLowerCase().includes(color.toLowerCase())
+        )
+      )
+    );
+  }
+
+  if (filters.sizes.length > 0) {
+    results = results.filter((product) =>
+      product.variants.some((variant) => filters.sizes.includes(variant.size))
+    );
+  }
+
+  if (filters.sortBy === "price-asc") {
+    results = [...results].sort((a, b) => a.basePrice - b.basePrice);
+  }
+
+  if (filters.sortBy === "price-desc") {
+    results = [...results].sort((a, b) => b.basePrice - a.basePrice);
+  }
+
+  if (filters.sortBy === "rating") {
+    results = [...results].sort((a, b) => b.rating - a.rating);
+  }
+
+  if (filters.sortBy === "new") {
+    results = results.filter((product) => product.isNew);
+  }
+
+  if (filters.sortBy === "featured") {
+    results = [...results].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured));
+  }
+
+  return results;
+}

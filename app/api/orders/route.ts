@@ -1,75 +1,34 @@
-import { NextResponse } from "next/server";
-import { mockOrders } from "@/lib/mock-data";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUserId, isAuthenticated } from "@/lib/auth-utils";
+import { releaseExpiredReservations } from "@/lib/order-reservations";
 
-const USE_MOCK_DATA = process.env.USE_MOCK_DATA === "true";
-
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    if (USE_MOCK_DATA) {
-      return NextResponse.json({ orders: mockOrders, total: mockOrders.length });
-    } else {
-      const { PrismaClient } = await import("@prisma/client");
-      const prisma = new PrismaClient();
-
-      const orders = await prisma.order.findMany({
-        orderBy: { createdAt: "desc" },
-      });
-
-      await prisma.$disconnect();
-      return NextResponse.json({ orders, total: orders.length });
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-  } catch (error) {
-    console.error("Orders GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch orders" },
-      { status: 500 }
-    );
-  }
-}
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-
-    if (USE_MOCK_DATA) {
-      // Mock mode
-      const newOrder = {
-        id: `ord_${Date.now()}`,
-        orderNumber: `SSK-${Math.floor(Math.random() * 9000 + 1000)}`,
-        ...body,
-        status: "pending",
-        paymentStatus: "pending",
-        createdAt: new Date().toISOString(),
-      };
-      return NextResponse.json({ order: newOrder, success: true }, { status: 201 });
-    } else {
-      // Real database
-      const { PrismaClient } = await import("@prisma/client");
-      const prisma = new PrismaClient();
-
-      const newOrder = await prisma.order.create({
-        data: {
-          orderNumber: `SSK-${Math.floor(Math.random() * 9000 + 1000)}`,
-          customerName: body.customerName,
-          customerEmail: body.customerEmail,
-          customerPhone: body.customerPhone,
-          status: "PENDING",
-          paymentStatus: "PENDING",
-          paymentMethod: body.paymentMethod || "paystack",
-          total: body.total,
-          address: body.address,
-          items: body.items,
-        },
-      });
-
-      await prisma.$disconnect();
-      return NextResponse.json({ order: newOrder, success: true }, { status: 201 });
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    await releaseExpiredReservations();
+
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      include: { items: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: orders,
+    });
   } catch (error) {
-    console.error("Orders POST error:", error);
-    return NextResponse.json(
-      { error: "Failed to create order" },
-      { status: 500 }
-    );
+    console.error("Error fetching orders:", error);
+    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
   }
 }

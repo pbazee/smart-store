@@ -164,3 +164,4 @@ Visit `/admin` to see the full admin dashboard:
 ---
 
 Made with ❤️ in Nairobi, Kenya 🇰🇪
+# BestShop

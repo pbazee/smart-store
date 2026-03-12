@@ -1,147 +1,225 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { ShoppingBag, Search, Menu, X, Sun, Moon } from "lucide-react";
+import { AccountMenu } from "@/components/layout/account-menu";
+import { SiteMenuDrawer } from "@/components/layout/site-menu-drawer";
+import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { useSessionUser } from "@/hooks/use-session-user";
 
-const navLinks = [
-  { href: "/shop", label: "Shop All" },
-  { href: "/shop?category=shoes", label: "Shoes" },
-  { href: "/shop?category=clothes", label: "Clothes" },
-  { href: "/shop?tags=new-arrival", label: "New Arrivals" },
-  { href: "/shop?tags=trending", label: "Trending" },
-];
+function DesktopNavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-full px-3 py-2 text-sm font-semibold transition-colors",
+        active
+          ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
 
 export function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const { itemCount, toggleCart } = useCartStore();
-  const count = itemCount();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { sessionUser } = useSessionUser();
+  const { hasHydrated, itemCount, toggleCart } = useCartStore();
+  const count = hasHydrated ? itemCount() : 0;
+
+  const submitSearch = (form: HTMLFormElement) => {
+    const q = (form.elements.namedItem("q") as HTMLInputElement).value;
+    if (!q.trim()) {
+      return;
+    }
+
+    router.push(`/products?search=${encodeURIComponent(q.trim())}`);
+    setSearchOpen(false);
+    setMenuOpen(false);
+  };
+
+  const toggleMenu = () => {
+    setMenuOpen((open) => !open);
+    setSearchOpen(false);
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-500 rounded-sm flex items-center justify-center">
-              <span className="text-white font-bold text-xs">SK</span>
-            </div>
-            <span className="font-bold text-lg tracking-tight hidden sm:block">
-              Smartest Store <span className="text-brand-500">KE</span>
-            </span>
-          </Link>
-
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/92 backdrop-blur-xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid min-h-[76px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-3 py-3">
+          <div className="flex min-w-0 items-center gap-3">
             <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 rounded-md hover:bg-muted transition-colors"
+              type="button"
+              className="rounded-full border border-border/70 p-2.5 transition-colors hover:bg-muted"
+              onClick={toggleMenu}
+              aria-label="Open menu"
             >
-              <Search className="w-5 h-5" />
+              <Menu className="h-5 w-5" />
             </button>
+
+            <Link href="/" className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-xs font-black text-white shadow-md">
+                SK
+              </div>
+              <div className="min-w-0">
+                <span className="block truncate font-display text-lg font-black tracking-tight sm:hidden">
+                  Smartest
+                </span>
+                <span className="hidden truncate font-display text-xl font-black tracking-tight sm:block">
+                  Smartest Store KE
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitSearch(event.currentTarget);
+            }}
+            className="relative mx-auto hidden w-full max-w-2xl md:block"
+          >
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              name="q"
+              type="text"
+              defaultValue={searchParams.get("search") ?? ""}
+              placeholder="Search products..."
+              className="h-11 w-full rounded-full border border-border/70 bg-muted/35 pl-11 pr-5 text-sm font-medium text-foreground outline-none transition-all focus:border-orange-300 focus:bg-background focus:ring-2 focus:ring-orange-500/20"
+            />
+          </form>
+
+          <div className="flex items-center justify-end gap-1 lg:gap-2">
+            <nav className="hidden items-center gap-1 lg:flex">
+              {primaryCategoryLinks.map((link) => (
+                <DesktopNavLink
+                  key={link.href}
+                  href={link.href}
+                  label={link.label}
+                  active={isNavigationLinkActive(pathname, searchParams, link.href)}
+                />
+              ))}
+            </nav>
+
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-md hover:bg-muted transition-colors"
+              type="button"
+              onClick={() => {
+                setSearchOpen((open) => !open);
+                setMenuOpen(false);
+              }}
+              className="rounded-full p-2.5 transition-colors hover:bg-muted md:hidden"
+              aria-label="Toggle search"
             >
-              <Sun className="w-5 h-5 dark:hidden" />
-              <Moon className="w-5 h-5 hidden dark:block" />
+              <Search className="h-5 w-5" />
             </button>
+
+            <Link
+              href="/wishlist"
+              className={cn(
+                "rounded-full p-2.5 transition-colors hover:bg-muted",
+                pathname === "/wishlist" && "bg-muted text-foreground"
+              )}
+              aria-label="Open wishlist"
+            >
+              <Heart className="h-5 w-5" />
+            </Link>
+
             <button
+              type="button"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="rounded-full p-2.5 transition-colors hover:bg-muted"
+              aria-label="Toggle theme"
+            >
+              <Sun className="h-5 w-5 dark:hidden" />
+              <Moon className="hidden h-5 w-5 dark:block" />
+            </button>
+
+            <button
+              type="button"
               onClick={toggleCart}
-              className="p-2 rounded-md hover:bg-muted transition-colors relative"
+              className={cn(
+                "relative rounded-full p-2.5 transition-colors hover:bg-muted",
+                pathname === "/cart" && "bg-muted text-foreground"
+              )}
+              aria-label="Open cart"
               suppressHydrationWarning
             >
-              <ShoppingBag className="w-5 h-5" />
+              <ShoppingCart className="h-5 w-5" />
               {count > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 text-white rounded-full text-xs flex items-center justify-center font-bold"
+                  className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white"
+                  suppressHydrationWarning
                 >
                   {count}
                 </motion.span>
               )}
             </button>
-            <button
-              className="md:hidden p-2 rounded-md hover:bg-muted"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+
+            <AccountMenu />
           </div>
         </div>
 
-        {/* Search Bar */}
         <AnimatePresence>
           {searchOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden pb-3"
+              className="overflow-hidden md:hidden"
             >
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value;
-                  window.location.href = `/shop?search=${encodeURIComponent(q)}`;
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submitSearch(event.currentTarget);
                 }}
+                className="pb-4"
               >
-                <input
-                  name="q"
-                  type="text"
-                  autoFocus
-                  placeholder="Search shoes, hoodies, dresses..."
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
-                />
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    name="q"
+                    type="text"
+                    autoFocus
+                    defaultValue={searchParams.get("search") ?? ""}
+                    placeholder="Search products..."
+                    className="h-11 w-full rounded-2xl border border-border/70 bg-muted/35 pl-11 pr-5 text-sm font-medium outline-none transition-colors focus:border-orange-300 focus:bg-background"
+                  />
+                </div>
               </form>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Mobile Nav */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: "auto" }}
-            exit={{ height: 0 }}
-            className="overflow-hidden border-t border-border md:hidden"
-          >
-            <nav className="flex flex-col gap-1 p-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="px-3 py-2 rounded-md hover:bg-muted text-sm font-medium"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SiteMenuDrawer
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        isSignedIn={!!sessionUser}
+        isAdmin={sessionUser?.role === "admin"}
+      />
     </header>
   );
 }

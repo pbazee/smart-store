@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="100" y1="80" x2="1100" y2="1520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4c0519"/>
+      <stop offset="1" stop-color="#1f2937"/>
+    </linearGradient>
+    <linearGradient id="dress" x1="420" y1="340" x2="790" y2="1260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1600" fill="url(#bg)"/>
+  <circle cx="920" cy="260" r="240" fill="#fff" fill-opacity=".05"/>
+  <circle cx="260" cy="1290" r="240" fill="#fff" fill-opacity=".04"/>
+  <path d="M540 318h120c66 0 120 54 120 120v46l108 102-108 74 141 482c13 46-21 92-69 92H349c-48 0-82-46-69-92l141-482-108-74 108-102v-46c0-66 54-120 119-120Z" fill="url(#dress)"/>
+  <path d="M456 531c42 34 93 51 144 51s102-17 144-51" stroke="#fff" stroke-opacity=".35" stroke-width="20" stroke-linecap="round"/>
+  <path d="M600 318v214" stroke="#fff" stroke-opacity=".18" stroke-width="18" stroke-linecap="round"/>
+  <text x="88" y="1360" fill="#fff" fill-opacity=".7" font-family="Arial, Helvetica, sans-serif" font-size="34" letter-spacing="6">SMARTEST STORE KE</text>
+  <text x="88" y="1452" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="94" font-weight="700">STYLE</text>
+</svg>

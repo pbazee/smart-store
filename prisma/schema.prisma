@@ -5,6 +5,20 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  firstName String?
+  lastName  String?
+  fullName  String?
+  role      UserRole @default(CUSTOMER)
+  passwordHash String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Product {
@@ -23,8 +37,79 @@ model Product {
   isFeatured  Boolean   @default(false)
   isNew       Boolean   @default(false)
   variants    Variant[]
+  reviews     Review[]
+  wishlists   WishlistItem[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AnnouncementMessage {
+  id        String   @id @default(cuid())
+  text      String
+  icon      String
+  link      String?
+  bgColor   String?
+  textColor String?
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, order])
+}
+
+model HomepageCategory {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  link      String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, order])
+}
+
+model Blog {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String
+  imageUrl    String
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, publishedAt])
+}
+
+model Coupon {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  discountType   CouponDiscountType
+  discountValue  Float
+  minOrderAmount Float?
+  maxUsage       Int?
+  usedCount      Int                @default(0)
+  expiresAt      DateTime?
+  isActive       Boolean            @default(true)
+  orders         Order[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([isActive, expiresAt])
 }
 
 model Variant {
@@ -36,35 +121,111 @@ model Variant {
   price     Int
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  orderNumber   String      @unique
-  customerName  String
-  customerEmail String
-  customerPhone String
-  status        OrderStatus @default(PENDING)
-  paymentStatus PayStatus   @default(PENDING)
-  paymentMethod String
-  total         Int
-  address       String
-  items         Json
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                   String      @id @default(cuid())
+  userId               String?
+  user                 User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderNumber          String      @unique
+  customerName         String
+  customerEmail        String
+  customerPhone        String
+  status               OrderStatus @default(pending)
+  paymentStatus        PayStatus   @default(pending)
+  paymentMethod        String
+  subtotal             Int         @default(0)
+  shippingAmount       Int         @default(0)
+  discountAmount       Int         @default(0)
+  couponCode           String?
+  coupon               Coupon?     @relation(fields: [couponCode], references: [code], onDelete: SetNull, onUpdate: Cascade)
+  total                Int
+  address              String
+  city                 String
+  notes                String      @default("")
+  paystackReference    String?     @unique
+  paymentVerifiedAt    DateTime?
+  stockReservedAt      DateTime?
+  reservationExpiresAt DateTime?
+  stockReleasedAt      DateTime?
+  items                OrderItem[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([reservationExpiresAt])
+  @@index([couponCode])
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  productId   String
+  variantId   String?
+  productName String
+  price       Int
+  quantity    Int
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  userId           String?
+  authorName       String
+  authorCity       String?
+  rating           Int
+  title            String?
+  content          String
+  verifiedPurchase Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }
 
 enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
 }
 
 enum PayStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum CouponDiscountType {
+  percentage
+  fixed
 }

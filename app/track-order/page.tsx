@@ -1,0 +1,215 @@
+"use client";
+import { useState } from "react";
+import { formatKES } from "@/lib/utils";
+
+export default function TrackOrderPage() {
+  const [orderNumber, setOrderNumber] = useState("");
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    // Simulate API call - replace with actual API
+    setTimeout(() => {
+      // Mock order data
+      const mockOrder = {
+        orderNumber: orderNumber.toUpperCase(),
+        status: "shipped",
+        customerName: "John Doe",
+        items: [
+          { name: "Nairobi Air Max", quantity: 1, price: 8999 },
+          { name: "Westlands Hoodie", quantity: 1, price: 4999 }
+        ],
+        total: 13998,
+        shippingAddress: "123 Ngong Road, Nairobi",
+        trackingNumber: "KE" + Math.floor(Math.random() * 1000000),
+        estimatedDelivery: "March 15, 2026"
+      };
+
+      if (orderNumber.toLowerCase().includes("ss")) {
+        setOrder(mockOrder);
+      } else {
+        setError("Order not found. Please check your order number.");
+      }
+      setLoading(false);
+    }, 1000);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "processing": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      case "shipped": return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
+      case "delivered": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+    }
+  };
+
+  const getStatusSteps = (status: string) => {
+    const steps = [
+      { name: "Order Placed", completed: true },
+      { name: "Processing", completed: ["processing", "shipped", "delivered"].includes(status) },
+      { name: "Shipped", completed: ["shipped", "delivered"].includes(status) },
+      { name: "Delivered", completed: status === "delivered" }
+    ];
+    return steps;
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-black mb-4">Track Your Order</h1>
+        <p className="text-xl text-muted-foreground">
+          Enter your order number to see the latest updates
+        </p>
+      </div>
+
+      {!order ? (
+        <div className="max-w-md mx-auto">
+          <form onSubmit={handleTrack} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Order Number</label>
+              <input
+                type="text"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-brand-500 text-lg"
+                placeholder="e.g. SSK-123456"
+                required
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Found on your order confirmation email/SMS
+              </p>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors text-lg"
+            >
+              {loading ? "Searching..." : "Track Order"}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Order Status */}
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">Order {order.orderNumber}</h2>
+                <p className="text-muted-foreground">Placed for {order.customerName}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
+                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              </span>
+            </div>
+
+            {/* Progress Steps */}
+            <div className="flex items-center justify-between mb-6">
+              {getStatusSteps(order.status).map((step, index) => (
+                <div key={step.name} className="flex items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    step.completed
+                      ? "bg-brand-500 text-white"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {step.completed ? "✓" : index + 1}
+                  </div>
+                  <span className={`ml-2 text-sm font-medium ${
+                    step.completed ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {step.name}
+                  </span>
+                  {index < 3 && (
+                    <div className={`w-12 h-0.5 mx-4 ${
+                      step.completed ? "bg-brand-500" : "bg-border"
+                    }`} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Delivery Info */}
+            {order.status === "shipped" && (
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  📦 Out for Delivery
+                </h3>
+                <p className="text-blue-800 dark:text-blue-200 text-sm">
+                  Tracking: <span className="font-mono font-bold">{order.trackingNumber}</span><br />
+                  Estimated delivery: {order.estimatedDelivery}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Order Details */}
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Order Items</h3>
+                <div className="space-y-3">
+                  {order.items.map((item: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center py-2 border-b border-border">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                      </div>
+                      <p className="font-semibold">{formatKES(item.price)}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center pt-3 font-bold">
+                  <span>Total</span>
+                  <span>{formatKES(order.total)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Shipping Address</h3>
+                <p className="text-muted-foreground">{order.shippingAddress}</p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Need Help?</h3>
+                <div className="space-y-2 text-sm">
+                  <a href="/contact" className="block text-brand-500 hover:text-brand-600">
+                    Contact Customer Service
+                  </a>
+                  <a href="/returns" className="block text-brand-500 hover:text-brand-600">
+                    Return Policy
+                  </a>
+                  <a href="tel:+254700123456" className="block text-brand-500 hover:text-brand-600">
+                    Call +254 700 123 456
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={() => setOrder(null)}
+              className="text-brand-500 hover:text-brand-600 font-medium"
+            >
+              ← Track Another Order
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

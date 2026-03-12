@@ -2,13 +2,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Plus, Minus, ShoppingBag, Smartphone } from "lucide-react";
+import { X, Plus, Minus, ShoppingCart, Smartphone } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 import { formatKES } from "@/lib/utils";
 
 export function CartDrawer() {
-  const { items, isOpen, toggleCart, removeItem, updateQuantity, total } = useCartStore();
-  const cartTotal = total();
+  const { hasHydrated, items, isOpen, toggleCart, removeItem, updateQuantity, total, itemCount } =
+    useCartStore();
+  const cartTotal = hasHydrated ? total() : 0;
+  const totalItems = hasHydrated ? itemCount() : 0;
 
   return (
     <AnimatePresence>
@@ -33,8 +35,8 @@ export function CartDrawer() {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-brand-500" />
-                <h2 className="font-bold text-lg">Your Cart ({items.length})</h2>
+                <ShoppingCart className="w-5 h-5 text-brand-500" />
+                <h2 className="font-bold text-lg">Your Cart ({totalItems})</h2>
               </div>
               <button onClick={toggleCart} className="p-1.5 rounded-md hover:bg-muted">
                 <X className="w-5 h-5" />
@@ -45,7 +47,7 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-                  <ShoppingBag className="w-16 h-16 text-muted-foreground/30" />
+                  <ShoppingCart className="w-16 h-16 text-muted-foreground/30" />
                   <div>
                     <p className="font-semibold">Your cart is empty</p>
                     <p className="text-sm text-muted-foreground mt-1">Add some fire pieces! 🔥</p>
@@ -70,7 +72,7 @@ export function CartDrawer() {
                   >
                     <div className="w-20 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
                       <Image
-                        src={item.product.images[0]}
+                        src={item.product.images[0] || "/images/product-placeholder.png"}
                         alt={item.product.name}
                         fill
                         className="object-cover"
