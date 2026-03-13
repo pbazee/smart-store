@@ -1,8 +1,5 @@
-import { AdminDashboardView } from "@/app/admin/admin-dashboard-view";
-import { getAdminDashboardStats } from "@/lib/data-service";
+import { redirect } from "next/navigation";
 
-export default async function AdminDashboardPage() {
-  const stats = await getAdminDashboardStats();
-
-  return <AdminDashboardView stats={stats} />;
+export default function AdminIndexPage() {
+  redirect("/admin/dashboard");
 }

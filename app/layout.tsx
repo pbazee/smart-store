@@ -52,7 +52,11 @@ export default async function RootLayout({
   const homepageShellData = await getHomepageShellData();
 
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+      afterSignOutUrl="/"
+    >
       <html lang="en" suppressHydrationWarning>
         <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

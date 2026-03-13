@@ -47,10 +47,11 @@ type AdminNavItem = {
 
 function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
   return [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/announcements", label: "Announcements", icon: Bell },
+    { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
     { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
     { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
     { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },

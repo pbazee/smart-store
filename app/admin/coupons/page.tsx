@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminCouponsPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/login?redirect_url=%2Fadmin%2Fcoupons");
+    redirect("/sign-in?redirect_url=%2Fadmin%2Fcoupons");
   }
 
   const coupons = await fetchAdminCoupons();

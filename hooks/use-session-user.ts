@@ -4,9 +4,10 @@ import { useClerk, useUser } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 import type { SessionUser } from "@/types";
 import { useDemoAuthStore } from "@/lib/demo-auth";
+import { getRoleFromClerkUser } from "@/lib/user-role";
 
 export function useSessionUser() {
-  const { isLoaded } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const { signOut: clerkSignOut } = useClerk();
   const demoUser = useDemoAuthStore((state) => state.user);
   const demoSignOut = useDemoAuthStore((state) => state.signOut);
@@ -44,15 +45,49 @@ export function useSessionUser() {
     return () => {
       isActive = false;
     };
-  }, [demoUser]);
+  }, [demoUser, isLoaded, isSignedIn, user?.id]);
+
+  const clerkSessionUser = useMemo<SessionUser | null>(() => {
+    if (!isLoaded || !isSignedIn || !user) {
+      return null;
+    }
+
+    const roleFromMetadata = getRoleFromClerkUser(user);
+    const role =
+      roleFromMetadata === "guest" ? (serverUser?.role ?? "customer") : roleFromMetadata;
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      email: user.primaryEmailAddress?.emailAddress ?? null,
+      imageUrl: user.imageUrl ?? null,
+      role,
+      isDemo: false,
+      authProvider: "clerk",
+    };
+  }, [isLoaded, isSignedIn, serverUser?.role, user]);
 
   const sessionUser = useMemo<SessionUser | null>(() => {
     if (demoUser?.isDemo) {
       return demoUser;
     }
 
+    if (serverUser?.authProvider === "local") {
+      return serverUser;
+    }
+
+    if (clerkSessionUser) {
+      return clerkSessionUser;
+    }
+
+    if (isLoaded && !isSignedIn) {
+      return null;
+    }
+
     return serverUser;
-  }, [demoUser, serverUser]);
+  }, [clerkSessionUser, demoUser, isLoaded, isSignedIn, serverUser]);
 
   return {
     isLoaded: hasLoadedServerSession && isLoaded,
@@ -61,6 +96,7 @@ export function useSessionUser() {
     signOut: async () => {
       if (sessionUser?.isDemo) {
         demoSignOut();
+        setServerUser(null);
         return;
       }
 
@@ -73,6 +109,7 @@ export function useSessionUser() {
         return;
       }
 
+      setServerUser(null);
       await clerkSignOut({ redirectUrl: "/" });
     },
   };

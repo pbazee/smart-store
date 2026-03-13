@@ -55,8 +55,16 @@ export function CategoryGridClient({
             viewport={{ once: true }}
             transition={{ delay: index * 0.08, duration: 0.4 }}
           >
-            <Link href={category.link} className="group block">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted">
+            <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted shadow-[0_14px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(249,115,22,0.18)]">
+              <Link
+                href={category.link}
+                aria-label={`Browse ${category.title}`}
+                className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <span className="sr-only">Browse {category.title}</span>
+              </Link>
+
+              <div className="relative h-full">
                 <Image
                   src={category.imageUrl}
                   alt={
@@ -70,15 +78,18 @@ export function CategoryGridClient({
                   placeholder="blur"
                   blurDataURL={getBlurDataUrl(category)}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-                <div className="absolute bottom-4 left-4">
-                  <span className="rounded-full bg-white/90 px-4 py-2 text-sm font-bold text-neutral-900 shadow-sm backdrop-blur-sm dark:bg-black/70 dark:text-white">
+                <div className="absolute bottom-4 left-4 right-4 z-20">
+                  <Link
+                    href={category.link}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)] transition-all duration-200 hover:scale-[1.05] hover:brightness-110 hover:shadow-[0_20px_40px_rgba(249,115,22,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent sm:w-auto"
+                  >
                     {category.title}
-                  </span>
+                  </Link>
                 </div>
               </div>
-            </Link>
+            </div>
           </motion.div>
         ))}
       </div>
@@ -92,7 +103,7 @@ export function CategoryGridClient({
       >
         <Link
           href="/shop"
-          className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)] transition-all hover:bg-brand-600 hover:shadow-[0_18px_36px_rgba(249,115,22,0.34)]"
+          className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.03] hover:bg-brand-600 hover:brightness-105 hover:shadow-[0_18px_36px_rgba(249,115,22,0.34)]"
         >
           View More Categories
           <ArrowRight className="h-4 w-4" />

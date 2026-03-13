@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminNewsletterPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/login?redirect_url=%2Fadmin%2Fnewsletter");
+    redirect("/sign-in?redirect_url=%2Fadmin%2Fnewsletter");
   }
 
   const subscribers = await fetchAdminNewsletterSubscribers();

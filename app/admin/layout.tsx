@@ -1,17 +1,21 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { requireAdminAuth } from "@/lib/auth-utils";
 import { getNewsletterSubscribers } from "@/lib/newsletter-service";
+import { getSessionUser } from "@/lib/session-user";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const isAdmin = await requireAdminAuth();
+  const sessionUser = await getSessionUser();
 
-  if (!isAdmin) {
-    redirect("/login?redirect_url=%2Fadmin");
+  if (!sessionUser) {
+    redirect("/sign-in?redirect_url=%2Fadmin%2Fdashboard");
+  }
+
+  if (sessionUser.role !== "admin") {
+    redirect("/");
   }
 
   const subscribers = await getNewsletterSubscribers();

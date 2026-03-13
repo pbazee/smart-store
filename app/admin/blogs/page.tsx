@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminBlogsPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/login?redirect_url=%2Fadmin%2Fblogs");
+    redirect("/sign-in?redirect_url=%2Fadmin%2Fblogs");
   }
 
   const posts = await fetchAdminBlogs();

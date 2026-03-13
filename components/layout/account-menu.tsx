@@ -1,15 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useClerk, useUser } from "@clerk/nextjs";
 import {
+  ArrowRight,
   Heart,
   LayoutDashboard,
-  LogIn,
+  Loader2,
   LogOut,
   Package2,
   User2,
-  UserPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -19,17 +21,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { SessionUser } from "@/types";
 import { useSessionUser } from "@/hooks/use-session-user";
 
-export function AccountMenu() {
-  const router = useRouter();
-  const { sessionUser, signOut } = useSessionUser();
-
+function SignedInAccountMenu({
+  sessionUser,
+  isSigningOut,
+  onSignOut,
+}: {
+  sessionUser: SessionUser;
+  isSigningOut: boolean;
+  onSignOut: () => void;
+}) {
   const displayName =
-    sessionUser?.fullName ||
-    `${sessionUser?.firstName ?? ""} ${sessionUser?.lastName ?? ""}`.trim() ||
+    sessionUser.fullName ||
+    `${sessionUser.firstName ?? ""} ${sessionUser.lastName ?? ""}`.trim() ||
     "Smart Shopper";
-  const triggerLabel = sessionUser?.firstName || displayName.split(" ")[0] || "Account";
+  const triggerLabel = sessionUser.firstName || displayName.split(" ")[0] || "Account";
   const initials =
     displayName
       .split(/\s+/)
@@ -42,104 +50,192 @@ export function AccountMenu() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label={sessionUser ? "Open account menu" : "Open account options"}
+          aria-label="Open account menu"
           className="group inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-2 py-1.5 text-muted-foreground transition-all hover:border-orange-200 hover:bg-muted hover:text-foreground"
         >
-          {sessionUser ? (
-            <>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.24)]">
-                {initials}
-              </span>
-              <span className="hidden max-w-24 truncate text-sm font-semibold text-foreground lg:inline">
-                {triggerLabel}
-              </span>
-            </>
+          {sessionUser.imageUrl ? (
+            <span className="flex h-8 w-8 overflow-hidden rounded-full ring-2 ring-orange-500/15">
+              <img
+                src={sessionUser.imageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </span>
           ) : (
-            <>
-              <User2 className="h-5 w-5 lg:hidden" />
-              <span className="hidden text-sm font-semibold text-foreground lg:inline">
-                Sign In
-              </span>
-              <LogIn className="hidden h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground lg:block" />
-            </>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.24)]">
+              {initials}
+            </span>
           )}
+          <span className="hidden max-w-24 truncate text-sm font-semibold text-foreground lg:inline">
+            {triggerLabel}
+          </span>
         </button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel>
           <div className="space-y-1 normal-case tracking-normal">
-            <p className="text-sm font-semibold text-foreground">
-              {sessionUser ? displayName : "Account"}
-            </p>
+            <p className="text-sm font-semibold text-foreground">{displayName}</p>
             <p className="text-xs text-muted-foreground">
-              {sessionUser
-                ? sessionUser.isDemo
-                  ? "Demo session"
-                  : sessionUser.email
-                : "Sign in to access your profile, orders, and wishlist."}
+              {sessionUser.isDemo ? "Demo session" : sessionUser.email}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {sessionUser ? (
-          <>
-            <DropdownMenuItem asChild>
-              <Link href="/account">
-                <User2 className="h-4 w-4" />
-                My Account
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/orders">
-                <Package2 className="h-4 w-4" />
-                My Orders
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/wishlist">
-                <Heart className="h-4 w-4" />
-                Wishlist
-              </Link>
-            </DropdownMenuItem>
-            {sessionUser.role === "admin" && (
-              <DropdownMenuItem asChild>
-                <Link href="/admin">
-                  <LayoutDashboard className="h-4 w-4" />
-                  Admin Dashboard
-                </Link>
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault();
-                void signOut().then(() => {
-                  router.push("/");
-                  router.refresh();
-                });
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </DropdownMenuItem>
-          </>
-        ) : (
+        <DropdownMenuItem asChild>
+          <Link href="/account">
+            <User2 className="h-4 w-4" />
+            My Account
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/orders">
+            <Package2 className="h-4 w-4" />
+            My Orders
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/wishlist">
+            <Heart className="h-4 w-4" />
+            Wishlist
+          </Link>
+        </DropdownMenuItem>
+        {sessionUser.role === "admin" && (
           <DropdownMenuItem asChild>
-            <Link href="/sign-in">
-              <LogIn className="h-4 w-4" />
-              Sign In
+            <Link href="/admin">
+              <LayoutDashboard className="h-4 w-4" />
+              Admin Dashboard
             </Link>
           </DropdownMenuItem>
         )}
-        {!sessionUser && (
-          <DropdownMenuItem asChild>
-            <Link href="/sign-up">
-              <UserPlus className="h-4 w-4" />
-              Join
-            </Link>
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          disabled={isSigningOut}
+          onSelect={(event) => {
+            event.preventDefault();
+            onSignOut();
+          }}
+        >
+          {isSigningOut ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LogOut className="h-4 w-4" />
+          )}
+          {isSigningOut ? "Signing out..." : "Logout"}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function SignedOutAccountButton({ isLoading = false }: { isLoading?: boolean }) {
+  if (isLoading) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-label="Signing out"
+        className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white opacity-80 shadow-[0_12px_30px_rgba(249,115,22,0.24)]"
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="hidden sm:inline">Signing out...</span>
+        <span className="sm:hidden">...</span>
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href="/sign-in"
+      className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.24)] transition-colors hover:bg-orange-600"
+    >
+      <User2 className="h-4 w-4" />
+      <span className="hidden sm:inline">Sign In / Join</span>
+      <span className="sm:hidden">Sign In</span>
+      <ArrowRight className="h-4 w-4" />
+    </Link>
+  );
+}
+
+function AccountMenuSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-2 py-1.5"
+    >
+      <span className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+      <span className="hidden h-4 w-16 animate-pulse rounded-full bg-muted lg:block" />
+    </div>
+  );
+}
+
+export function AccountMenu() {
+  const router = useRouter();
+  const { signOut: clerkSignOut } = useClerk();
+  const { isLoaded: clerkLoaded, user } = useUser();
+  const { isLoaded, sessionUser, signOut } = useSessionUser();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const normalizedSessionUser =
+    sessionUser?.authProvider === "clerk"
+      ? {
+          ...sessionUser,
+          firstName: user?.firstName ?? sessionUser.firstName,
+          lastName: user?.lastName ?? sessionUser.lastName,
+          fullName: user?.fullName ?? sessionUser.fullName,
+          email: user?.primaryEmailAddress?.emailAddress ?? sessionUser.email ?? null,
+          imageUrl: user?.imageUrl ?? sessionUser.imageUrl ?? null,
+        }
+      : sessionUser;
+
+  const hasFallbackSession =
+    !!normalizedSessionUser && normalizedSessionUser.authProvider !== "clerk";
+
+  const handleSignOut = async () => {
+    if (!normalizedSessionUser || isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+
+    try {
+      if (normalizedSessionUser.authProvider === "clerk") {
+        await clerkSignOut({ redirectUrl: "/" });
+        return;
+      }
+
+      await signOut();
+      router.push("/");
+      router.refresh();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  if (isSigningOut) {
+    return <SignedOutAccountButton isLoading />;
+  }
+
+  if (!isLoaded && !hasFallbackSession) {
+    return <AccountMenuSkeleton />;
+  }
+
+  if (normalizedSessionUser) {
+    return (
+      <SignedInAccountMenu
+        sessionUser={normalizedSessionUser}
+        isSigningOut={isSigningOut}
+        onSignOut={() => {
+          void handleSignOut();
+        }}
+      />
+    );
+  }
+
+  if (!clerkLoaded && !hasFallbackSession) {
+    return <AccountMenuSkeleton />;
+  }
+
+  return <SignedOutAccountButton />;
 }

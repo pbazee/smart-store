@@ -1,5 +1,7 @@
 const DEFAULT_HOMEPAGE_CATEGORY_BUCKET =
   process.env.SUPABASE_HOMEPAGE_CATEGORY_BUCKET || "homepage-categories";
+const DEFAULT_HERO_SLIDE_BUCKET =
+  process.env.SUPABASE_HERO_SLIDE_BUCKET || "hero-slides";
 const DEFAULT_BLOG_IMAGE_BUCKET =
   process.env.SUPABASE_BLOG_IMAGE_BUCKET || "blog-images";
 const DEFAULT_POPUP_IMAGE_BUCKET =
@@ -39,6 +41,10 @@ function getPublicObjectUrl(bucket: string, objectPath: string) {
 
 export function getHomepageCategoryBucketName() {
   return DEFAULT_HOMEPAGE_CATEGORY_BUCKET;
+}
+
+export function getHeroSlideBucketName() {
+  return DEFAULT_HERO_SLIDE_BUCKET;
 }
 
 export function getBlogImageBucketName() {
@@ -162,11 +168,28 @@ export async function uploadHomepageCategoryImage(file: File) {
   });
 }
 
+export async function uploadHeroSlideImage(file: File) {
+  return uploadImageToBucket({
+    file,
+    bucket: DEFAULT_HERO_SLIDE_BUCKET,
+    fallbackName: "hero-slide",
+    contextLabel: "hero slide",
+  });
+}
+
 export async function deleteHomepageCategoryImage(imageUrl?: string | null) {
   return deleteImageFromBucket({
     imageUrl,
     bucket: DEFAULT_HOMEPAGE_CATEGORY_BUCKET,
     contextLabel: "Homepage category",
+  });
+}
+
+export async function deleteHeroSlideImage(imageUrl?: string | null) {
+  return deleteImageFromBucket({
+    imageUrl,
+    bucket: DEFAULT_HERO_SLIDE_BUCKET,
+    contextLabel: "Hero slide",
   });
 }
 

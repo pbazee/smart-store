@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminWhatsAppSettingsPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/login?redirect_url=%2Fadmin%2Fwhatsapp-settings");
+    redirect("/sign-in?redirect_url=%2Fadmin%2Fwhatsapp-settings");
   }
 
   const settings = await fetchAdminWhatsAppSettings();

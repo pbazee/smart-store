@@ -1,7 +1,10 @@
 import { SignUp } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { AuthShell, clerkAppearance } from "@/components/auth/auth-shell";
-import { resolveAuthRedirectPath } from "@/lib/auth-routing";
+import {
+  resolveRequestedRedirectPath,
+  resolveSignedInRedirectPath,
+} from "@/lib/auth-routing";
 import { getSessionUser } from "@/lib/session-user";
 
 export default async function SignUpCatchAllPage({
@@ -10,11 +13,13 @@ export default async function SignUpCatchAllPage({
   searchParams: Promise<{ redirect_url?: string | string[] }>;
 }) {
   const { redirect_url } = await searchParams;
-  const redirectPath = resolveAuthRedirectPath(redirect_url);
+  const redirectPath = resolveRequestedRedirectPath(redirect_url, "/");
+  const completeSignUpPath = "/auth/complete?flow=sign-up";
+  const completeSignInPath = `/auth/complete?flow=sign-in&redirect_url=${encodeURIComponent(redirectPath)}`;
   const sessionUser = await getSessionUser();
 
   if (sessionUser) {
-    redirect(redirectPath);
+    redirect(resolveSignedInRedirectPath(sessionUser.role, null, "/"));
   }
 
   return (
@@ -23,11 +28,12 @@ export default async function SignUpCatchAllPage({
         appearance={clerkAppearance}
         routing="path"
         path="/sign-up"
-        forceRedirectUrl={redirectPath}
-        fallbackRedirectUrl="/account"
+        oauthFlow="redirect"
+        forceRedirectUrl={completeSignUpPath}
+        fallbackRedirectUrl={completeSignUpPath}
         signInUrl="/sign-in"
-        signInForceRedirectUrl={redirectPath}
-        signInFallbackRedirectUrl="/account"
+        signInForceRedirectUrl={completeSignInPath}
+        signInFallbackRedirectUrl={completeSignInPath}
       />
     </AuthShell>
   );

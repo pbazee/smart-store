@@ -1,94 +1,314 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { shouldUseMockData } from "@/lib/live-data-mode";
-import { DemoAuthPanel } from "@/components/auth/demo-auth-panel";
+import { usePathname, useSearchParams } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowUpRight,
+  Heart,
+  LockKeyhole,
+  PackageCheck,
+  Sparkles,
+  Star,
+} from "lucide-react";
+import { resolveRequestedRedirectPath } from "@/lib/auth-routing";
 
 type AuthShellProps = {
   mode: "sign-in" | "sign-up";
   children: ReactNode;
 };
 
-export const clerkAppearance = {
-  elements: {
-    rootBox: "w-full",
-    card: "border border-white/10 bg-transparent shadow-none",
-    headerTitle: "hidden",
-    headerSubtitle: "hidden",
-    socialButtonsBlockButton:
-      "border border-white/12 bg-white/6 text-white hover:bg-white/10",
-    formButtonPrimary:
-      "bg-brand-500 text-white hover:bg-brand-600 shadow-[0_0_35px_rgba(249,115,22,0.35)]",
-    formFieldInput:
-      "border border-white/12 bg-black/35 text-white placeholder:text-white/35 focus:border-brand-400",
-    formFieldLabel: "text-white/80",
-    footerActionLink: "text-brand-300 hover:text-brand-200",
-    dividerLine: "bg-white/12",
-    dividerText: "text-white/45",
-    formFieldSuccessText: "text-emerald-300",
-    identityPreviewText: "text-white/70",
-    formResendCodeLink: "text-brand-300 hover:text-brand-200",
+type AuthFeature = {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+};
+
+const authFeatures: Record<"sign-in" | "sign-up", AuthFeature[]> = {
+  "sign-in": [
+    {
+      icon: Heart,
+      title: "Wishlist Sync",
+      description: "Pick up saved looks across mobile, desktop, and every new drop.",
+    },
+    {
+      icon: PackageCheck,
+      title: "Order Tracking",
+      description: "Stay on top of payments, dispatch updates, and doorstep delivery.",
+    },
+    {
+      icon: Sparkles,
+      title: "Smart Recommendations",
+      description: "Get sharper picks based on the styles, sizes, and brands you love.",
+    },
+  ],
+  "sign-up": [
+    {
+      icon: Sparkles,
+      title: "Instant Access",
+      description: "Start with Google in seconds, then keep shopping without extra setup.",
+    },
+    {
+      icon: Heart,
+      title: "Exclusive Drops",
+      description: "Save favorites early and stay ready for limited Nairobi releases.",
+    },
+    {
+      icon: PackageCheck,
+      title: "Faster Checkout",
+      description: "Keep your account ready for smoother delivery tracking and repeat orders.",
+    },
+  ],
+};
+
+const authContent = {
+  "sign-in": {
+    eyebrow: "Customer Access",
+    title: "Welcome Back",
+    subtitle: "Access your wishlist, track orders, and get personalized recommendations.",
+    formEyebrow: "Google First",
+    formTitle: "Continue with Google",
+    formSubtitle:
+      "Use Google at the top for the fastest sign-in, then continue with email below if you prefer.",
+    panelTitle: "Nairobi style, zero friction.",
+    panelDescription:
+      "Move from discovery to checkout with secure customer access built for Kenya's smartest fashion store.",
+    imageSrc: "/images/mock/hero-streetwear.svg",
+    imageAlt: "Streetwear collection preview",
+  },
+  "sign-up": {
+    eyebrow: "New Customer",
+    title: "Join Smartest Store KE",
+    subtitle: "Join Kenya's smartest fashion store - save wishlist, track orders, exclusive drops.",
+    formEyebrow: "Google First",
+    formTitle: "Create Your Account",
+    formSubtitle: "Join instantly with Google - no password needed.",
+    panelTitle: "Your account, ready before the next drop.",
+    panelDescription:
+      "Save your size preferences, keep your wishlist close, and unlock a smoother checkout flow from day one.",
+    imageSrc: "/images/mock/hero-women.svg",
+    imageAlt: "Fashion lookbook preview",
   },
 } as const;
 
+export const clerkAppearance = {
+  layout: {
+    socialButtonsPlacement: "top",
+    socialButtonsVariant: "blockButton",
+    showOptionalFields: true,
+  },
+  elements: {
+    rootBox: "w-full",
+    card: "w-full border-0 bg-transparent shadow-none",
+    header: "hidden",
+    headerTitle: "hidden",
+    headerSubtitle: "hidden",
+    socialButtonsRoot: "mb-6 grid gap-3",
+    socialButtonsBlockButton:
+      "min-h-14 rounded-2xl border border-brand-400/40 bg-white text-slate-950 shadow-[0_18px_38px_rgba(249,115,22,0.22)] transition-all hover:border-brand-500 hover:bg-orange-50 hover:shadow-[0_22px_48px_rgba(249,115,22,0.28)]",
+    socialButtonsBlockButtonText: "text-sm font-semibold text-slate-950",
+    socialButtonsProviderIcon: "h-5 w-5",
+    socialButtonsIconButton:
+      "h-14 w-14 rounded-2xl border border-brand-400/30 bg-white text-slate-950 shadow-[0_18px_38px_rgba(249,115,22,0.18)] hover:bg-orange-50",
+    formButtonPrimary:
+      "mt-2 h-12 rounded-2xl bg-brand-500 text-sm font-semibold text-white hover:bg-brand-600 shadow-[0_0_35px_rgba(249,115,22,0.35)]",
+    formFieldInput:
+      "h-12 rounded-2xl border border-white/12 bg-black/35 text-white placeholder:text-white/35 focus:border-brand-400",
+    formFieldLabel: "text-sm font-medium text-white/80",
+    formFieldHintText: "text-xs text-white/55",
+    formFieldWarningText: "text-xs font-medium text-amber-200",
+    footerActionLink: "text-brand-300 hover:text-brand-200",
+    footerActionText: "text-white/55",
+    footerAction: "text-sm",
+    footer: "mt-6",
+    dividerRow: "my-6",
+    dividerLine: "bg-white/12",
+    dividerText: "text-[11px] font-semibold uppercase tracking-[0.26em] text-white/45",
+    formFieldSuccessText: "text-emerald-300",
+    identityPreviewText: "text-white/70",
+    formResendCodeLink: "text-brand-300 hover:text-brand-200",
+    formFieldErrorText: "text-rose-300",
+    alert: "rounded-2xl border border-rose-400/30 bg-rose-500/10 text-rose-100",
+    otpCodeFieldInput:
+      "h-12 w-12 rounded-2xl border border-white/12 bg-black/35 text-white",
+  },
+} as const;
+
+function shouldShowGoogleInstead(pathname: string, mode: "sign-in" | "sign-up") {
+  const basePath = `/${mode}`;
+
+  if (!pathname.startsWith(`${basePath}/`)) {
+    return false;
+  }
+
+  const nestedStep = pathname.slice(basePath.length + 1).toLowerCase();
+  return ["verify", "factor", "continue", "choose", "reset", "forgot"].some((token) =>
+    nestedStep.includes(token)
+  );
+}
+
 export function AuthShell({ mode, children }: AuthShellProps) {
-  const showDemoPanel = shouldUseMockData();
-  const isSignIn = mode === "sign-in";
+  const content = authContent[mode];
+  const features = authFeatures[mode];
+  const isSignUp = mode === "sign-up";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const redirectUrl = resolveRequestedRedirectPath(searchParams.get("redirect_url"), "/");
+  const useGoogleInsteadHref = `/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`;
+  const showGoogleInstead = shouldShowGoogleInstead(pathname, mode);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.18),_transparent_30%),linear-gradient(135deg,_#05060a_0%,_#101828_50%,_#140a05_100%)]" />
-      <div className="relative mx-auto grid min-h-screen max-w-7xl gap-10 px-4 py-10 lg:grid-cols-[1.1fr,0.9fr] lg:px-8">
-        <div className="flex flex-col justify-between">
-          <div>
-            <Link href="/" className="inline-flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]">
-                SK
-              </div>
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-white/50">Smartest Store KE</p>
-                <p className="text-base font-semibold text-white">Nairobi streetwear, upgraded.</p>
-              </div>
-            </Link>
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:44px_44px] opacity-20" />
+      <div className="relative mx-auto grid min-h-screen max-w-7xl gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[1.05fr,0.95fr] lg:px-8">
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_120px_rgba(0,0,0,0.32)] backdrop-blur-xl sm:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.18),_transparent_28%),radial-gradient(circle_at_85%_15%,_rgba(125,211,252,0.16),_transparent_22%)]" />
+          <div className="relative flex h-full flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Link href="/" className="inline-flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]">
+                  SK
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.24em] text-white/50">
+                    Smartest Store KE
+                  </p>
+                  <p className="text-base font-semibold text-white">Nairobi streetwear, upgraded.</p>
+                </div>
+              </Link>
 
-            <div className="mt-16 max-w-xl">
-              <p className="text-sm uppercase tracking-[0.28em] text-brand-300">
-                East African Commerce, 2026 Edition
-              </p>
-              <h1 className="mt-4 text-5xl font-black leading-[0.95] sm:text-6xl">
-                {isSignIn ? "Come back to the drop." : "Create your fashion passport."}
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
+                <Sparkles className="h-3.5 w-3.5 text-brand-300" />
+                East African 2026
+              </div>
+            </div>
+
+            <div className="mt-14 max-w-2xl">
+              <p className="text-sm uppercase tracking-[0.28em] text-brand-300">{content.eyebrow}</p>
+              <h1 className="mt-4 font-display text-5xl font-black leading-[0.95] sm:text-6xl">
+                {content.title}
               </h1>
-              <p className="mt-5 text-lg text-white/70">
-                Sign in to track orders, save your wishlist, and move from inspiration to checkout
-                without losing your place.
-              </p>
+              <p className="mt-5 max-w-xl text-lg text-white/70">{content.subtitle}</p>
+            </div>
+
+            <div className="mt-10 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
+              <div className="rounded-[1.75rem] border border-white/12 bg-black/25 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                      Customer Journey
+                    </p>
+                    <h2 className="mt-3 text-2xl font-black text-white">{content.panelTitle}</h2>
+                    <p className="mt-3 max-w-md text-sm leading-6 text-white/65">
+                      {content.panelDescription}
+                    </p>
+                  </div>
+                  <div className="hidden rounded-full border border-white/12 bg-white/[0.04] p-2 text-white/70 sm:block">
+                    <ArrowUpRight className="h-4 w-4" />
+                  </div>
+                </div>
+
+                <div className="relative mt-6 h-64 overflow-hidden rounded-[1.5rem] border border-white/12 bg-[linear-gradient(140deg,_rgba(249,115,22,0.16),_rgba(15,23,42,0.88)_45%,_rgba(56,189,248,0.14))]">
+                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
+                  <Image
+                    src={content.imageSrc}
+                    alt={content.imageAlt}
+                    fill
+                    priority
+                    sizes="(min-width: 1280px) 28vw, (min-width: 1024px) 34vw, 90vw"
+                    className="object-cover object-center opacity-85"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-[#05060a]/25 to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
+                      Google-first access
+                    </span>
+                    <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
+                      Wishlist ready
+                    </span>
+                    <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
+                      M-Pesa friendly
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                {features.map((feature) => (
+                  <div
+                    key={feature.title}
+                    className="rounded-[1.5rem] border border-white/12 bg-white/[0.04] p-5"
+                  >
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500/18 text-brand-200">
+                      <feature.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-bold text-white">{feature.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/65">{feature.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-          {showDemoPanel && <DemoAuthPanel />}
         </div>
 
         <div className="flex items-center justify-center">
-          <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/6 p-4 shadow-[0_20px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-6">
+          <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.06] p-4 shadow-[0_20px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-6">
             <div className="mb-6 rounded-[1.6rem] border border-white/10 bg-black/20 p-6">
-              <p className="text-xs uppercase tracking-[0.26em] text-white/40">
-                {isSignIn ? "Member Access" : "New Account"}
-              </p>
-              <h2 className="mt-3 text-3xl font-black">
-                {isSignIn ? "Sign in to continue" : "Join Smartest Store KE"}
-              </h2>
-              <p className="mt-2 text-sm text-white/65">
-                {isSignIn
-                  ? "Your wishlist, orders, and personalized recommendations are waiting."
-                  : "Customer role is the default. Admin access stays controlled from Clerk public metadata."}
-              </p>
-              <p className="mt-3 text-xs text-white/45">
-                Store operators should use <Link href="/login" className="text-brand-300 hover:text-brand-200">/login</Link>.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.26em] text-brand-300">
+                    {content.formEyebrow}
+                  </p>
+                  <h2 className="mt-3 text-3xl font-black">{content.formTitle}</h2>
+                  <p className="mt-2 text-sm leading-6 text-white/65">{content.formSubtitle}</p>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
+                  <LockKeyhole className="h-3.5 w-3.5" />
+                  Secure login powered by Google
+                </div>
+              </div>
             </div>
 
             {children}
+
+            {showGoogleInstead && (
+              <div className="mt-6 rounded-[1.6rem] border border-brand-400/20 bg-brand-500/10 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-300">
+                  Prefer Google?
+                </p>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  Leave this code step and jump back to the Google-first sign-in flow instead.
+                </p>
+                <Link
+                  href={useGoogleInsteadHref}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(249,115,22,0.26)] transition-all hover:scale-[1.02] hover:bg-brand-600 hover:brightness-105"
+                >
+                  Use Google instead
+                </Link>
+              </div>
+            )}
+
+            {isSignUp ? (
+              <p className="mt-6 text-xs leading-6 text-white/45">
+                By signing up, you agree to our{" "}
+                <Link href="/privacy-policy" className="text-brand-300 hover:text-brand-200">
+                  Terms
+                </Link>{" "}
+                &{" "}
+                <Link href="/privacy-policy" className="text-brand-300 hover:text-brand-200">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            ) : (
+              <div className="mt-6 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-white/45">
+                <Star className="h-3.5 w-3.5 text-brand-300" />
+                Premium customer access for wishlist, orders, and tailored picks.
+              </div>
+            )}
           </div>
         </div>
       </div>

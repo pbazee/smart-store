@@ -120,6 +120,21 @@ export interface HomepageCategory {
   updatedAt: string | Date;
 }
 
+export interface HeroSlide {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  ctaText: string;
+  ctaLink: string;
+  moodTags: string[];
+  locationBadge: string;
+  order: number;
+  isActive: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 export interface BlogPost {
   id: string;
   title: string;

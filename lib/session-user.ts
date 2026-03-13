@@ -2,9 +2,12 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import type { SessionUser } from "@/types";
 import { getLocalAuthSession } from "@/lib/local-auth";
+import { prisma } from "@/lib/prisma";
 import {
   DEMO_AUTH_COOKIE,
+  getRoleFromClerkUser,
   getRoleFromSessionClaims,
+  normalizeUserRole,
   parseDemoAuthCookie,
 } from "@/lib/user-role";
 import { shouldUseMockData } from "@/lib/live-data-mode";
@@ -50,7 +53,31 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
 
   const user = await currentUser();
-  const role = getRoleFromSessionClaims(authResult.sessionClaims);
+  const roleFromMetadata = getRoleFromClerkUser(user);
+  let role = roleFromMetadata;
+
+  if (role === "guest" && user?.primaryEmailAddress?.emailAddress) {
+    try {
+      const persistedUser = await prisma.user.findUnique({
+        where: {
+          email: user.primaryEmailAddress.emailAddress.toLowerCase(),
+        },
+        select: {
+          role: true,
+        },
+      });
+
+      if (persistedUser?.role) {
+        role = normalizeUserRole(persistedUser.role);
+      }
+    } catch (error) {
+      console.error("Failed to resolve persisted Clerk role:", error);
+    }
+  }
+
+  if (role === "guest") {
+    role = getRoleFromSessionClaims(authResult.sessionClaims);
+  }
 
   return {
     id: authResult.userId,

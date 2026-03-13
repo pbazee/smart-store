@@ -6,6 +6,7 @@ import { getProducts } from "@/lib/data-service";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
 import { DEFAULT_WHATSAPP_SETTINGS, createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
 import { getDemoHomepageCategories } from "@/lib/homepage-category-service";
+import { getActiveHeroSlides, getDemoHeroSlides } from "@/lib/hero-slide-service";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { getDemoPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,7 @@ import { getDemoWhatsAppSettings } from "@/lib/whatsapp-service";
 import type {
   AnnouncementMessage,
   BlogPost,
+  HeroSlide,
   HomepageCategory,
   Popup,
   Product,
@@ -43,6 +45,7 @@ export type HomepageProductSectionsData = {
 };
 
 export type HomepagePageData = {
+  heroSlides: HeroSlide[];
   categories: HomepageCategory[];
   blogPosts: BlogPost[];
   productSections: HomepageProductSectionsData;
@@ -150,7 +153,10 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
 }
 
 async function resolveHomepagePageData(): Promise<HomepagePageData> {
-  const [categories, blogPosts, productSections] = await Promise.all([
+  const [heroSlides, categories, blogPosts, productSections] = await Promise.all([
+    shouldUseMockData()
+      ? Promise.resolve(getDemoHeroSlides({ activeOnly: true }))
+      : getActiveHeroSlides(),
     shouldUseMockData()
       ? Promise.resolve(getDemoHomepageCategories({ activeOnly: true }))
       : safeQuery(
@@ -176,6 +182,7 @@ async function resolveHomepagePageData(): Promise<HomepagePageData> {
   ]);
 
   return {
+    heroSlides,
     categories,
     blogPosts,
     productSections,

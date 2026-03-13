@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS } from "../lib/default-announcements";
 import { DEFAULT_BLOG_POST_SEEDS } from "../lib/default-blog-posts";
+import { DEFAULT_HERO_SLIDE_SEEDS } from "../lib/default-hero-slides";
 import { DEFAULT_HOMEPAGE_CATEGORY_SEEDS } from "../lib/default-homepage-categories";
 import { DEFAULT_COUPON_SEEDS } from "../lib/default-coupons";
 import { DEFAULT_SOCIAL_LINK_SEEDS } from "../lib/default-social-links";
@@ -111,6 +112,37 @@ async function main() {
         create: category,
       });
       console.log(`Seeded homepage category: ${category.title}`);
+    }
+
+    console.log("Seeding hero slides...");
+    for (const slide of DEFAULT_HERO_SLIDE_SEEDS) {
+      await prisma.heroSlide.upsert({
+        where: { id: slide.id },
+        update: {
+          title: slide.title,
+          subtitle: slide.subtitle,
+          imageUrl: slide.imageUrl,
+          ctaText: slide.ctaText,
+          ctaLink: slide.ctaLink,
+          moodTags: slide.moodTags,
+          locationBadge: slide.locationBadge,
+          order: slide.order,
+          isActive: slide.isActive,
+        },
+        create: {
+          id: slide.id,
+          title: slide.title,
+          subtitle: slide.subtitle,
+          imageUrl: slide.imageUrl,
+          ctaText: slide.ctaText,
+          ctaLink: slide.ctaLink,
+          moodTags: slide.moodTags,
+          locationBadge: slide.locationBadge,
+          order: slide.order,
+          isActive: slide.isActive,
+        },
+      });
+      console.log(`Seeded hero slide: ${slide.title}`);
     }
 
     console.log("Seeding blog posts...");

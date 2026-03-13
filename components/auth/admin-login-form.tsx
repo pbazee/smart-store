@@ -1,91 +1,98 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Loader2, LockKeyhole } from "lucide-react";
+import { useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { AlertCircle, LockKeyhole, Loader2 } from "lucide-react";
+import {
+  submitAdminLoginAction,
+  type AdminLoginActionState,
+} from "@/app/admin-login/actions";
+import { useToast } from "@/lib/use-toast";
 
-export function AdminLoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect_url") || "/admin";
-  const [email, setEmail] = useState("admin@store.com");
-  const [password, setPassword] = useState("admin123");
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const initialState: AdminLoginActionState = {
+  error: null,
+};
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-
-      if (!response.ok) {
-        throw new Error(payload?.error || "Login failed");
-      }
-
-      router.push(redirectUrl);
-      router.refresh();
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : "Login failed");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+function SubmitButton() {
+  const { pending } = useFormStatus();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-        <p className="font-semibold">Seeded admin access</p>
-        <p className="mt-1 text-emerald-100/80">
-          Default credentials are prefilled for the seeded admin user.
-        </p>
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
+      {pending ? "Signing in..." : "Login"}
+    </button>
+  );
+}
+
+export function AdminLoginForm({ redirectUrl }: { redirectUrl: string }) {
+  const { toast } = useToast();
+  const [state, formAction] = useFormState(submitAdminLoginAction, initialState);
+
+  useEffect(() => {
+    if (!state.error) {
+      return;
+    }
+
+    toast({
+      title: "Invalid credentials",
+      description: state.error,
+      variant: "destructive",
+    });
+  }, [state.error, toast]);
+
+  return (
+    <form action={formAction} className="space-y-5">
+      <input type="hidden" name="redirectUrl" value={redirectUrl} />
+
+      <div className="rounded-2xl border border-white/12 bg-black/25 p-4 text-sm text-white/70">
+        This login is reserved for staff with admin privileges.
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-white/80">Admin email</label>
+        <label htmlFor="admin-email" className="mb-2 block text-sm font-medium text-white/80">
+          Email
+        </label>
         <input
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 text-sm text-white outline-none transition-colors focus:border-brand-400"
+          id="admin-email"
+          name="email"
+          type="email"
+          required
           autoComplete="username"
+          placeholder="name@company.com"
+          className="h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 text-sm text-white outline-none transition-colors focus:border-brand-400"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-white/80">Password</label>
+        <label htmlFor="admin-password" className="mb-2 block text-sm font-medium text-white/80">
+          Password
+        </label>
         <input
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          id="admin-password"
+          name="password"
           type="password"
-          className="h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 text-sm text-white outline-none transition-colors focus:border-brand-400"
+          required
+          minLength={6}
           autoComplete="current-password"
+          placeholder="Enter your password"
+          className="h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 text-sm text-white outline-none transition-colors focus:border-brand-400"
         />
       </div>
 
-      {error && (
+      {state.error && (
         <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
-            {error}
+            Invalid credentials
           </div>
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
-        {isSubmitting ? "Signing in..." : "Access Admin Dashboard"}
-      </button>
+      <SubmitButton />
     </form>
   );
 }

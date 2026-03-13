@@ -12,7 +12,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <HeroCarousel />
+      <HeroCarousel slides={homepageData.heroSlides} />
       <PromoCards />
       <TrustBar />
       <CategoryGrid categories={homepageData.categories} />

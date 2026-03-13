@@ -65,7 +65,7 @@ export default async function AccountPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
                 {sessionUser.isDemo
-                  ? "Demo login is active. You can test customer and admin flows instantly."
+                  ? "Demo login is active. You can test shopping, wishlist, and order flows instantly."
                   : "Live account session is active with Clerk-backed authentication."}
               </p>
             </div>
