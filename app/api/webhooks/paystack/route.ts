@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { releaseReservationForReference } from "@/lib/order-reservations";
 import { finalizePaystackPayment, verifyPaystackTransaction } from "@/lib/paystack";
+import { sendOrderEmailsAfterPayment } from "@/lib/email/order-confirmation";
 import crypto from "crypto";
 
 async function verifyPaystackSignature(body: string, signature: string): Promise<boolean> {
@@ -54,6 +55,10 @@ export async function POST(req: NextRequest) {
 
       if (result.state === "processed") {
         console.log(`Payment verified for order ${result.orderNumber}`);
+        void sendOrderEmailsAfterPayment({
+          orderId: result.orderId,
+          origin: req.nextUrl.origin,
+        });
       }
     }
 

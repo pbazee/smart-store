@@ -23,10 +23,11 @@ import { deleteAdminProductsAction } from "@/app/admin/products/actions";
 import { ProductFormDialog } from "@/app/admin/products/product-form-dialog";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
-import type { Product } from "@/types";
+import type { Product, Category } from "@/types";
 
 type ProductsManagerProps = {
   initialProducts: Product[];
+  categories: Category[];
 };
 
 function getTotalStock(product: Product) {
@@ -52,11 +53,11 @@ function downloadCsv(filename: string, rows: string[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ProductsManager({ initialProducts }: ProductsManagerProps) {
+export function ProductsManager({ initialProducts, categories }: ProductsManagerProps) {
   const { toast } = useToast();
   const [products, setProducts] = useState(initialProducts);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<"all" | Product["category"]>("all");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | "all">("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -66,9 +67,15 @@ export function ProductsManager({ initialProducts }: ProductsManagerProps) {
   });
   const [isPending, startTransition] = useTransition();
   const deferredSearch = useDeferredValue(search);
+  const categoryById = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories]
+  );
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => {
+      const productCategory = product.categoryId ? categoryById.get(product.categoryId) : null;
+      const parentId = productCategory?.parentId ?? null;
       const matchesSearch =
         !deferredSearch.trim() ||
         [product.name, product.slug, product.description, product.subcategory]
@@ -76,14 +83,18 @@ export function ProductsManager({ initialProducts }: ProductsManagerProps) {
           .toLowerCase()
           .includes(deferredSearch.trim().toLowerCase());
 
-      const matchesCategory = category === "all" || product.category === category;
+      const matchesCategory =
+        selectedCategoryId === "all" ||
+        product.categoryId === selectedCategoryId ||
+        parentId === selectedCategoryId ||
+        product.category === selectedCategoryId;
       return matchesSearch && matchesCategory;
     });
-  }, [category, deferredSearch, products]);
+  }, [selectedCategoryId, deferredSearch, products, categoryById]);
 
   useEffect(() => {
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-  }, [category, deferredSearch]);
+  }, [selectedCategoryId, deferredSearch]);
 
   const handleSavedProduct = (product: Product) => {
     startTransition(() => {
@@ -213,9 +224,17 @@ export function ProductsManager({ initialProducts }: ProductsManagerProps) {
         accessorKey: "category",
         header: "Category",
         cell: ({ row }) => (
-          <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold capitalize text-zinc-300">
-            {row.original.category}
-          </span>
+          <div className="flex flex-col">
+            <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold capitalize text-zinc-300">
+              {categoryById.get(row.original.categoryId ?? "")?.name ?? row.original.category}
+            </span>
+            {row.original.categoryId && categoryById.get(row.original.categoryId ?? "")?.parentId && (
+              <span className="text-[11px] text-zinc-500">
+                {categoryById.get(categoryById.get(row.original.categoryId ?? "")?.parentId ?? "")
+                  ?.name ?? ""}
+              </span>
+            )}
+          </div>
         ),
       },
       {
@@ -244,7 +263,7 @@ export function ProductsManager({ initialProducts }: ProductsManagerProps) {
         ),
       },
     ],
-    []
+    [categoryById, handleDelete]
   );
 
   const table = useReactTable({
@@ -366,22 +385,35 @@ export function ProductsManager({ initialProducts }: ProductsManagerProps) {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {(["all", "clothes", "shoes", "accessories"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setCategory(value)}
-              className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
-                category === value
-                  ? "bg-brand-500 text-white"
-                  : "border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
-              }`}
-            >
-              {value === "all" ? "All" : value[0].toUpperCase() + value.slice(1)}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedCategoryId("all")}
+            className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+              selectedCategoryId === "all"
+                ? "bg-brand-500 text-white"
+                : "border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
+            }`}
+          >
+            All
+          </button>
+          {categories
+            .filter((c) => !c.parentId)
+            .map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategoryId(cat.id)}
+                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  selectedCategoryId === cat.id
+                    ? "bg-brand-500 text-white"
+                    : "border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+      </div>
       </div>
 
       <div className="overflow-hidden rounded-[1.75rem] border border-zinc-800 bg-zinc-900">
@@ -474,6 +506,7 @@ export function ProductsManager({ initialProducts }: ProductsManagerProps) {
       <ProductFormDialog
         open={dialogOpen}
         product={editingProduct}
+        categories={categories}
         onOpenChange={setDialogOpen}
         onSaved={handleSavedProduct}
       />

@@ -61,6 +61,7 @@ run("multi-step checkout payload", () => {
       shipping: {
         address: "123 Ngong Road",
         city: "Nairobi CBD",
+        county: "Nairobi",
         deliveryNotes: "Call on arrival",
       },
       payment: {

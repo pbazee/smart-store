@@ -124,6 +124,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               alt={product.name}
               fill
               placeholder="blur"
+              quality={88}
               blurDataURL={blurDataUrl}
               className={cn(
                 "object-cover transition-transform duration-500",

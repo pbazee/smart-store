@@ -17,6 +17,7 @@ import {
 } from "@/lib/order-reservations";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { getSessionUser } from "@/lib/session-user";
+import { getShippingQuote } from "@/lib/shipping-rules";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -39,6 +40,7 @@ const initializePaymentSchema = z
     phone: z.string().trim().min(10),
     address: z.string().trim().min(5),
     city: z.string().trim().min(2),
+    county: z.string().trim().min(2),
     notes: z.string().optional(),
     paymentMethod: z.enum(["mpesa", "card"]),
     mpesaPhone: z.string().optional(),
@@ -144,7 +146,6 @@ export async function POST(req: NextRequest) {
     });
 
     const subtotal = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const shippingCost = subtotal > 5000 ? 0 : 250;
     const appliedCoupon = validatedData.couponCode
       ? await validateCouponForSubtotal({
           code: validatedData.couponCode,
@@ -152,6 +153,13 @@ export async function POST(req: NextRequest) {
         })
       : null;
     const discountAmount = appliedCoupon?.discountAmount ?? 0;
+    const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+    const shippingQuote = await getShippingQuote({
+      subtotal: discountedSubtotal,
+      county: validatedData.county,
+      city: validatedData.city,
+    });
+    const shippingCost = shippingQuote.cost;
     const computedTotal = subtotal + shippingCost - discountAmount;
 
     if (validatedData.total !== undefined && validatedData.total !== computedTotal) {
@@ -229,10 +237,13 @@ export async function POST(req: NextRequest) {
           customerPhone,
           address: validatedData.address,
           city: validatedData.city,
+          county: validatedData.county,
           notes: validatedData.notes || "",
           paymentMethod: validatedData.paymentMethod,
           subtotal,
           shippingAmount: shippingCost,
+          shippingRuleName: shippingQuote.ruleName,
+          shippingRuleId: shippingQuote.ruleId ?? null,
           discountAmount,
           couponCode: appliedCoupon?.code ?? null,
           total: computedTotal,

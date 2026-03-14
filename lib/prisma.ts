@@ -19,13 +19,13 @@ function resolveDatabaseUrl(rawUrl = process.env.DATABASE_URL) {
         url.searchParams.set("pgbouncer", "true");
       }
       if (!url.searchParams.has("connection_limit")) {
-        url.searchParams.set("connection_limit", "1");
+        url.searchParams.set("connection_limit", "10");
       }
       if (!url.searchParams.has("connect_timeout")) {
         url.searchParams.set("connect_timeout", "30");
       }
       if (!url.searchParams.has("pool_timeout")) {
-        url.searchParams.set("pool_timeout", "30");
+        url.searchParams.set("pool_timeout", "60");
       }
     }
 
@@ -46,9 +46,9 @@ export const prisma =
           db: {
             url: resolvedDatabaseUrl,
           },
-        }
+      }
       : undefined,
-    log: process.env.NODE_ENV === "development" ? ["query"] : [],
+    log: process.env.NODE_ENV === "development" ? ["query", "info", "warn", "error"] : ["warn", "error"],
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

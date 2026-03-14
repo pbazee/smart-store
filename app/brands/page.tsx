@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { CatalogBrowser } from "@/components/shop/catalog-browser";
+import { getActiveCategories } from "@/lib/category-service";
 import { getProducts } from "@/lib/data-service";
 import { popularBrands } from "@/lib/site-content";
 
 export const revalidate = 0;
 
 export default async function BrandsPage() {
-  const products = await getProducts();
+  const [products, categories] = await Promise.all([getProducts(), getActiveCategories()]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -39,7 +40,7 @@ export default async function BrandsPage() {
 
       <div className="mt-12">
         <Suspense>
-          <CatalogBrowser heading="Brands" products={products} />
+          <CatalogBrowser heading="Brands" products={products} categories={categories} />
         </Suspense>
       </div>
     </div>

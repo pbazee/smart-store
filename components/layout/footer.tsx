@@ -4,12 +4,14 @@ import { CreditCard, MapPin, Shield, Smartphone } from "lucide-react";
 import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form";
 import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
 import { getSocialLinks } from "@/lib/social-link-service";
-import type { SocialLink } from "@/types";
+import type { SocialLink, StoreSettings } from "@/types";
 
 export async function Footer({
   socialLinks: providedSocialLinks,
+  storeSettings,
 }: {
   socialLinks?: SocialLink[];
+  storeSettings?: StoreSettings | null;
 }) {
   let socialLinks = providedSocialLinks;
 
@@ -17,6 +19,11 @@ export async function Footer({
     noStore();
     socialLinks = await getSocialLinks({ seedIfEmpty: true });
   }
+
+  const supportEmail = storeSettings?.supportEmail || "support@smarteststore.ke";
+  const supportPhone = storeSettings?.supportPhone || "+254 700 123 456";
+
+  const normalizedTel = supportPhone.replace(/[^+\\d]/g, "");
 
   return (
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
@@ -121,14 +128,30 @@ export async function Footer({
               ))}
             </div>
           )}
-          <div className="flex items-center gap-4">
-            <Link href="/privacy-policy" className="transition-colors hover:text-white">
-              Privacy
-            </Link>
-            <Link href="/privacy-policy" className="transition-colors hover:text-white">
-              Terms
-            </Link>
-            <span className="font-semibold text-brand-500">Made in Kenya</span>
+          <div className="flex flex-col gap-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <a
+                href={`mailto:${supportEmail}`}
+                className="transition-colors hover:text-white"
+              >
+                Support: {supportEmail}
+              </a>
+              <a
+                href={`tel:${normalizedTel}`}
+                className="transition-colors hover:text-white"
+              >
+                Call: {supportPhone}
+              </a>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy-policy" className="transition-colors hover:text-white">
+                Privacy
+              </Link>
+              <Link href="/privacy-policy" className="transition-colors hover:text-white">
+                Terms
+              </Link>
+              <span className="font-semibold text-brand-500">Made in Kenya</span>
+            </div>
           </div>
         </div>
       </div>

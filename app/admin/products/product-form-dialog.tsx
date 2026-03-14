@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,7 +11,7 @@ import {
 } from "@/app/admin/products/actions";
 import { useToast } from "@/lib/use-toast";
 import { slugify } from "@/lib/utils";
-import type { Product } from "@/types";
+import type { Product, Category } from "@/types";
 
 type VariantFormState = {
   id?: string;
@@ -27,8 +27,11 @@ type ProductFormState = {
   name: string;
   slug: string;
   description: string;
-  category: Product["category"];
-  subcategory: string;
+  category: Product["category"]; // legacy
+  subcategory: string; // legacy
+  categoryId?: string | null;
+  parentId?: string | null;
+  subcategoryId?: string | null;
   gender: Product["gender"];
   basePrice: string;
   images: string[];
@@ -53,6 +56,9 @@ function createEmptyFormState(): ProductFormState {
     description: "",
     category: "clothes",
     subcategory: "Streetwear",
+    categoryId: null,
+    parentId: null,
+    subcategoryId: null,
     gender: "unisex",
     basePrice: "",
     images: [],
@@ -75,6 +81,9 @@ function createFormState(product?: Product | null): ProductFormState {
     description: product.description,
     category: product.category,
     subcategory: product.subcategory,
+    categoryId: product.categoryId ?? null,
+    parentId: null,
+    subcategoryId: null,
     gender: product.gender,
     basePrice: String(product.basePrice),
     images: product.images,
@@ -116,6 +125,7 @@ function toPayload(form: ProductFormState): AdminProductInput {
     description: form.description.trim(),
     category: form.category,
     subcategory: form.subcategory.trim(),
+    categoryId: form.subcategoryId || form.parentId || null,
     gender: form.gender,
     basePrice,
     images: form.images.filter(Boolean),
@@ -139,11 +149,13 @@ function toPayload(form: ProductFormState): AdminProductInput {
 export function ProductFormDialog({
   open,
   product,
+  categories,
   onOpenChange,
   onSaved,
 }: {
   open: boolean;
   product: Product | null;
+  categories: Category[];
   onOpenChange: (open: boolean) => void;
   onSaved: (product: Product) => void;
 }) {
@@ -153,11 +165,44 @@ export function ProductFormDialog({
   const [slugTouched, setSlugTouched] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
 
+  const byParent = useMemo(() => {
+    const map = new Map<string | null, Category[]>();
+    categories.forEach((c) => {
+      const key = c.parentId ?? null;
+      map.set(key, [...(map.get(key) || []), c]);
+    });
+    map.forEach((list, key) =>
+      map.set(
+        key,
+        list.sort((a, b) =>
+          (a.order ?? 0) === (b.order ?? 0)
+            ? a.name.localeCompare(b.name)
+            : (a.order ?? 0) - (b.order ?? 0)
+        )
+      )
+    );
+    return map;
+  }, [categories]);
+
+  const topLevelCategories = byParent.get(null) || [];
+  const childCategories = form.parentId ? byParent.get(form.parentId) || [] : [];
+
   useEffect(() => {
-    setForm(createFormState(product));
+    const base = createFormState(product);
+    if (product?.categoryId) {
+      const cat = categories.find((c) => c.id === product.categoryId);
+      if (cat) {
+        const parentId = cat.parentId ?? cat.id;
+        const subId = cat.parentId ? cat.id : null;
+        base.parentId = parentId;
+        base.subcategoryId = subId;
+        base.categoryId = subId || parentId;
+      }
+    }
+    setForm(base);
     setSlugTouched(false);
     setImageUrlInput("");
-  }, [product, open]);
+  }, [product, open, categories]);
 
   const updateVariant = (
     index: number,
@@ -258,31 +303,53 @@ export function ProductFormDialog({
             <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Category</span>
               <select
-                value={form.category}
-                onChange={(event) =>
+                value={form.parentId ?? ""}
+                onChange={(event) => {
+                  const parentId = event.target.value ? event.target.value : null;
+                  const parent = categories.find((c) => c.id === parentId);
                   setForm((current) => ({
                     ...current,
-                    category: event.target.value as Product["category"],
-                  }))
-                }
+                    parentId,
+                    subcategoryId: null,
+                    category: parent ? parent.slug : current.category,
+                    subcategory: parent ? parent.name : current.subcategory,
+                  }));
+                }}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
-                <option value="clothes">Clothes</option>
-                <option value="shoes">Shoes</option>
-                <option value="accessories">Accessories</option>
+                <option value="">Select top-level</option>
+                {topLevelCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
             </label>
 
             <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Subcategory</span>
-              <input
-                required
-                value={form.subcategory}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, subcategory: event.target.value }))
-                }
+              <select
+                value={form.subcategoryId ?? ""}
+                onChange={(event) => {
+                  const subId = event.target.value ? event.target.value : null;
+                  const sub = categories.find((c) => c.id === subId);
+                  setForm((current) => ({
+                    ...current,
+                    subcategoryId: subId,
+                    categoryId: subId || current.parentId || null,
+                    subcategory: sub ? sub.name : current.subcategory,
+                  }));
+                }}
+                disabled={!form.parentId}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
+              >
+                <option value="">{form.parentId ? "Use parent only" : "Select parent first"}</option>
+                {childCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="space-y-2 text-sm">

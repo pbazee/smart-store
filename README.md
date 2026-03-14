@@ -83,6 +83,11 @@ PAYSTACK_SECRET_KEY="sk_live_..."
 # Clerk Auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_live_..."
 CLERK_SECRET_KEY="sk_live_..."
+
+# Email (Resend)
+RESEND_API_KEY="re_..."
+# Optional: verified sender
+RESEND_FROM_EMAIL="Smartest Store KE <onboarding@resend.dev>"
 ```
 
 ### 3. Run Prisma migrations
@@ -138,6 +143,7 @@ Or click:
 | Database | Prisma + Supabase (when live) |
 | Auth | Clerk (when live) |
 | Payments | Paystack + Stripe (when live) |
+| Email | Resend (order confirmations + admin alerts) |
 | Deployment | Vercel |
 
 ---

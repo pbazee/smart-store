@@ -1,26 +1,28 @@
 import { unstable_cache } from "next/cache";
-import { cache } from "react";
 import { getDemoAnnouncementMessages } from "@/lib/announcement-service";
 import { getDemoBlogPosts } from "@/lib/blog-service";
 import { getProducts } from "@/lib/data-service";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
 import { DEFAULT_WHATSAPP_SETTINGS, createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
-import { getDemoHomepageCategories } from "@/lib/homepage-category-service";
 import { getActiveHeroSlides, getDemoHeroSlides } from "@/lib/hero-slide-service";
+import { getActiveCategories } from "@/lib/category-service";
 import { shouldUseMockData } from "@/lib/live-data-mode";
+import { getActiveLandingOverrides, mergeOverridesWithAuto } from "@/lib/landing-section-overrides";
 import { getDemoPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
 import { getCityInspiredProducts, getCustomersAlsoBought } from "@/lib/recommendations";
 import { getDemoSocialLinks } from "@/lib/social-link-service";
 import { getDemoWhatsAppSettings } from "@/lib/whatsapp-service";
+import { getStoreSettings } from "@/lib/store-settings";
 import type {
   AnnouncementMessage,
   BlogPost,
+  Category,
   HeroSlide,
-  HomepageCategory,
   Popup,
   Product,
   SocialLink,
+  StoreSettings,
   WhatsAppSettings,
 } from "@/types";
 
@@ -34,6 +36,7 @@ export type HomepageShellData = {
   popups: Popup[];
   socialLinks: SocialLink[];
   whatsAppSettings: WhatsAppSettings | null;
+  storeSettings: StoreSettings | null;
 };
 
 export type HomepageProductSectionsData = {
@@ -46,7 +49,7 @@ export type HomepageProductSectionsData = {
 
 export type HomepagePageData = {
   heroSlides: HeroSlide[];
-  categories: HomepageCategory[];
+  categories: Category[];
   blogPosts: BlogPost[];
   productSections: HomepageProductSectionsData;
 };
@@ -57,11 +60,14 @@ function shouldUseProductionCache() {
   return process.env.NODE_ENV === "production";
 }
 
-async function safeQuery<T>(query: () => Promise<T>, fallback: () => T): Promise<T> {
+async function safeQuery<T>(
+  query: () => Promise<T>,
+  fallback: () => T | Promise<T>
+): Promise<T> {
   try {
     return await query();
   } catch {
-    return fallback();
+    return await fallback();
   }
 }
 
@@ -84,16 +90,18 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
       popups: getDemoPopups().filter((popup) => isPopupActive(popup)),
       socialLinks: getDemoSocialLinks(),
       whatsAppSettings: getDemoWhatsAppSettings(),
+      storeSettings: await getStoreSettings({ seedIfEmpty: true }),
     };
   }
 
   const now = new Date();
-  const [announcements, popups, socialLinks, whatsAppSettings] = await Promise.all([
-    safeQuery(
-      async () => (await prisma.announcementMessage.findMany({
-        where: { isActive: true },
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      })) as AnnouncementMessage[],
+  const [announcements, popups, socialLinks, whatsAppSettings, storeSettings] =
+    await Promise.all([
+      safeQuery(
+        async () => (await prisma.announcementMessage.findMany({
+          where: { isActive: true },
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        })) as AnnouncementMessage[],
       () => [createFallbackAnnouncementMessage()]
     ),
     safeQuery(
@@ -112,12 +120,16 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
       })) as SocialLink[],
       () => getDemoSocialLinks()
     ),
-    safeQuery(
-      async () =>
-        ((await prisma.whatsAppSettings.findUnique({
-          where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
-        })) as WhatsAppSettings | null) ?? createDefaultWhatsAppSettings(),
+      safeQuery(
+        async () =>
+          ((await prisma.whatsAppSettings.findUnique({
+            where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
+          })) as WhatsAppSettings | null) ?? createDefaultWhatsAppSettings(),
       () => createDefaultWhatsAppSettings()
+    ),
+    safeQuery(
+      async () => (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null,
+      () => getStoreSettings({ seedIfEmpty: true })
     ),
   ]);
 
@@ -126,28 +138,49 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
     popups,
     socialLinks,
     whatsAppSettings,
+    storeSettings,
   };
 }
 
 async function resolveHomepageProductSectionsData(): Promise<HomepageProductSectionsData> {
-  const allProducts = await getProducts(undefined, {
-    syncReservations: false,
-    cacheKey: "homepage:products",
-  });
-  const featured = allProducts.filter((product) => product.isFeatured).slice(0, HOMEPAGE_PRODUCT_LIMIT);
-  const trending = allProducts
+  const [allProducts, popularOverrides, trendingOverrides, newArrivalOverrides, recommendedOverrides] =
+    await Promise.all([
+      getProducts(undefined, {
+        syncReservations: false,
+        cacheKey: "homepage:products",
+      }),
+      getActiveLandingOverrides("popular", HOMEPAGE_PRODUCT_LIMIT),
+      getActiveLandingOverrides("trending", HOMEPAGE_PRODUCT_LIMIT),
+      getActiveLandingOverrides("new_arrivals", HOMEPAGE_PRODUCT_LIMIT),
+      getActiveLandingOverrides("recommended", HOMEPAGE_PRODUCT_LIMIT),
+    ]);
+
+  const featuredAuto = allProducts.filter((product) => product.isFeatured).slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const featured = mergeOverridesWithAuto(popularOverrides, featuredAuto, HOMEPAGE_PRODUCT_LIMIT);
+
+  const trendingAuto = allProducts
     .filter((product) => product.tags.includes("trending"))
     .slice(0, HOMEPAGE_PRODUCT_LIMIT);
-  const newArrivals = allProducts.filter((product) => product.isNew).slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const trending = mergeOverridesWithAuto(trendingOverrides, trendingAuto, HOMEPAGE_PRODUCT_LIMIT);
+
+  const newArrivalsAuto = allProducts.filter((product) => product.isNew).slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const newArrivals = mergeOverridesWithAuto(newArrivalOverrides, newArrivalsAuto, HOMEPAGE_PRODUCT_LIMIT);
+
   const referenceProduct = featured[0] ?? allProducts[0] ?? null;
+  const recommendedAuto = referenceProduct
+    ? getCustomersAlsoBought(allProducts, referenceProduct, HOMEPAGE_PRODUCT_LIMIT)
+    : [];
+  const alsoBought = mergeOverridesWithAuto(
+    recommendedOverrides,
+    recommendedAuto,
+    HOMEPAGE_PRODUCT_LIMIT
+  );
 
   return {
     featured,
     trending,
     newArrivals,
-    alsoBought: referenceProduct
-      ? getCustomersAlsoBought(allProducts, referenceProduct, HOMEPAGE_PRODUCT_LIMIT)
-      : [],
+    alsoBought,
     cityInspired: getCityInspiredProducts(allProducts, "Nairobi", HOMEPAGE_PRODUCT_LIMIT),
   };
 }
@@ -157,16 +190,10 @@ async function resolveHomepagePageData(): Promise<HomepagePageData> {
     shouldUseMockData()
       ? Promise.resolve(getDemoHeroSlides({ activeOnly: true }))
       : getActiveHeroSlides(),
-    shouldUseMockData()
-      ? Promise.resolve(getDemoHomepageCategories({ activeOnly: true }))
-      : safeQuery(
-          async () =>
-            (await prisma.homepageCategory.findMany({
-              where: { isActive: true },
-              orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-            })) as HomepageCategory[],
-          () => getDemoHomepageCategories({ activeOnly: true })
-        ),
+    safeQuery(
+      async () => await getActiveCategories(),
+      () => getActiveCategories()
+    ),
     shouldUseMockData()
       ? Promise.resolve(getDemoBlogPosts({ publishedOnly: true, take: 4 }))
       : safeQuery(
@@ -201,10 +228,10 @@ async function resolveHomepageData(): Promise<HomepageData> {
   };
 }
 
-const getHomepageShellDataForDev = cache(resolveHomepageShellData);
-const getHomepageProductSectionsDataForDev = cache(resolveHomepageProductSectionsData);
-const getHomepagePageDataForDev = cache(resolveHomepagePageData);
-const getHomepageDataForDev = cache(resolveHomepageData);
+const getHomepageShellDataForDev = resolveHomepageShellData;
+const getHomepageProductSectionsDataForDev = resolveHomepageProductSectionsData;
+const getHomepagePageDataForDev = resolveHomepagePageData;
+const getHomepageDataForDev = resolveHomepageData;
 
 const getHomepageShellDataForProd = unstable_cache(resolveHomepageShellData, ["homepage-shell"], {
   revalidate: HOMEPAGE_REVALIDATE_SECONDS,

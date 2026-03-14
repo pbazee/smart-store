@@ -8,11 +8,20 @@ import { AlertCircle, CheckCircle2, LoaderCircle, Receipt, ShoppingBag } from "l
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
+import { jsPDF } from "jspdf";
 
 type PendingCheckout = {
   orderId?: string;
   orderNumber?: string;
   reference?: string;
+};
+
+type CheckoutItem = {
+  id: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  variantLabel?: string | null;
 };
 
 type CheckoutConfirmation = {
@@ -24,6 +33,13 @@ type CheckoutConfirmation = {
   customerEmail?: string;
   customerName?: string;
   paymentMethod?: string;
+  shippingAmount?: number;
+  shippingRuleName?: string | null;
+  address?: string | null;
+  city?: string | null;
+  county?: string | null;
+  createdAt?: string | Date;
+  items?: CheckoutItem[];
 };
 
 const CONFIRM_RETRY_DELAY_MS = 1500;
@@ -125,9 +141,73 @@ function CheckoutCompleteContent() {
   }, [clearCart, searchParams, toast]);
 
   if (result) {
+    const createdAt = result.createdAt ? new Date(result.createdAt) : new Date();
+    const items = result.items ?? [];
+    const supportEmail = "support@smarteststore.ke";
+    const supportPhone = "+254 700 123 456";
+
+    const handleDownloadPdf = () => {
+      const doc = new jsPDF();
+      let y = 18;
+
+      doc.setFontSize(16);
+      doc.text("Smartest Store KE", 14, y);
+      doc.setFontSize(11);
+      doc.text(`Order: ${result.orderNumber}`, 14, (y += 8));
+      doc.text(`Date: ${createdAt.toLocaleString("en-KE")}`, 14, (y += 6));
+      doc.text(
+        `Total: ${typeof result.total === "number" ? formatKES(result.total) : "Confirmed"}`,
+        14,
+        (y += 6)
+      );
+      doc.text(
+        `Payment: ${result.paymentMethod === "mpesa" ? "M-Pesa" : "Card via Paystack"}`,
+        14,
+        (y += 6)
+      );
+      doc.text(
+        `Shipping: ${
+          result.shippingAmount === 0
+            ? "Free"
+            : typeof result.shippingAmount === "number"
+              ? formatKES(result.shippingAmount)
+              : "—"
+        }${result.shippingRuleName ? ` · ${result.shippingRuleName}` : ""}`,
+        14,
+        (y += 6)
+      );
+      doc.text(
+        `Ship to: ${[result.address, result.city, result.county].filter(Boolean).join(", ")}`,
+        14,
+        (y += 6)
+      );
+
+      y += 10;
+      doc.setFontSize(12);
+      doc.text("Items", 14, y);
+      doc.setFontSize(11);
+      y += 6;
+      items.forEach((item) => {
+        doc.text(item.productName, 14, y);
+        doc.text(
+          `${item.variantLabel ? `${item.variantLabel} · ` : ""}Qty ${item.quantity}`,
+          14,
+          (y += 5)
+        );
+        doc.text(formatKES(item.price * item.quantity), 170, y, { align: "right" });
+        y += 8;
+      });
+
+      y += 6;
+      doc.text("Thank you for shopping with us!", 14, y);
+      doc.text(`Support: ${supportEmail} · ${supportPhone}`, 14, (y += 6));
+
+      doc.save(`Order-${result.orderNumber || result.orderId}.pdf`);
+    };
+
     return (
       <div className="max-w-3xl mx-auto px-4 py-16">
-        <div className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-8 sm:p-10 shadow-sm">
+        <div className="rounded-[2rem] border border-emerald-200 dark:border-emerald-500/40 bg-gradient-to-br from-emerald-50 via-white to-amber-50 dark:from-emerald-950 dark:via-zinc-950 dark:to-zinc-900 p-8 sm:p-10 shadow-sm">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
             <CheckCircle2 className="h-10 w-10" />
           </div>
@@ -140,43 +220,49 @@ function CheckoutCompleteContent() {
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/70 bg-white/80 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Order number</p>
+            <div className="rounded-2xl border border-white/70 dark:border-zinc-700/80 bg-white/80 dark:bg-zinc-900/80 p-4 text-foreground dark:text-white">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground dark:text-zinc-400">Order number</p>
               <p className="mt-2 text-lg font-bold">{result.orderNumber}</p>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/80 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Payment</p>
+            <div className="rounded-2xl border border-white/70 dark:border-zinc-700/80 bg-white/80 dark:bg-zinc-900/80 p-4 text-foreground dark:text-white">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground dark:text-zinc-400">Payment</p>
               <p className="mt-2 text-lg font-bold">
                 {result.paymentMethod === "mpesa" ? "M-Pesa via Paystack" : "Card via Paystack"}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/80 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+            <div className="rounded-2xl border border-white/70 dark:border-zinc-700/80 bg-white/80 dark:bg-zinc-900/80 p-4 text-foreground dark:text-white">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground dark:text-zinc-400">Total</p>
               <p className="mt-2 text-lg font-bold">{typeof result.total === "number" ? formatKES(result.total) : "Confirmed"}</p>
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-6 rounded-2xl border border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200">
             Payment successful - Order created
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <button
+              onClick={handleDownloadPdf}
+              className="flex-1 rounded-xl bg-orange-500 px-6 py-3 text-center font-semibold text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)] transition-colors hover:bg-orange-600"
+            >
+              Download Receipt (PDF)
+            </button>
             <Link href="/shop" className="flex-1 rounded-xl bg-brand-500 px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-brand-600">
               Continue Shopping
             </Link>
             {result.userId ? (
-              <Link href="/orders" className="flex-1 rounded-xl border border-border px-6 py-3 text-center font-semibold transition-colors hover:bg-muted">
+              <Link href="/orders" className="flex-1 rounded-xl border border-border px-6 py-3 text-center font-semibold transition-colors hover:bg-muted dark:text-white">
                 View Orders
               </Link>
             ) : (
-              <Link href="/checkout" className="flex-1 rounded-xl border border-border px-6 py-3 text-center font-semibold transition-colors hover:bg-muted">
+              <Link href="/checkout" className="flex-1 rounded-xl border border-border px-6 py-3 text-center font-semibold transition-colors hover:bg-muted dark:text-white">
                 Start New Checkout
               </Link>
             )}
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-white/75 p-4">
+            <div className="rounded-2xl border border-border bg-white/75 dark:bg-zinc-900/80 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Receipt className="h-4 w-4 text-brand-500" />
                 Saved to your order record
@@ -185,7 +271,7 @@ function CheckoutCompleteContent() {
                 Keep order number <span className="font-semibold text-foreground">{result.orderNumber}</span> for support and delivery updates.
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-white/75 p-4">
+            <div className="rounded-2xl border border-border bg-white/75 dark:bg-zinc-900/80 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <ShoppingBag className="h-4 w-4 text-brand-500" />
                 Cart cleared

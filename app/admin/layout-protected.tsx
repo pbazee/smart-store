@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   LogOut,
   TicketPercent,
+  Pin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
   { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
   { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
+  { href: "/admin/landing-overrides", label: "Landing Page Overrides", icon: Pin },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

@@ -1,28 +1,15 @@
 "use client";
-import { useState } from "react";
-import type { FilterState } from "@/types";
+import { useMemo, useState } from "react";
+import type { Category, FilterState } from "@/types";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface Props {
   filters: FilterState;
   onChange: (f: FilterState) => void;
+  categories: Category[];
   lockedCategory?: string;
 }
-
-const categories = [
-  { value: "shoes", label: "Shoes" },
-  { value: "clothes", label: "Clothes" },
-  { value: "accessories", label: "Accessories" },
-  { value: "bags", label: "Bags" },
-  { value: "tshirts", label: "T-Shirts" },
-  { value: "sneakers", label: "Sneakers" },
-  { value: "boots", label: "Boots" },
-  { value: "hoodies", label: "Hoodies" },
-  { value: "jeans", label: "Jeans" },
-  { value: "dresses", label: "Dresses" },
-  { value: "jackets", label: "Jackets" },
-];
 
 const genders = [
   { value: "men", label: "Men" },
@@ -60,7 +47,30 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-export function ShopFilters({ filters, onChange, lockedCategory }: Props) {
+export function ShopFilters({ filters, onChange, categories, lockedCategory }: Props) {
+  const byParent = useMemo(() => {
+    const map = new Map<string | null, Category[]>();
+    categories
+      .filter((c) => c.isActive !== false)
+      .forEach((c) => {
+        const key = c.parentId ?? null;
+        map.set(key, [...(map.get(key) || []), c]);
+      });
+    map.forEach((list, key) =>
+      map.set(
+        key,
+        list.sort((a, b) =>
+          (a.order ?? 0) === (b.order ?? 0)
+            ? a.name.localeCompare(b.name)
+            : (a.order ?? 0) - (b.order ?? 0)
+        )
+      )
+    );
+    return map;
+  }, [categories]);
+
+  const topLevelCategories = byParent.get(null) || [];
+
   const toggle = (key: "category" | "gender" | "colors" | "sizes", value: string) => {
     const current = filters[key] as string[];
     const next = current.includes(value)
@@ -103,18 +113,38 @@ export function ShopFilters({ filters, onChange, lockedCategory }: Props) {
 
       {!lockedCategory && (
         <FilterSection title="Category">
-          <div className="space-y-2">
-            {categories.map((cat) => (
-              <label key={cat.value} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.category.includes(cat.value)}
-                  onChange={() => toggle("category", cat.value)}
-                  className="w-4 h-4 rounded border-border text-brand-500 focus:ring-brand-500"
-                />
-                <span className="text-sm">{cat.label}</span>
-              </label>
-            ))}
+          <div className="space-y-3">
+            {topLevelCategories.map((cat) => {
+              const children = byParent.get(cat.id) || [];
+              return (
+                <div key={cat.id} className="rounded-lg border border-border/60 p-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={filters.category.includes(cat.id)}
+                      onChange={() => toggle("category", cat.id)}
+                      className="w-4 h-4 rounded border-border text-brand-500 focus:ring-brand-500"
+                    />
+                    {cat.name}
+                  </label>
+                  {children.length > 0 && (
+                    <div className="mt-2 space-y-1 pl-5">
+                      {children.map((child) => (
+                        <label key={child.id} className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={filters.category.includes(child.id)}
+                            onChange={() => toggle("category", child.id)}
+                            className="w-4 h-4 rounded border-border text-brand-500 focus:ring-brand-500"
+                          />
+                          {child.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </FilterSection>
       )}

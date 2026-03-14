@@ -7,11 +7,12 @@ import { ProductCard } from "@/components/shop/product-card";
 import { ShopFilters } from "@/components/shop/shop-filters";
 import { getProductListFilterConfig } from "@/lib/catalog-config";
 import { filterProductCatalog } from "@/lib/product-filters";
-import type { FilterState, Product } from "@/types";
+import type { Category, FilterState, Product } from "@/types";
 
 type CatalogBrowserProps = {
   heading: string;
   products: Product[];
+  categories: Category[];
   lockedCategory?: string;
 };
 
@@ -39,6 +40,7 @@ function buildFilterState(
 export function CatalogBrowser({
   heading,
   products,
+  categories,
   lockedCategory,
 }: CatalogBrowserProps) {
   const searchParams = useSearchParams();
@@ -65,11 +67,12 @@ export function CatalogBrowser({
     () =>
       filterProductCatalog(products, {
         filters,
+        categories,
         tag,
         filterKey,
         lockedCategory,
       }),
-    [filterKey, filters, lockedCategory, products, tag]
+    [categories, filterKey, filters, lockedCategory, products, tag]
   );
   const displayHeading = heading === "All Products" && filterConfig ? filterConfig.heading : heading;
 
@@ -118,6 +121,7 @@ export function CatalogBrowser({
           <ShopFilters
             filters={filters}
             onChange={setFilters}
+            categories={categories}
             lockedCategory={lockedCategory}
           />
         </div>
@@ -138,6 +142,7 @@ export function CatalogBrowser({
               <ShopFilters
                 filters={filters}
                 onChange={setFilters}
+                categories={categories}
                 lockedCategory={lockedCategory}
               />
             </div>

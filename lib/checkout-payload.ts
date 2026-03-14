@@ -78,6 +78,7 @@ export type CustomerData = {
 export type ShippingData = {
   address: string;
   city: string;
+  county: string;
   deliveryNotes?: string;
 };
 
@@ -128,6 +129,7 @@ export function buildCheckoutPayload(input: {
     phone: normalizeCheckoutPhoneNumber(checkoutData.customer.phone),
     address: checkoutData.shipping.address.trim(),
     city: checkoutData.shipping.city.trim(),
+    county: checkoutData.shipping.county.trim(),
     notes: checkoutData.shipping.deliveryNotes?.trim(),
     paymentMethod: checkoutData.payment.method,
     mpesaPhone: normalizeCheckoutPhoneNumber(checkoutData.payment.mpesaPhone),

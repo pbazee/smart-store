@@ -64,12 +64,17 @@ export default async function RootLayout({
               storefrontChrome={
                 <>
                   <AnnouncementBar announcements={homepageShellData.announcements} />
-                  <Suspense fallback={<NavbarFallback />}>
-                    <Navbar />
-                  </Suspense>
-                </>
+              <Suspense fallback={<NavbarFallback />}>
+                <Navbar />
+              </Suspense>
+            </>
               }
-              storefrontFooter={<Footer socialLinks={homepageShellData.socialLinks} />}
+              storefrontFooter={
+                <Footer
+                  socialLinks={homepageShellData.socialLinks}
+                  storeSettings={homepageShellData.storeSettings}
+                />
+              }
               storefrontOverlays={
                 <>
                   <MarketingPopup popups={homepageShellData.popups} />

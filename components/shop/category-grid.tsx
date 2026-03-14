@@ -1,18 +1,18 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { CategoryGridClient } from "@/components/shop/category-grid-client";
-import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
-import type { HomepageCategory } from "@/types";
+import { getActiveCategories } from "@/lib/category-service";
+import type { Category } from "@/types";
 
 export async function CategoryGrid({
   categories: providedCategories,
 }: {
-  categories?: HomepageCategory[];
+  categories?: Category[];
 }) {
   let categories = providedCategories;
 
   if (!categories) {
     noStore();
-    categories = await getActiveHomepageCategories();
+    categories = await getActiveCategories();
   }
 
   if (categories.length === 0) {

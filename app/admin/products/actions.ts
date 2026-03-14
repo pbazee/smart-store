@@ -30,8 +30,9 @@ const adminProductSchema = z.object({
   name: z.string().min(2, "Name is required"),
   slug: z.string().min(2, "Slug is required"),
   description: z.string().min(10, "Description is too short"),
-  category: z.enum(["shoes", "clothes", "accessories"]),
+  category: z.string().min(2, "Category is required"),
   subcategory: z.string().min(2, "Subcategory is required"),
+  categoryId: z.string().optional().nullable(),
   gender: z.enum(["men", "women", "unisex"]),
   basePrice: z.number().int().positive(),
   images: z.array(z.string().min(1)).min(1, "At least one image is required"),
@@ -113,6 +114,7 @@ export async function createAdminProductAction(input: AdminProductInput) {
     data: buildAdminProductCreateData({
       ...data,
       slug: slugify(data.slug || data.name),
+      categoryId: data.categoryId ?? null,
     }),
     include: { variants: true },
   });
@@ -144,6 +146,7 @@ export async function updateAdminProductAction(input: AdminProductInput) {
       description: data.description,
       category: data.category,
       subcategory: data.subcategory,
+      categoryId: data.categoryId ?? null,
       gender: data.gender,
       tags: data.tags,
       basePrice: data.basePrice,

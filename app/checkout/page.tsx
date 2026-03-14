@@ -43,6 +43,7 @@ const customerSchema = z.object({
 const shippingSchema = z.object({
   address: z.string().min(5, "Street address is required"),
   city: z.string().min(2, "City is required"),
+  county: z.string().min(2, "County is required"),
   deliveryNotes: z.string().optional(),
 });
 
@@ -89,6 +90,56 @@ type InitializePaymentResponse = {
 };
 
 const PAYSTACK_COMPLETE_MESSAGE = "paystack:complete";
+
+const KENYA_COUNTIES = [
+  "Nairobi",
+  "Mombasa",
+  "Kisumu",
+  "Nakuru",
+  "Kiambu",
+  "Machakos",
+  "Kajiado",
+  "Nyeri",
+  "Uasin Gishu",
+  "Kericho",
+  "Laikipia",
+  "Nandi",
+  "Garissa",
+  "Embu",
+  "Meru",
+  "Kilifi",
+  "Kwale",
+  "Turkana",
+  "Narok",
+  "Bungoma",
+  "Busia",
+  "Kakamega",
+  "Trans Nzoia",
+  "Migori",
+  "Homa Bay",
+  "Siaya",
+  "Vihiga",
+  "Baringo",
+  "Elgeyo-Marakwet",
+  "Kirinyaga",
+  "Kitui",
+  "Makueni",
+  "Murang'a",
+  "Nyandarua",
+  "Samburu",
+  "Taita-Taveta",
+  "Tana River",
+  "Tharaka-Nithi",
+  "Wajir",
+  "West Pokot",
+  "Marsabit",
+  "Mandera",
+  "Lamu",
+  "Isiolo",
+  "Bomet",
+  "Kericho",
+  "Embu",
+];
 
 function getPaystackPopupFeatures() {
   if (typeof window === "undefined") {
@@ -143,12 +194,47 @@ export default function CheckoutPage() {
   const [paystackError, setPaystackError] = useState<string | null>(null);
   const [couponInput, setCouponInput] = useState("");
   const [isCouponPending, setIsCouponPending] = useState(false);
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingRuleName, setShippingRuleName] = useState<string | null>(null);
+  const [isShippingQuoting, setIsShippingQuoting] = useState(false);
 
   const cartTotal = total();
   const appliedCoupon = checkoutData.coupon;
-  const shippingCost = cartTotal > 5000 ? 0 : 250;
   const discountAmount = appliedCoupon ? Math.min(appliedCoupon.discountAmount, cartTotal) : 0;
+  const shippingSubtotal = Math.max(0, cartTotal - discountAmount);
   const finalTotal = cartTotal + shippingCost - discountAmount;
+
+  const refreshShippingQuote = async (shippingData: ShippingData) => {
+    setIsShippingQuoting(true);
+    try {
+      const response = await fetch("/api/checkout/shipping-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subtotal: shippingSubtotal,
+          county: shippingData.county,
+          city: shippingData.city,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json?.data) {
+        throw new Error(json?.error || "Failed to fetch shipping");
+      }
+      setShippingCost(json.data.cost ?? 0);
+      setShippingRuleName(json.data.ruleName ?? null);
+    } catch (error) {
+      console.error("Shipping quote failed:", error);
+      setShippingCost(0);
+      setShippingRuleName(null);
+      toast({
+        title: "Using default shipping",
+        description: "We could not fetch a quote. Shipping set to 0 for now.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsShippingQuoting(false);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("checkout-data");
@@ -211,6 +297,14 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, [cartTotal, checkoutData.coupon?.code, toast]);
+
+  useEffect(() => {
+    if (!checkoutData.shipping) {
+      return;
+    }
+    void refreshShippingQuote(checkoutData.shipping);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shippingSubtotal, checkoutData.shipping?.county, checkoutData.shipping?.city]);
 
   useEffect(() => {
     setIsPaystackReady(true);
@@ -465,9 +559,12 @@ export default function CheckoutPage() {
             data={checkoutData}
             items={items}
             finalTotal={finalTotal}
+            shippingCost={shippingCost}
+            shippingRuleName={shippingRuleName}
             discountAmount={discountAmount}
             appliedCouponCode={appliedCoupon?.code ?? null}
             isProcessing={isProcessing}
+            isShippingQuoting={isShippingQuoting}
             errorMessage={checkoutError}
             paystackReady={isPaystackReady}
             paystackError={paystackError}
@@ -621,8 +718,10 @@ export default function CheckoutPage() {
             <div className="border-t border-border pt-4 space-y-2">
               <div className="flex justify-between text-sm"><span>Subtotal</span><span>{formatKES(cartTotal)}</span></div>
               <div className="flex justify-between text-sm">
-                <span>Shipping</span>
-                <span className={shippingCost === 0 ? "text-green-600" : ""}>{shippingCost === 0 ? "Free" : formatKES(shippingCost)}</span>
+                <span>Shipping {shippingRuleName ? `(${shippingRuleName})` : ""}</span>
+                <span className={shippingCost === 0 ? "text-green-600" : ""}>
+                  {isShippingQuoting ? "Calculating..." : shippingCost === 0 ? "Free" : formatKES(shippingCost)}
+                </span>
               </div>
               {appliedCoupon && (
                 <div className="flex justify-between text-sm text-emerald-600">
@@ -696,18 +795,32 @@ function ShippingStep({ data, onNext }: { data?: ShippingData; onNext: (data: Sh
       <h2 className="text-xl font-bold mb-6">Shipping Address</h2>
       <form onSubmit={handleSubmit(onNext)} className="space-y-4">
         <div>
+          <label className="block text-sm font-medium mb-2">County</label>
+          <select
+            {...register("county")}
+            className="w-full px-3 py-2.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            <option value="">Select county...</option>
+            {KENYA_COUNTIES.map((county, index) => (
+              <option key={`${county}-${index}`} value={county}>
+                {county}
+              </option>
+            ))}
+          </select>
+          {errors.county && <p className="text-xs text-destructive mt-1">{errors.county.message}</p>}
+        </div>
+        <div>
           <label className="block text-sm font-medium mb-2">Street Address</label>
           <input {...register("address")} className="w-full px-3 py-2.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="123 Ngong Road" />
           {errors.address && <p className="text-xs text-destructive mt-1">{errors.address.message}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">City / Area</label>
-          <select {...register("city")} className="w-full px-3 py-2.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="">Select area...</option>
-            {["Nairobi CBD", "Westlands", "Karen", "Lavington", "Kilimani", "Eastlands", "Thika Road", "Mombasa Road", "Other Nairobi"].map((city) => (
-              <option key={city} value={city}>{city}</option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium mb-2">City / Town / Area</label>
+          <input
+            {...register("city")}
+            className="w-full px-3 py-2.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-brand-500"
+            placeholder="e.g. Nairobi, Mombasa, Eldoret, Nakuru"
+          />
           {errors.city && <p className="text-xs text-destructive mt-1">{errors.city.message}</p>}
         </div>
         <div>
@@ -808,9 +921,12 @@ function ReviewStep({
   data,
   items,
   finalTotal,
+  shippingCost,
+  shippingRuleName,
   discountAmount,
   appliedCouponCode,
   isProcessing,
+  isShippingQuoting,
   errorMessage,
   paystackReady,
   paystackError,
@@ -819,9 +935,12 @@ function ReviewStep({
   data: CheckoutData;
   items: ReturnType<typeof useCartStore.getState>["items"];
   finalTotal: number;
+  shippingCost: number;
+  shippingRuleName: string | null;
   discountAmount: number;
   appliedCouponCode: string | null;
   isProcessing: boolean;
+  isShippingQuoting: boolean;
   errorMessage?: string | null;
   paystackReady: boolean;
   paystackError: string | null;
@@ -845,7 +964,9 @@ function ReviewStep({
           <h3 className="font-semibold mb-3">Shipping Address</h3>
           <div className="bg-muted/50 rounded-lg p-4 text-sm">
             <p>{data.shipping?.address}</p>
-            <p>{data.shipping?.city}, Kenya</p>
+            <p>
+              {data.shipping?.city}, {data.shipping?.county}
+            </p>
             {data.shipping?.deliveryNotes && <p className="mt-2 text-muted-foreground">{data.shipping.deliveryNotes}</p>}
           </div>
         </div>
@@ -894,6 +1015,12 @@ function ReviewStep({
             <span>-{formatKES(discountAmount)}</span>
           </div>
         )}
+        <div className="flex justify-between text-sm">
+          <span>Shipping {shippingRuleName ? `(${shippingRuleName})` : ""}</span>
+          <span className={shippingCost === 0 ? "text-green-600" : ""}>
+            {shippingCost === 0 ? "Free" : formatKES(shippingCost)}
+          </span>
+        </div>
         <div className="flex justify-between font-semibold text-lg"><span>Total</span><span>{formatKES(finalTotal)}</span></div>
       </div>
 
@@ -907,7 +1034,7 @@ function ReviewStep({
 
       {errorMessage && <div className="mt-6 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{errorMessage}</div>}
 
-      <button onClick={onNext} disabled={isProcessing || !paystackReady} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 mt-6">
+      <button onClick={onNext} disabled={isProcessing || !paystackReady || isShippingQuoting} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 mt-6">
         {isProcessing ? (
           <>
             <Loader className="w-4 h-4 animate-spin" />

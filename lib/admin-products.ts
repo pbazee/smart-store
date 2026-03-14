@@ -14,8 +14,9 @@ export function buildAdminProductCreateData(input: {
   name: string;
   slug: string;
   description: string;
-  category: "shoes" | "clothes" | "accessories";
+  category: string;
   subcategory: string;
+  categoryId?: string | null;
   gender: "men" | "women" | "unisex" | "male" | "female";
   basePrice: number;
   images: string[];
@@ -36,6 +37,7 @@ export function buildAdminProductCreateData(input: {
     description: input.description,
     category: input.category,
     subcategory: input.subcategory,
+    categoryId: input.categoryId ?? null,
     gender: normalizeAdminGender(input.gender),
     basePrice: input.basePrice,
     images: input.images,

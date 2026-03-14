@@ -176,6 +176,16 @@ export function getAdminStats() {
   const lowStockProducts = mockProducts.filter((product) =>
     product.variants.some((variant) => variant.stock > 0 && variant.stock <= 5)
   );
+  const recentOrders = mockOrders.slice(0, 8).map((order) => ({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    customerEmail: order.customerEmail,
+    customerName: order.customerName,
+    total: order.total,
+    paymentMethod: order.paymentMethod,
+    status: order.status,
+    createdAt: new Date(order.createdAt),
+  }));
 
   const revenueByMonth = [
     { month: "Jul", revenue: 145000 },
@@ -192,5 +202,6 @@ export function getAdminStats() {
     totalProducts,
     lowStockProducts,
     revenueByMonth,
+    recentOrders,
   };
 }

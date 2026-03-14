@@ -12,8 +12,9 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
-  category: "shoes" | "clothes" | "accessories";
+  category: string;
   subcategory: string;
+  categoryId?: string | null;
   gender: "men" | "women" | "unisex";
   tags: string[];
   basePrice: number;
@@ -23,6 +24,20 @@ export interface Product {
   reviewCount: number;
   isFeatured: boolean;
   isNew: boolean;
+}
+
+export type LandingSection = "popular" | "trending" | "new_arrivals" | "recommended";
+
+export interface LandingSectionOverride {
+  id: number;
+  section: LandingSection;
+  productId: string;
+  product: Product;
+  priority: number;
+  activeFrom?: string | Date | null;
+  activeUntil?: string | Date | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface ProductReview {
@@ -104,6 +119,28 @@ export interface WhatsAppSettings {
   phoneNumber: string;
   defaultMessage: string;
   isActive: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface StoreSettings {
+  id: number;
+  supportEmail?: string | null;
+  supportPhone?: string | null;
+  adminNotificationEmail?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  parentId?: string | null;
+  order?: number;
+  isActive?: boolean;
+  children?: Category[];
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -198,11 +235,14 @@ export interface Order {
   paymentMethod: "mpesa" | "card" | "cash" | string;
   subtotal?: number;
   shippingAmount?: number;
+  shippingRuleName?: string | null;
+  shippingRuleId?: number | null;
   discountAmount?: number;
   couponCode?: string | null;
   total: number;
   address: string;
   city: string;
+  county?: string;
   notes?: string;
   paystackReference?: string | null;
   paymentVerifiedAt?: string | Date | null;
@@ -212,6 +252,19 @@ export interface Order {
   items: OrderItem[];
   createdAt: string | Date;
   updatedAt?: string | Date;
+}
+
+export interface ShippingRule {
+  id: number;
+  name: string;
+  description?: string | null;
+  locationScope: string;
+  minOrderAmount?: number | null;
+  cost: number;
+  isActive: boolean;
+  priority: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface FilterState {

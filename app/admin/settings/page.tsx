@@ -1,77 +1,15 @@
-"use client";
+import { redirect } from "next/navigation";
+import { fetchAdminStoreSettings } from "@/app/admin/settings/actions";
+import { StoreSettingsForm } from "@/app/admin/settings/store-settings-form";
+import { requireAdminAuth } from "@/lib/auth-utils";
 
-import { Database, ExternalLink, Key, Zap } from "lucide-react";
-import { shouldUseMockData } from "@/lib/live-data-mode";
+export default async function AdminSettingsPage() {
+  const isAdmin = await requireAdminAuth();
+  if (!isAdmin) {
+    redirect("/sign-in?redirect_url=%2Fadmin%2Fsettings");
+  }
 
-export default function AdminSettings() {
-  const isMockMode = shouldUseMockData();
+  const settings = await fetchAdminStoreSettings();
 
-  return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-black mb-1">Settings</h1>
-        <p className="text-zinc-400 text-sm">Configure your store integrations</p>
-      </div>
-
-      <div className={`p-6 rounded-2xl border ${isMockMode ? "bg-amber-500/10 border-amber-500/30" : "bg-green-500/10 border-green-500/30"}`}>
-        <div className="flex items-center gap-3 mb-3">
-          <Database className={`w-6 h-6 ${isMockMode ? "text-amber-400" : "text-green-400"}`} />
-          <h2 className="font-bold text-lg">{isMockMode ? "Demo Mode Active" : "Live Mode Active"}</h2>
-        </div>
-        <p className="text-zinc-400 text-sm mb-4">
-          {isMockMode
-            ? "Currently using mock data (products.json + orders.json). No real database connected. Perfect for demos and development."
-            : "Connected to real Supabase database. All changes persist."}
-        </p>
-        <p className="text-xs text-zinc-500">
-          Switch data sources by changing <code>USE_MOCK_DATA</code> and restarting the server.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {[
-          { icon: Key, title: "Paystack Integration", sub: "Set your Paystack keys for M-Pesa and card payments", href: "https://dashboard.paystack.com" },
-          { icon: Key, title: "Supabase Database", sub: "Connect your Supabase project for persistent data storage", href: "https://supabase.com/dashboard" },
-          { icon: Zap, title: "Clerk Authentication", sub: "Enable user accounts and admin access control", href: "https://dashboard.clerk.com" },
-        ].map((item) => (
-          <div key={item.title} className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <item.icon className="w-5 h-5 text-zinc-400" />
-              <div>
-                <p className="font-semibold text-sm">{item.title}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">{item.sub}</p>
-              </div>
-            </div>
-            <a
-              href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium whitespace-nowrap"
-            >
-              Configure <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl">
-        <h3 className="font-bold mb-3">Environment Variables</h3>
-        <pre className="text-xs text-zinc-400 bg-zinc-950 p-3 rounded-lg overflow-x-auto">
-{`# .env.local
-USE_MOCK_DATA=false
-
-# Runtime database (Supabase pooler)
-DATABASE_URL="postgresql://...:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1"
-
-# Migrations / prisma db push
-DIRECT_URL="postgresql://...:5432/postgres?sslmode=require"
-
-AUTH_SESSION_SECRET="change-me"
-NEXT_PUBLIC_SUPABASE_URL="https://..."
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY="pk_live_..."
-PAYSTACK_SECRET_KEY="sk_live_..."`}
-        </pre>
-      </div>
-    </div>
-  );
+  return <StoreSettingsForm initialSettings={settings} />;
 }

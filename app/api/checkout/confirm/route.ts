@@ -4,10 +4,58 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { releaseReservationForReference } from "@/lib/order-reservations";
 import { finalizePaystackPayment, verifyPaystackTransaction } from "@/lib/paystack";
+import { sendOrderEmailsAfterPayment } from "@/lib/email/order-confirmation";
 
 const confirmPaymentSchema = z.object({
   reference: z.string().trim().min(1),
 });
+
+function formatVariantLabel(variant?: { size?: string | null; color?: string | null }) {
+  if (!variant) return null;
+  const parts = [variant.size, variant.color].filter(Boolean);
+  return parts.length ? parts.join(" / ") : null;
+}
+
+async function buildOrderSummary(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  if (!order) {
+    return null;
+  }
+
+  const variantIds = order.items.map((item) => item.variantId).filter(Boolean) as string[];
+  const variants = variantIds.length
+    ? await prisma.variant.findMany({ where: { id: { in: variantIds } } })
+    : [];
+  const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    state: "processed" as const,
+    userId: order.userId,
+    total: order.total,
+    customerEmail: order.customerEmail,
+    customerName: order.customerName,
+    paymentMethod: order.paymentMethod,
+    shippingAmount: order.shippingAmount,
+    shippingRuleName: order.shippingRuleName,
+    address: order.address,
+    city: order.city,
+    county: (order as any).county ?? null,
+    createdAt: order.createdAt,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productName: item.productName,
+      quantity: item.quantity,
+      price: item.price,
+      variantLabel: item.variantId ? formatVariantLabel(variantMap.get(item.variantId)) : null,
+    })),
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +75,12 @@ export async function POST(req: NextRequest) {
         paymentStatus: true,
         paymentVerifiedAt: true,
         status: true,
+        shippingAmount: true,
+        shippingRuleName: true,
+        address: true,
+        city: true,
+        county: true,
+        createdAt: true,
       },
     });
 
@@ -35,17 +89,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (order.paymentStatus === "paid" && order.paymentVerifiedAt) {
+      const summary = await buildOrderSummary(order.id);
+
       return NextResponse.json({
         success: true,
         data: {
-          orderId: order.id,
-          orderNumber: order.orderNumber,
+          ...(summary ?? {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            userId: order.userId,
+            total: order.total,
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            paymentMethod: order.paymentMethod,
+            shippingAmount: order.shippingAmount,
+            shippingRuleName: order.shippingRuleName,
+            address: order.address,
+            city: order.city,
+            county: (order as any).county ?? null,
+            createdAt: order.createdAt,
+          }),
           state: "duplicate",
-          userId: order.userId,
-          total: order.total,
-          customerEmail: order.customerEmail,
-          customerName: order.customerName,
-          paymentMethod: order.paymentMethod,
         },
       });
     }
@@ -74,17 +138,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    if (result.state === "processed") {
+      void sendOrderEmailsAfterPayment({
+        orderId: result.orderId,
+        origin: req.nextUrl.origin,
+      });
+    }
+
+    const summary = await buildOrderSummary(result.orderId);
+
     return NextResponse.json({
       success: true,
       data: {
-        orderId: result.orderId,
-        orderNumber: result.orderNumber,
+        ...(summary ?? {
+          orderId: result.orderId,
+          orderNumber: result.orderNumber,
+          userId: result.userId,
+          total: result.total,
+          customerEmail: result.customerEmail,
+          customerName: result.customerName,
+          paymentMethod: result.paymentMethod,
+        }),
         state: result.state,
-        userId: result.userId,
-        total: result.total,
-        customerEmail: result.customerEmail,
-        customerName: result.customerName,
-        paymentMethod: result.paymentMethod,
       },
     });
   } catch (error) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -23,6 +24,16 @@ type AdminDashboardStats = {
   totalProducts: number;
   lowStockProducts: Product[];
   revenueByMonth: Array<{ month: string; revenue: number }>;
+  recentOrders?: Array<{
+    id: string;
+    orderNumber: string;
+    customerName?: string | null;
+    customerEmail?: string | null;
+    total: number;
+    paymentMethod?: string | null;
+    status: string;
+    createdAt: string | Date;
+  }>;
 };
 
 export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
@@ -61,11 +72,15 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
     },
   ];
 
+  const latestOrders = (stats.recentOrders || []).slice(0, 5);
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-black mb-1">Dashboard</h1>
-        <p className="text-zinc-400 text-sm">Live commerce metrics from products and orders.</p>
+        <h1 className="text-3xl font-black mb-2">Dashboard</h1>
+        <p className="text-zinc-400 text-sm">
+          Live commerce metrics and fresh orders at a glance.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -75,7 +90,7 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.08 }}
-            className={`p-5 rounded-2xl border ${card.bg}`}
+            className={`p-6 rounded-2xl border shadow-lg shadow-black/20 ${card.bg}`}
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-zinc-400">{card.title}</p>
@@ -87,8 +102,82 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
         ))}
       </div>
 
+      {latestOrders.length > 0 && (
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-xl shadow-black/30">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Recent</p>
+              <h3 className="text-lg font-bold text-white">Latest Orders</h3>
+            </div>
+            <Link
+              href="/admin/orders"
+              className="text-sm font-semibold text-brand-400 hover:text-brand-300"
+            >
+              View all orders
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                  <th className="pb-3 pr-4">Order</th>
+                  <th className="pb-3 pr-4">Customer</th>
+                  <th className="pb-3 pr-4">Total</th>
+                  <th className="pb-3 pr-4">Payment</th>
+                  <th className="pb-3 pr-4">Status</th>
+                  <th className="pb-3">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/70">
+                {latestOrders.map((order) => {
+                  const successStatuses = ["processing", "shipped", "delivered"];
+                  const statusColor = successStatuses.includes(order.status)
+                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                    : order.status === "pending"
+                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                      : "bg-red-500/15 text-red-300 border border-red-500/30";
+
+                  return (
+                    <tr key={order.id} className="hover:bg-zinc-900/60">
+                      <td className="py-3 pr-4">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="font-semibold text-white hover:text-brand-400"
+                        >
+                          {order.orderNumber}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-4 text-zinc-300">
+                        {order.customerName || order.customerEmail || "—"}
+                      </td>
+                      <td className="py-3 pr-4 font-semibold text-brand-400">
+                        {formatKES(order.total)}
+                      </td>
+                      <td className="py-3 pr-4 text-zinc-300 capitalize">
+                        {order.paymentMethod || "—"}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${statusColor}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-zinc-400">
+                        {new Date(order.createdAt).toLocaleDateString("en-KE", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-xl shadow-black/25">
           <h3 className="font-bold mb-4">Revenue (Last 6 Months)</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={stats.revenueByMonth}>
@@ -111,7 +200,7 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-xl shadow-black/25">
           <h3 className="font-bold mb-4">Revenue Trend</h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={stats.revenueByMonth}>

@@ -6,6 +6,8 @@ import { DEFAULT_HOMEPAGE_CATEGORY_SEEDS } from "../lib/default-homepage-categor
 import { DEFAULT_COUPON_SEEDS } from "../lib/default-coupons";
 import { DEFAULT_SOCIAL_LINK_SEEDS } from "../lib/default-social-links";
 import { DEFAULT_WHATSAPP_SETTINGS } from "../lib/default-whatsapp-settings";
+import { DEFAULT_STORE_SETTINGS } from "../lib/default-store-settings";
+import { DEFAULT_SHIPPING_RULES } from "../lib/default-shipping-rules";
 import { mockProducts } from "../lib/mock-data";
 import { hashPassword } from "../lib/password";
 
@@ -221,6 +223,57 @@ async function main() {
       create: DEFAULT_WHATSAPP_SETTINGS,
     });
     console.log("Seeded WhatsApp settings");
+
+    console.log("Seeding store settings...");
+    await prisma.storeSettings.upsert({
+      where: { id: DEFAULT_STORE_SETTINGS.id },
+      update: {
+        supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
+        supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
+        adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
+      },
+      create: {
+        id: DEFAULT_STORE_SETTINGS.id,
+        supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
+        supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
+        adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
+      },
+    });
+    console.log("Seeded store settings");
+
+    console.log("Seeding shipping rules...");
+    for (const rule of DEFAULT_SHIPPING_RULES) {
+      const existingRule = await prisma.shippingRule.findFirst({
+        where: { name: rule.name },
+      });
+
+      if (existingRule) {
+        await prisma.shippingRule.update({
+          where: { id: existingRule.id },
+          data: {
+            description: rule.description,
+            locationScope: rule.locationScope,
+            minOrderAmount: rule.minOrderAmount,
+            cost: rule.cost,
+            isActive: rule.isActive,
+            priority: rule.priority,
+          },
+        });
+      } else {
+        await prisma.shippingRule.create({
+          data: {
+            name: rule.name,
+            description: rule.description,
+            locationScope: rule.locationScope,
+            minOrderAmount: rule.minOrderAmount,
+            cost: rule.cost,
+            isActive: rule.isActive,
+            priority: rule.priority,
+          },
+        });
+      }
+      console.log(`Seeded shipping rule: ${rule.name}`);
+    }
 
     console.log("Seeding products...");
     let createdCount = 0;

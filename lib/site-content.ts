@@ -293,7 +293,7 @@ export const blogPosts: BlogPost[] = [
     publishedAt: "February 27, 2026",
     author: "Smartest Store KE",
     image:
-      "https://images.unsplash.com/photo-1556821840-3a63f15732ce?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1400&q=80",
     imageAlt: "Model wearing a premium hoodie in an urban setting",
     content: [
       {

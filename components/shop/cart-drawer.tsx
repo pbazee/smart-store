@@ -75,6 +75,7 @@ export function CartDrawer() {
                         src={item.product.images[0] || "/images/product-placeholder.png"}
                         alt={item.product.name}
                         fill
+                        quality={85}
                         className="object-cover"
                         sizes="80px"
                       />

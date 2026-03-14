@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bell,
-  Database,
+  MapPin,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
@@ -30,7 +30,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useSessionUser } from "@/hooks/use-session-user";
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { cn } from "@/lib/utils";
 
 type AdminShellProps = {
@@ -48,18 +47,20 @@ type AdminNavItem = {
 function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
   return [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/products", label: "Products", icon: Package },
-    { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-    { href: "/admin/announcements", label: "Announcements", icon: Bell },
-    { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
-    { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
-    { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
-    { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
-    { href: "/admin/popups", label: "Popups", icon: Sparkles },
-    { href: "/admin/newsletter", label: "Subscribers", icon: Users, count: subscriberCount },
-    { href: "/admin/social-links", label: "Social Links", icon: Share2 },
-    { href: "/admin/whatsapp-settings", label: "WhatsApp Settings", icon: MessageCircleMore },
-    { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/announcements", label: "Announcements", icon: Bell },
+  { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
+  { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
+  { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
+  { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
+  { href: "/admin/shipping-rules", label: "Shipping Rules", icon: MapPin },
+  { href: "/admin/popups", label: "Popups", icon: Sparkles },
+  { href: "/admin/newsletter", label: "Subscribers", icon: Users, count: subscriberCount },
+  { href: "/admin/social-links", label: "Social Links", icon: Share2 },
+  { href: "/admin/whatsapp-settings", label: "WhatsApp Settings", icon: MessageCircleMore },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 }
 
@@ -146,19 +147,15 @@ function AdminNav({
 function AdminSidebarContent({
   pathname,
   subscriberCount,
-  isMockMode,
   sessionLabel,
   sessionEmail,
   onNavigate,
-  onSignOut,
 }: {
   pathname: string;
   subscriberCount: number;
-  isMockMode: boolean;
   sessionLabel: string;
   sessionEmail: string;
   onNavigate?: () => void;
-  onSignOut: () => void;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -174,27 +171,6 @@ function AdminSidebarContent({
         </Link>
       </div>
 
-      <div className="border-b border-zinc-800/70 px-5 py-4">
-        <div
-          className={cn(
-            "rounded-[1.5rem] border px-4 py-4",
-            isMockMode
-              ? "border-amber-500/20 bg-amber-500/10 text-amber-300"
-              : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-          )}
-        >
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <Database className="h-4 w-4" />
-            {isMockMode ? "DEMO MODE" : "LIVE MODE"}
-          </div>
-          <p className="mt-2 text-sm text-zinc-300">
-            {isMockMode
-              ? "Using mock data for previews and admin workflows."
-              : "Connected to live infrastructure and ready for production edits."}
-          </p>
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <AdminNav
           pathname={pathname}
@@ -204,29 +180,17 @@ function AdminSidebarContent({
       </div>
 
       <div className="border-t border-zinc-800/80 px-4 py-4">
-        <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-900/80 p-4">
-          <p className="truncate text-sm font-semibold text-zinc-100">{sessionLabel}</p>
-          <p className="truncate text-xs text-zinc-500">{sessionEmail}</p>
+        <p className="truncate text-sm font-semibold text-zinc-100">{sessionLabel}</p>
+        <p className="truncate text-xs text-zinc-500">{sessionEmail}</p>
 
-          <div className="mt-4 space-y-2">
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
-            <Link
-              href="/"
-              onClick={onNavigate}
-              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Store
-            </Link>
-          </div>
-        </div>
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition hover:bg-brand-600"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Store
+        </Link>
       </div>
     </div>
   );
@@ -237,7 +201,6 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
   const router = useRouter();
   const { sessionUser, signOut } = useSessionUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const isMockMode = shouldUseMockData();
   const sessionLabel = sessionUser?.fullName || sessionUser?.email || "Admin session";
   const sessionEmail = sessionUser?.email || "Manage the storefront";
   const sessionInitials = getInitials(sessionLabel);
@@ -257,10 +220,8 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
           <AdminSidebarContent
             pathname={pathname}
             subscriberCount={subscriberCount}
-            isMockMode={isMockMode}
             sessionLabel={sessionLabel}
             sessionEmail={sessionEmail}
-            onSignOut={handleSignOut}
           />
         </aside>
 
@@ -345,11 +306,9 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
           <AdminSidebarContent
             pathname={pathname}
             subscriberCount={subscriberCount}
-            isMockMode={isMockMode}
             sessionLabel={sessionLabel}
             sessionEmail={sessionEmail}
             onNavigate={() => setMobileNavOpen(false)}
-            onSignOut={handleSignOut}
           />
         </SheetContent>
       </Sheet>

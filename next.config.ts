@@ -9,15 +9,22 @@ const remotePatterns: NonNullable<NonNullable<NextConfig["images"]>["remotePatte
   { protocol: "https", hostname: "images.pexels.com" },
   { protocol: "https", hostname: "i.ebayimg.com", pathname: "/**" },
   { protocol: "https", hostname: "**.ebayimg.com", pathname: "/**" },
+  { protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" },
 ];
 
 if (supabaseHostname) {
-  remotePatterns.push({ protocol: "https", hostname: supabaseHostname });
+  remotePatterns.push({
+    protocol: "https",
+    hostname: supabaseHostname,
+    pathname: "/storage/v1/object/public/**",
+  });
 }
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns,
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60,
   },
   experimental: {
     ppr: false,

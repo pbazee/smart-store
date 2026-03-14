@@ -462,12 +462,13 @@ export async function getAdminDashboardStats() {
   return withLiveData(
     "getAdminDashboardStats",
     async () => {
-      const [paidOrders, totalOrders, totalProducts, lowStockProducts] = await Promise.all([
-        prisma.order.findMany({
-          where: { paymentStatus: "paid" },
-          select: { total: true, createdAt: true },
-          orderBy: { createdAt: "asc" },
-        }),
+      const [paidOrders, totalOrders, totalProducts, lowStockProducts, recentOrders] =
+        await Promise.all([
+          prisma.order.findMany({
+            where: { paymentStatus: "paid" },
+            select: { total: true, createdAt: true },
+            orderBy: { createdAt: "asc" },
+          }),
         prisma.order.count(),
         prisma.product.count(),
         prisma.product.findMany({
@@ -481,10 +482,24 @@ export async function getAdminDashboardStats() {
               },
             },
           },
-          include: { variants: true },
-          take: 6,
-        }),
-      ]);
+            include: { variants: true },
+            take: 6,
+          }),
+          prisma.order.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 10,
+            select: {
+              id: true,
+              orderNumber: true,
+              customerEmail: true,
+              customerName: true,
+              total: true,
+              paymentMethod: true,
+              status: true,
+              createdAt: true,
+            },
+          }),
+        ]);
 
       const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
       const now = new Date();
@@ -507,17 +522,18 @@ export async function getAdminDashboardStats() {
         }
       }
 
-      return {
-        totalRevenue,
-        totalOrders,
-        totalProducts,
-        lowStockProducts: lowStockProducts as Product[],
-        revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
-      };
-    },
-    () => getAdminStats()
-  );
-}
+        return {
+          totalRevenue,
+          totalOrders,
+          totalProducts,
+          lowStockProducts: lowStockProducts as Product[],
+          revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
+          recentOrders,
+        };
+      },
+      () => getAdminStats()
+    );
+  }
 
 export async function getRelatedProducts(
   product: Product,
