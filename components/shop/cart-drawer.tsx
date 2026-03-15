@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,10 +8,25 @@ import { useCartStore } from "@/lib/store";
 import { formatKES } from "@/lib/utils";
 
 export function CartDrawer() {
-  const { hasHydrated, items, isOpen, toggleCart, removeItem, updateQuantity, total, itemCount } =
+  const { hasHydrated, items, isOpen, closeCart, removeItem, updateQuantity, total, itemCount } =
     useCartStore();
   const cartTotal = hasHydrated ? total() : 0;
   const totalItems = hasHydrated ? itemCount() : 0;
+  const previousItemCount = useRef(items.length);
+
+  useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
+    const prevCount = previousItemCount.current;
+    previousItemCount.current = items.length;
+
+    const becameEmpty = prevCount > 0 && items.length === 0;
+    if (becameEmpty && isOpen) {
+      closeCart();
+    }
+  }, [closeCart, hasHydrated, isOpen, items.length]);
 
   return (
     <AnimatePresence>
@@ -21,7 +37,7 @@ export function CartDrawer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={toggleCart}
+            onClick={closeCart}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
           {/* Drawer */}
@@ -38,7 +54,7 @@ export function CartDrawer() {
                 <ShoppingCart className="w-5 h-5 text-brand-500" />
                 <h2 className="font-bold text-lg">Your Cart ({totalItems})</h2>
               </div>
-              <button onClick={toggleCart} className="p-1.5 rounded-md hover:bg-muted">
+              <button onClick={closeCart} className="p-1.5 rounded-md hover:bg-muted">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -54,7 +70,7 @@ export function CartDrawer() {
                   </div>
                   <Link
                     href="/shop"
-                    onClick={toggleCart}
+                    onClick={closeCart}
                     className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-lg transition-colors"
                   >
                     Shop Now
@@ -128,14 +144,14 @@ export function CartDrawer() {
                 </div>
                 <Link
                   href="/checkout"
-                  onClick={toggleCart}
+                  onClick={closeCart}
                   className="block w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-center transition-colors"
                 >
                   Checkout · {formatKES(cartTotal)}
                 </Link>
                 <Link
                   href="/cart"
-                  onClick={toggleCart}
+                  onClick={closeCart}
                   className="block w-full py-2.5 border border-border hover:bg-muted font-semibold rounded-xl text-center text-sm transition-colors"
                 >
                   View Full Cart

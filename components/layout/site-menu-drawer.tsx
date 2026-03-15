@@ -8,6 +8,7 @@ import {
   drawerMenuLinks,
   isNavigationLinkActive,
 } from "@/lib/navigation";
+import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -56,7 +57,11 @@ export function SiteMenuDrawer({
 }: SiteMenuDrawerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const closeDrawer = () => onOpenChange(false);
+  const closeCart = useCartStore((state) => state.closeCart);
+  const closeDrawer = () => {
+    closeCart();
+    onOpenChange(false);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

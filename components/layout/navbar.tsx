@@ -17,14 +17,17 @@ function DesktopNavLink({
   href,
   label,
   active,
+  onClick,
 }: {
   href: string;
   label: string;
   active: boolean;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         "rounded-full px-3 py-2 text-sm font-semibold transition-colors",
         active
@@ -123,7 +126,7 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const { sessionUser } = useSessionUser();
-  const { hasHydrated, itemCount, toggleCart } = useCartStore();
+  const { hasHydrated, itemCount, toggleCart, closeCart } = useCartStore();
   const count = hasHydrated ? itemCount() : 0;
   const searchValue = searchParams.get("search") ?? "";
 
@@ -142,7 +145,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/92 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="hidden min-h-[84px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-6 py-3 md:grid">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
+          <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
               SK
             </div>
@@ -167,6 +170,7 @@ export function Navbar() {
                   href={link.href}
                   label={link.label}
                   active={isNavigationLinkActive(pathname, searchParams, link.href)}
+                  onClick={closeCart}
                 />
               ))}
             </nav>
@@ -175,6 +179,7 @@ export function Navbar() {
               href="/wishlist"
               active={pathname === "/wishlist"}
               aria-label="Open wishlist"
+              onClick={closeCart}
             >
               <Heart className="h-5 w-5" />
             </HeaderIconLink>
@@ -218,7 +223,7 @@ export function Navbar() {
 
         <div className="py-3 md:hidden">
           <div className="flex items-center gap-2">
-            <Link href="/" className="flex min-w-0 flex-1 items-center gap-3">
+            <Link href="/" onClick={closeCart} className="flex min-w-0 flex-1 items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
                 SK
               </div>
@@ -233,6 +238,7 @@ export function Navbar() {
               href="/wishlist"
               active={pathname === "/wishlist"}
               aria-label="Open wishlist"
+              onClick={closeCart}
             >
               <Heart className="h-5 w-5" />
             </HeaderIconLink>

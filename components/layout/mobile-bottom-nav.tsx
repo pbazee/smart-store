@@ -15,7 +15,7 @@ const navItems = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { hasHydrated, itemCount, toggleCart } = useCartStore();
+  const { hasHydrated, itemCount, toggleCart, closeCart } = useCartStore();
   const { sessionUser } = useSessionUser();
   const cartCount = hasHydrated ? itemCount() : 0;
 
@@ -26,6 +26,7 @@ export function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={closeCart}
             className={cn(
               "flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground transition-colors",
               pathname === item.href && "text-brand-600"
@@ -52,6 +53,7 @@ export function MobileBottomNav() {
 
         <Link
           href={sessionUser ? "/account" : "/sign-in"}
+          onClick={closeCart}
           className={cn(
             "flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground transition-colors",
             pathname === "/account" && "text-brand-600"

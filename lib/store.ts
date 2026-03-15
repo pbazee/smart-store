@@ -2,6 +2,20 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, Product, ProductVariant } from "@/types";
 
+const CART_STORAGE_KEY = "smartest-store-cart";
+
+const clearPersistedCart = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(CART_STORAGE_KEY);
+  } catch {
+    // Swallow storage errors to avoid breaking cart interactions in restrictive environments.
+  }
+};
+
 type AddItemResult = {
   status: "added" | "updated" | "max-stock" | "out-of-stock";
 };
@@ -14,6 +28,8 @@ interface CartStore {
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
+  openCart: () => void;
+  closeCart: () => void;
   toggleCart: () => void;
   total: () => number;
   itemCount: () => number;
@@ -52,7 +68,17 @@ export const useCartStore = create<CartStore>()(
         return { status: "added" };
       },
       removeItem: (variantId) => {
-        set({ items: get().items.filter((i) => i.variant.id !== variantId) });
+        const remainingItems = get().items.filter((i) => i.variant.id !== variantId);
+        const isEmpty = remainingItems.length === 0;
+
+        set({
+          items: remainingItems,
+          isOpen: isEmpty ? false : get().isOpen,
+        });
+
+        if (isEmpty) {
+          clearPersistedCart();
+        }
       },
       updateQuantity: (variantId, quantity) => {
         if (quantity <= 0) {
@@ -76,7 +102,12 @@ export const useCartStore = create<CartStore>()(
           ),
         });
       },
-      clearCart: () => set({ items: [] }),
+      clearCart: () => {
+        set({ items: [], isOpen: false });
+        clearPersistedCart();
+      },
+      openCart: () => set({ isOpen: true }),
+      closeCart: () => set({ isOpen: false }),
       toggleCart: () => set({ isOpen: !get().isOpen }),
       total: () =>
         get().items.reduce(
@@ -88,7 +119,7 @@ export const useCartStore = create<CartStore>()(
       setHasHydrated: (value) => set({ hasHydrated: value }),
     }),
     {
-      name: "smartest-store-cart",
+      name: CART_STORAGE_KEY,
       version: 2,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<CartStore> | undefined;
@@ -114,6 +145,11 @@ export const useCartStore = create<CartStore>()(
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+
+        if (state && state.items.length === 0 && state.isOpen) {
+          state.closeCart();
+          clearPersistedCart();
+        }
       },
     }
   )
