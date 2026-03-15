@@ -29,11 +29,24 @@ const FALLBACK_CATEGORIES: Category[] = [
 
 export async function getActiveCategories(): Promise<Category[]> {
   if (shouldUseMockData()) {
+    console.log("[Categories] Using fallback categories (mock mode)");
     return FALLBACK_CATEGORIES;
   }
 
-  return (await prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
-  })) as unknown as Category[];
+  try {
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
+    });
+
+    console.log(`[Categories] Loaded ${categories.length} active categories from database`);
+    return categories as unknown as Category[];
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[Categories] Query failed:", errorMsg, {
+      dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
+    });
+    console.warn("[Categories] Falling back to default categories");
+    return FALLBACK_CATEGORIES;
+  }
 }

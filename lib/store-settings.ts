@@ -21,6 +21,7 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
     });
 
     if (!settings && options.seedIfEmpty) {
+      console.log("[StoreSettings] No settings found in database, seeding with defaults...");
       const seeded = await prisma.storeSettings.create({
         data: {
           supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
@@ -28,13 +29,29 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
           adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
         },
       });
+      console.log("[StoreSettings] Seeded successfully");
       return seeded;
+    }
+
+    if (settings) {
+      console.log("[StoreSettings] Loaded from database:", {
+        email: settings.supportEmail,
+        phone: settings.supportPhone,
+      });
+    } else {
+      console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
     }
 
     return settings as StoreSettings | null;
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[StoreSettings] Query failed:", errorMsg, {
+      dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
+      seedIfEmpty: options.seedIfEmpty,
+    });
+    
     if (options.seedIfEmpty) {
-      console.warn("StoreSettings query failed, falling back to defaults:", error);
+      console.warn("[StoreSettings] Falling back to default settings");
       return DEFAULT_STORE_SETTINGS;
     }
     throw error;

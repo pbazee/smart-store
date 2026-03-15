@@ -14,13 +14,14 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { getHomepageShellData } from "@/lib/homepage-data";
+import { getAppUrl } from "@/lib/app-url";
 
 const sans = Space_Grotesk({ subsets: ["latin"], variable: "--font-geist-sans" });
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
 });
-const metadataBase = new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
+const metadataBase = new URL(getAppUrl());
 
 export const metadata: Metadata = {
   metadataBase,

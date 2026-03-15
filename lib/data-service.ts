@@ -201,22 +201,33 @@ function disableLiveData(context: string, error: unknown) {
   liveDataVerified = false;
   liveDataCheckPromise = null;
 
-  if (shouldLogLiveDataWarnings() && !loggedLiveDataFailure) {
-    console.warn(
-      `[live-data] Database access disabled during ${context}; using fallback data.`,
-      error
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  const isProd = process.env.NODE_ENV === "production";
+  
+  // Always log in production, or in dev with DEBUG_LIVE_DATA
+  if ((isProd || shouldLogLiveDataWarnings()) && !loggedLiveDataFailure) {
+    console.error(
+      `[live-data] CRITICAL: Database access disabled during ${context}; using fallback data. ` +
+      `This means your site is serving stale/default data.`,
+      errorMsg
     );
     loggedLiveDataFailure = true;
   }
 }
 
 function logLiveDataFallback(context: string, error: unknown) {
-  if (!shouldLogLiveDataWarnings() || loggedLiveDataWarnings.has(context)) {
+  if (loggedLiveDataWarnings.has(context)) {
     return;
   }
 
-  console.warn(`[live-data] Falling back during ${context}.`, error);
-  loggedLiveDataWarnings.add(context);
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  const isProd = process.env.NODE_ENV === "production";
+  
+  // Always log in production, or in dev with DEBUG_LIVE_DATA
+  if (isProd || shouldLogLiveDataWarnings()) {
+    console.warn(`[live-data] Fallback during ${context}: ${errorMsg}`);
+    loggedLiveDataWarnings.add(context);
+  }
 }
 
 function shouldLogLiveDataWarnings() {

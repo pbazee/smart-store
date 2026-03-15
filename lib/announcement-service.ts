@@ -97,13 +97,16 @@ export function deleteDemoAnnouncement(announcementId: string) {
 async function ensureAnnouncementMessagesSeeded() {
   const existingCount = await prisma.announcementMessage.count();
   if (existingCount > 0) {
+    console.log(`[Announcements] Database has ${existingCount} existing announcements, skipping seed`);
     return;
   }
 
+  console.log("[Announcements] Database is empty, seeding default announcements...");
   await prisma.announcementMessage.createMany({
     data: DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS,
     skipDuplicates: true,
   });
+  console.log(`[Announcements] Seeded ${DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS.length} announcements`);
 }
 
 export async function getAnnouncementMessages(
@@ -112,6 +115,7 @@ export async function getAnnouncementMessages(
   const { activeOnly = false, fallbackOnError = false, seedIfEmpty = false } = options;
 
   if (shouldUseMockData()) {
+    console.log("[Announcements] Using mock data mode");
     return getDemoAnnouncementMessages({ activeOnly });
   }
 
@@ -125,11 +129,18 @@ export async function getAnnouncementMessages(
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     });
 
+    console.log(`[Announcements] Loaded ${messages.length} announcements from database${activeOnly ? " (active only)" : ""}`);
     return messages as AnnouncementMessage[];
   } catch (error) {
-    console.error("Announcement lookup failed:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[Announcements] Database query failed:", errorMsg, {
+      dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
+      fallbackOnError,
+      seedIfEmpty,
+    });
 
     if (fallbackOnError) {
+      console.warn("[Announcements] Falling back to single fallback announcement");
       return [createFallbackAnnouncementMessage()];
     }
 
