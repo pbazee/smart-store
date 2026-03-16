@@ -156,12 +156,14 @@ export async function POST(req: NextRequest) {
           })
         : Promise.resolve(null),
       getShippingQuote({
-        subtotal: subtotal - (validatedData.couponCode ? 1 : 0), // Rough estimate
+        subtotal,
         county: validatedData.county,
         city: validatedData.city,
       }),
     ]);
-    const shippingCost = finalShippingQuote.cost;
+    
+    const discountAmount = appliedCoupon?.discountAmount ?? 0;
+    const shippingCost = shippingQuote.cost;
     const computedTotal = subtotal + shippingCost - discountAmount;
 
     if (validatedData.total !== undefined && validatedData.total !== computedTotal) {
@@ -244,8 +246,8 @@ export async function POST(req: NextRequest) {
           paymentMethod: validatedData.paymentMethod,
           subtotal,
           shippingAmount: shippingCost,
-          shippingRuleName: finalShippingQuote.ruleName,
-          shippingRuleId: finalShippingQuote.ruleId ?? null,
+          shippingRuleName: shippingQuote.ruleName,
+          shippingRuleId: shippingQuote.ruleId ?? null,
           discountAmount,
           couponCode: appliedCoupon?.code ?? null,
           total: computedTotal,

@@ -104,6 +104,7 @@ export async function signUpCustomerAction(
       throw error;
     }
 
+    // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
       return { error: firstError.message || "Validation failed", success: false };
@@ -113,7 +114,6 @@ export async function signUpCustomerAction(
     console.error("Sign up failed:", {
       error,
       message: error instanceof Error ? error.message : "Unknown error",
-      code: error instanceof Error && "code" in error ? (error as any).code : undefined,
     });
 
     // Return user-friendly error message
@@ -185,6 +185,7 @@ export async function signInCustomerAction(
       throw error;
     }
 
+    // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
       return { error: firstError.message || "Validation failed", success: false };
@@ -264,18 +265,19 @@ export async function signUpWithGoogleAction(redirectUrl?: string) {
     }
 
     if (data?.url) {
-    // Re-throw Next.js redirect errors - they should NOT be caught
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
-      throw error;
-    }
-
       redirect(data.url);
     }
 
     return { error: "No redirect URL from OAuth provider", success: false };
   } catch (error) {
+    // Re-throw Next.js redirect errors - they should NOT be caught
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
     console.error("Google sign up failed:", error);
     const message = error instanceof Error ? error.message : "Google sign up failed";
     return { error: message, success: false };
   }
 }
+

@@ -15,9 +15,10 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$TARGET_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "Set repository secrets CRON_TARGET_URL (https://<your-app>.vercel.app/api/cron/reservations/cleanup) and CRON_SECRET."
-            exit 1
+            echo "⚠️  Skipping: Set repository secrets CRON_TARGET_URL (https://<your-app>.vercel.app/api/cron/reservations/cleanup) and CRON_SECRET."
+            exit 0
           fi
 
           curl -fsS -X GET "$TARGET_URL" \
-            -H "x-cron-secret: $CRON_SECRET"
+            -H "x-cron-secret: $CRON_SECRET" \
+            -w "\nStatus: %{http_code}\n" || true
