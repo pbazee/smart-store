@@ -7,7 +7,7 @@ export type LocalAuthSession = {
   userId: string;
   email: string;
   name: string;
-  role: "admin";
+  role: "admin" | "customer";
   exp: number;
 };
 
@@ -77,7 +77,11 @@ export async function verifyLocalAuthToken(token?: string | null) {
 
   try {
     const parsed = JSON.parse(decodeBase64Url(payload)) as LocalAuthSession;
-    if (!parsed?.userId || !parsed?.email || !parsed?.name || parsed.role !== "admin") {
+    if (!parsed?.userId || !parsed?.email || !parsed?.name || !parsed.role) {
+      return null;
+    }
+
+    if (!["admin", "customer"].includes(parsed.role)) {
       return null;
     }
 
