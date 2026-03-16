@@ -1,6 +1,6 @@
-import { SignIn } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { AuthShell, clerkAppearance } from "@/components/auth/auth-shell";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { CustomerSignInForm } from "@/components/auth/customer-sign-in-form";
 import {
   resolveRequestedRedirectPath,
   resolveSignedInRedirectPath,
@@ -14,8 +14,6 @@ export default async function SignInCatchAllPage({
 }) {
   const { redirect_url } = await searchParams;
   const redirectPath = resolveRequestedRedirectPath(redirect_url, "/");
-  const completeSignInPath = `/auth/complete?flow=sign-in&redirect_url=${encodeURIComponent(redirectPath)}`;
-  const completeSignUpPath = "/auth/complete?flow=sign-up";
   const sessionUser = await getSessionUser();
 
   if (sessionUser) {
@@ -24,17 +22,7 @@ export default async function SignInCatchAllPage({
 
   return (
     <AuthShell mode="sign-in">
-      <SignIn
-        appearance={clerkAppearance}
-        routing="path"
-        path="/sign-in"
-        oauthFlow="redirect"
-        forceRedirectUrl={completeSignInPath}
-        fallbackRedirectUrl={completeSignInPath}
-        signUpUrl="/sign-up"
-        signUpForceRedirectUrl={completeSignUpPath}
-        signUpFallbackRedirectUrl={completeSignUpPath}
-      />
+      <CustomerSignInForm />
     </AuthShell>
   );
 }

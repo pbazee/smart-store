@@ -108,7 +108,44 @@ npx prisma db seed  # Seeds the 20 products from mock data
 
 ---
 
-## 🚀 Deploy to Vercel
+## 🚀 Production Deployment (Vercel + Supabase)
+
+For a complete step-by-step guide including Supabase configuration, environment variables, and troubleshooting, see:
+
+**📋 [VERCEL_PRODUCTION_SETUP.md](./VERCEL_PRODUCTION_SETUP.md)** ← Start here!
+
+### Quick Deploy Summary
+
+1. **Set up Supabase** (detailed in linked guide above)
+   - Get DATABASE_URL (pooled) and DIRECT_URL
+   - Get NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+2. **Add Environment Variables in Vercel**
+   ```bash
+   AUTH_SESSION_SECRET
+   DATABASE_URL (pooled connection)
+   DIRECT_URL (direct connection)
+   NEXT_PUBLIC_SUPABASE_URL
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   SUPABASE_SERVICE_ROLE_KEY
+   NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+   PAYSTACK_SECRET_KEY
+   RESEND_API_KEY
+   USE_MOCK_DATA=false
+   ```
+
+3. **Deploy**
+   ```bash
+   git push origin main  # Auto-deploys via Vercel
+   ```
+
+4. **Verify** - Check Vercel Logs for database connection messages
+
+See [VERCEL_PRODUCTION_SETUP.md](./VERCEL_PRODUCTION_SETUP.md) for full instructions with exact Supabase copy-paste values.
+
+---
+
+## 🚀 Deploy to Vercel (Quick Button)
 
 ```bash
 # Install Vercel CLI
@@ -116,10 +153,6 @@ npm i -g vercel
 
 # Deploy
 vercel
-
-# Add environment variables in Vercel Dashboard:
-# Project > Settings > Environment Variables
-# Copy all vars from .env.local
 ```
 
 Or click:
