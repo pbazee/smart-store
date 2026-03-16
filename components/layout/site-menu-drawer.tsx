@@ -10,6 +10,7 @@ import {
 } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useSessionUser } from "@/hooks/use-session-user";
 import {
   Sheet,
   SheetContent,
@@ -21,8 +22,6 @@ import {
 type SiteMenuDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isSignedIn: boolean;
-  isAdmin: boolean;
 };
 
 type DrawerLinkProps = {
@@ -52,16 +51,18 @@ function DrawerLink({ href, label, active, onSelect }: DrawerLinkProps) {
 export function SiteMenuDrawer({
   open,
   onOpenChange,
-  isSignedIn,
-  isAdmin,
 }: SiteMenuDrawerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { sessionUser } = useSessionUser();
   const closeCart = useCartStore((state) => state.closeCart);
   const closeDrawer = () => {
     closeCart();
     onOpenChange(false);
   };
+
+  const isSignedIn = !!sessionUser;
+  const isAdmin = sessionUser?.role === "admin";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -93,6 +94,20 @@ export function SiteMenuDrawer({
                     onSelect={closeDrawer}
                   />
                 ))}
+                
+                {/* Cart and Wishlist on Mobile */}
+                <DrawerLink
+                  href="/cart"
+                  label="Cart"
+                  active={pathname === "/cart"}
+                  onSelect={closeDrawer}
+                />
+                <DrawerLink
+                  href="/wishlist"
+                  label="Wishlist"
+                  active={pathname === "/wishlist"}
+                  onSelect={closeDrawer}
+                />
               </div>
             </section>
 

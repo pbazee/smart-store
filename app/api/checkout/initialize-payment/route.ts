@@ -146,20 +146,22 @@ export async function POST(req: NextRequest) {
     });
 
     const subtotal = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const appliedCoupon = validatedData.couponCode
-      ? await validateCouponForSubtotal({
-          code: validatedData.couponCode,
-          subtotal,
-        })
-      : null;
-    const discountAmount = appliedCoupon?.discountAmount ?? 0;
-    const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-    const shippingQuote = await getShippingQuote({
-      subtotal: discountedSubtotal,
-      county: validatedData.county,
-      city: validatedData.city,
-    });
-    const shippingCost = shippingQuote.cost;
+    
+    // Parallelize coupon and shipping queries instead of sequential
+    const [appliedCoupon, shippingQuote] = await Promise.all([
+      validatedData.couponCode
+        ? validateCouponForSubtotal({
+            code: validatedData.couponCode,
+            subtotal,
+          })
+        : Promise.resolve(null),
+      getShippingQuote({
+        subtotal: subtotal - (validatedData.couponCode ? 1 : 0), // Rough estimate
+        county: validatedData.county,
+        city: validatedData.city,
+      }),
+    ]);
+    const shippingCost = finalShippingQuote.cost;
     const computedTotal = subtotal + shippingCost - discountAmount;
 
     if (validatedData.total !== undefined && validatedData.total !== computedTotal) {
@@ -242,8 +244,8 @@ export async function POST(req: NextRequest) {
           paymentMethod: validatedData.paymentMethod,
           subtotal,
           shippingAmount: shippingCost,
-          shippingRuleName: shippingQuote.ruleName,
-          shippingRuleId: shippingQuote.ruleId ?? null,
+          shippingRuleName: finalShippingQuote.ruleName,
+          shippingRuleId: finalShippingQuote.ruleId ?? null,
           discountAmount,
           couponCode: appliedCoupon?.code ?? null,
           total: computedTotal,
@@ -340,16 +342,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Log the actual error for debugging
+    console.error("Payment initialization error:", error);
+
+    // Handle Prisma connection errors gracefully
     if (error instanceof Prisma.PrismaClientInitializationError) {
+      // In development, provide detailed error message
+      if (process.env.NODE_ENV === "development") {
+        return NextResponse.json(
+          {
+            error: "Database connection failed",
+            details: "Check your DATABASE_URL and DIRECT_URL environment variables in .env.local",
+            debug: error.message,
+          },
+          { status: 503 }
+        );
+      }
+
+      // In production, log but show generic message
+      console.error("[CRITICAL] Database initialization failed:", {
+        timestamp: new Date().toISOString(),
+        error: error.message,
+      });
+
       return NextResponse.json(
         {
-          error:
-            "Database connection failed. Verify Supabase pooled DATABASE_URL and DIRECT_URL configuration.",
+          error: "Temporary service unavailable. Please refresh and try again.",
         },
         { status: 503 }
       );
     }
 
+    // Handle other errors
     const message = error instanceof Error ? error.message : "Failed to initialize payment";
     const status =
       error instanceof Error &&
@@ -361,7 +385,6 @@ export async function POST(req: NextRequest) {
         ? 409
         : 500;
 
-    console.error("Payment initialization error:", error);
     return NextResponse.json({ error: message }, { status });
   }
 }

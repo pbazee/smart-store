@@ -1,6 +1,6 @@
 /**
  * Customer Sign-In and Sign-Up Server Actions
- * Handles email/password authentication for customers
+ * Handles email/password and OAuth authentication for customers
  */
 
 "use server";
@@ -11,6 +11,8 @@ import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
+import { createSupabaseServerClient } from "@/lib/supabase";
+import { getAppUrl } from "@/lib/app-url";
 
 const signUpSchema = z.object({
   email: z.string().trim().email("Valid email required"),
@@ -97,18 +99,34 @@ export async function signUpCustomerAction(
       : "/";
     redirect(redirectPath);
   } catch (error) {
+    // Re-throw Next.js redirect errors - they should NOT be caught
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
       return { error: firstError.message || "Validation failed", success: false };
     }
 
-    if (error instanceof TypeError && error.message.includes("Cannot set property httpOnly")) {
-      // Redirect error in server action - this is expected and means we're redirecting
-      throw error;
+    // Log detailed error for debugging
+    console.error("Sign up failed:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      code: error instanceof Error && "code" in error ? (error as any).code : undefined,
+    });
+
+    // Return user-friendly error message
+    if (error instanceof Error) {
+      if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
+        return { error: "Service temporarily unavailable. Please try again in a moment.", success: false };
+      }
+      if (error.message.includes("duplicate key")) {
+        return { error: "Email already registered", success: false };
+      }
     }
 
-    console.error("Sign up failed:", error);
-    return { error: "Sign up failed. Please try again.", success: false };
+    return { error: "Failed to create account. Please try again.", success: false };
   }
 }
 
@@ -162,17 +180,102 @@ export async function signInCustomerAction(
       : "/";
     redirect(redirectPath);
   } catch (error) {
+    // Re-throw Next.js redirect errors - they should NOT be caught
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
       return { error: firstError.message || "Validation failed", success: false };
     }
 
-    if (error instanceof TypeError && error.message.includes("Cannot set property httpOnly")) {
-      // Redirect error in server action - expected
+    // Log detailed error for debugging
+    console.error("Sign in failed:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    // Return user-friendly error message
+    if (error instanceof Error) {
+      if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
+        return { error: "Service temporarily unavailable. Please try again in a moment.", success: false };
+      }
+    }
+
+    return { error: "Failed to sign in. Please try again.", success: false };
+  }
+}
+
+export async function signInWithGoogleAction(redirectUrl?: string) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const appUrl = getAppUrl();
+    const callbackUrl = `${appUrl}/auth/callback?redirect_url=${encodeURIComponent(redirectUrl || "/")}`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: callbackUrl,
+      },
+    });
+
+    if (error) {
+      console.error("OAuth sign in error:", error);
+      return { error: "Failed to sign in with Google", success: false };
+    }
+
+    if (data?.url) {
+      redirect(data.url);
+    }
+
+    return { error: "No redirect URL from OAuth provider", success: false };
+  } catch (error) {
+    // Re-throw Next.js redirect errors - they should NOT be caught
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
       throw error;
     }
 
-    console.error("Sign in failed:", error);
-    return { error: "Sign in failed. Please try again.", success: false };
+    console.error("Google sign in failed:", error);
+    const message = error instanceof Error ? error.message : "Google sign in failed";
+    return { error: message, success: false };
+  }
+}
+
+export async function signUpWithGoogleAction(redirectUrl?: string) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const appUrl = getAppUrl();
+    const callbackUrl = `${appUrl}/auth/callback?redirect_url=${encodeURIComponent(redirectUrl || "/")}`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: callbackUrl,
+        queryParams: {
+          prompt: "consent", // Force account selection on Google
+        },
+      },
+    });
+
+    if (error) {
+      console.error("OAuth sign up error:", error);
+      return { error: "Failed to sign up with Google", success: false };
+    }
+
+    if (data?.url) {
+    // Re-throw Next.js redirect errors - they should NOT be caught
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
+      redirect(data.url);
+    }
+
+    return { error: "No redirect URL from OAuth provider", success: false };
+  } catch (error) {
+    console.error("Google sign up failed:", error);
+    const message = error instanceof Error ? error.message : "Google sign up failed";
+    return { error: message, success: false };
   }
 }

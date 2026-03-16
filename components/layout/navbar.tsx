@@ -223,68 +223,42 @@ export function Navbar() {
 
         <div className="py-3 md:hidden">
           <div className="flex items-center gap-2">
-            <Link href="/" onClick={closeCart} className="flex min-w-0 flex-1 items-center gap-3">
+            <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
                 SK
               </div>
-              <div className="min-w-0">
-                <span className="block truncate font-display text-lg font-black tracking-tight">
-                  Smartest Store KE
-                </span>
-              </div>
             </Link>
 
-            <HeaderIconLink
-              href="/wishlist"
-              active={pathname === "/wishlist"}
-              aria-label="Open wishlist"
-              onClick={closeCart}
-            >
-              <Heart className="h-5 w-5" />
-            </HeaderIconLink>
+            <div className="flex-1">
+              <SearchForm
+                defaultValue={searchValue}
+                onSubmit={submitSearch}
+                className=""
+                inputClassName="h-10"
+              />
+            </div>
 
             <HeaderIconButton
-              onClick={toggleCart}
-              className={pathname === "/cart" ? "border-orange-200 bg-muted text-foreground" : ""}
-              aria-label="Open cart"
-              suppressHydrationWarning
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              aria-label="Toggle theme"
             >
-              <span className="relative block">
-                <ShoppingCart className="h-5 w-5" />
-                {count > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white"
-                    suppressHydrationWarning
-                  >
-                    {count}
-                  </motion.span>
-                )}
-              </span>
+              {resolvedTheme === "dark" ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
             </HeaderIconButton>
-
-            <AccountMenu />
 
             <HeaderIconButton onClick={() => setMenuOpen(true)} aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </HeaderIconButton>
           </div>
-
-          <SearchForm
-            defaultValue={searchValue}
-            onSubmit={submitSearch}
-            className="mt-3"
-            inputClassName="h-11"
-          />
         </div>
       </div>
 
       <SiteMenuDrawer
         open={menuOpen}
         onOpenChange={setMenuOpen}
-        isSignedIn={!!sessionUser}
-        isAdmin={sessionUser?.role === "admin"}
       />
     </header>
   );

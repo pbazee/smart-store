@@ -170,11 +170,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Log the actual error for debugging
+    console.error("Payment confirmation error:", error);
+
+    // Handle Prisma connection errors gracefully
     if (error instanceof Prisma.PrismaClientInitializationError) {
+      // In development, provide detailed error message
+      if (process.env.NODE_ENV === "development") {
+        return NextResponse.json(
+          {
+            error: "Database connection failed",
+            details: "Check your DATABASE_URL and DIRECT_URL environment variables in .env.local",
+            debug: error.message,
+          },
+          { status: 503 }
+        );
+      }
+
+      // In production, log but show generic message
+      console.error("[CRITICAL] Database initialization failed:", {
+        timestamp: new Date().toISOString(),
+        error: error.message,
+      });
+
       return NextResponse.json(
         {
-          error:
-            "Database connection failed. Verify Supabase pooled DATABASE_URL and DIRECT_URL configuration.",
+          error: "Temporary service unavailable. Please refresh and try again.",
         },
         { status: 503 }
       );
@@ -182,7 +203,7 @@ export async function POST(req: NextRequest) {
 
     const message =
       error instanceof Error ? error.message : "Failed to confirm payment";
-    console.error("Payment confirmation error:", error);
+    console.error("Payment confirmation error details:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

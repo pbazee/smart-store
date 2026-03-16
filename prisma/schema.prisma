@@ -3,64 +3,64 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String?  @unique
-  firstName String?
-  lastName  String?
-  fullName  String?
-  role      UserRole @default(CUSTOMER)
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  firstName    String?
+  lastName     String?
+  fullName     String?
+  role         UserRole @default(CUSTOMER)
   passwordHash String?
-  orders    Order[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
 }
 
 model Product {
-  id          String    @id @default(cuid())
+  id          String                   @id @default(cuid())
   name        String
-  slug        String    @unique
+  slug        String                   @unique
   description String
   category    String
   subcategory String
-  categoryId  String?
-  categoryRef Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   gender      String
   tags        String[]
   basePrice   Int
   images      String[]
-  rating      Float     @default(0)
-  reviewCount Int       @default(0)
-  isFeatured  Boolean   @default(false)
-  isNew       Boolean   @default(false)
-  variants    Variant[]
-  reviews     Review[]
-  wishlists   WishlistItem[]
+  rating      Float                    @default(0)
+  reviewCount Int                      @default(0)
+  isFeatured  Boolean                  @default(false)
+  isNew       Boolean                  @default(false)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  categoryId  String?
   overrides   LandingSectionOverride[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  categoryRef Category?                @relation(fields: [categoryId], references: [id])
+  reviews     Review[]
+  variants    Variant[]
+  wishlists   WishlistItem[]
 
   @@index([categoryId])
 }
 
 model Category {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
-  slug        String    @unique
+  slug        String     @unique
   description String?
-  parentId    String?
-  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children    Category[] @relation("CategoryHierarchy")
-  order       Int        @default(0)
-  isActive    Boolean    @default(true)
-  products    Product[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  order       Int        @default(0)
+  isActive    Boolean    @default(true)
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
 }
 
 model AnnouncementMessage {
@@ -143,7 +143,7 @@ model HomepageCategory {
 }
 
 model HeroSlide {
-  id            String @id @default(cuid())
+  id            String   @id @default(cuid())
   title         String
   subtitle      String
   imageUrl      String
@@ -151,8 +151,8 @@ model HeroSlide {
   ctaLink       String
   moodTags      Json
   locationBadge String
-  order         Int    @default(0)
-  isActive      Boolean @default(true)
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -160,15 +160,15 @@ model HeroSlide {
 }
 
 model Blog {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
-  slug        String   @unique
+  slug        String    @unique
   content     String
   imageUrl    String
-  isPublished Boolean  @default(false)
+  isPublished Boolean   @default(false)
   publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([isPublished, publishedAt])
 }
@@ -183,9 +183,9 @@ model Coupon {
   usedCount      Int                @default(0)
   expiresAt      DateTime?
   isActive       Boolean            @default(true)
-  orders         Order[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+  orders         Order[]
 
   @@index([isActive, expiresAt])
 }
@@ -204,37 +204,37 @@ model Variant {
 }
 
 model Order {
-  id                   String      @id @default(cuid())
+  id                   String        @id @default(cuid())
   userId               String?
-  user                 User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  orderNumber          String      @unique
+  orderNumber          String        @unique
   customerName         String
   customerEmail        String
   customerPhone        String
-  status               OrderStatus @default(pending)
-  paymentStatus        PayStatus   @default(pending)
+  status               OrderStatus   @default(pending)
+  paymentStatus        PayStatus     @default(pending)
   paymentMethod        String
-  subtotal             Int         @default(0)
-  shippingAmount       Int         @default(0)
-  shippingRuleName     String?     @db.Text
+  subtotal             Int           @default(0)
+  shippingAmount       Int           @default(0)
+  shippingRuleName     String?
   shippingRuleId       Int?
-  shippingRule         ShippingRule? @relation(fields: [shippingRuleId], references: [id], onDelete: SetNull)
-  discountAmount       Int         @default(0)
+  discountAmount       Int           @default(0)
   couponCode           String?
-  coupon               Coupon?     @relation(fields: [couponCode], references: [code], onDelete: SetNull, onUpdate: Cascade)
   total                Int
   address              String
   city                 String
-  county               String       @default("Unknown")
-  notes                String      @default("")
-  paystackReference    String?     @unique
+  county               String        @default("Unknown")
+  notes                String        @default("")
+  paystackReference    String?       @unique
   paymentVerifiedAt    DateTime?
   stockReservedAt      DateTime?
   reservationExpiresAt DateTime?
   stockReleasedAt      DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  coupon               Coupon?       @relation(fields: [couponCode], references: [code])
+  shippingRule         ShippingRule? @relation(fields: [shippingRuleId], references: [id])
+  user                 User?         @relation(fields: [userId], references: [id])
   items                OrderItem[]
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
 
   @@index([userId])
   @@index([createdAt])
@@ -244,28 +244,28 @@ model Order {
 }
 
 model ShippingRule {
-  id             Int       @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   name           String
   description    String?
   locationScope  String
   minOrderAmount Float?
-  cost           Float     @default(0)
-  isActive       Boolean   @default(true)
-  priority       Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  cost           Float    @default(0)
+  isActive       Boolean  @default(true)
+  priority       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   orders         Order[]
 }
 
 model OrderItem {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   orderId     String
   productId   String
   variantId   String?
   productName String
   price       Int
   quantity    Int
-  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([productId])
@@ -303,15 +303,15 @@ model WishlistItem {
 }
 
 model LandingSectionOverride {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   section     String
   productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  priority    Int      @default(0)
+  priority    Int       @default(0)
   activeFrom  DateTime?
   activeUntil DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([section, productId])
   @@index([section, priority])
