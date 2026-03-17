@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,20 +12,13 @@ export function CartDrawer() {
     useCartStore();
   const cartTotal = hasHydrated ? total() : 0;
   const totalItems = hasHydrated ? itemCount() : 0;
-  const previousItemCount = useRef(items.length);
 
   useEffect(() => {
-    if (!hasHydrated) {
+    if (!hasHydrated || !isOpen || items.length > 0) {
       return;
     }
 
-    const prevCount = previousItemCount.current;
-    previousItemCount.current = items.length;
-
-    const becameEmpty = prevCount > 0 && items.length === 0;
-    if (becameEmpty && isOpen) {
-      closeCart();
-    }
+    closeCart();
   }, [closeCart, hasHydrated, isOpen, items.length]);
 
   return (

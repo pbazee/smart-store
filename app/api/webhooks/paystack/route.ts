@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { releaseReservationForReference } from "@/lib/order-reservations";
 import { finalizePaystackPayment, verifyPaystackTransaction } from "@/lib/paystack";
 import { sendOrderEmailsAfterPayment } from "@/lib/email/order-confirmation";
+import { getPaystackSecretKey } from "@/lib/paystack-config";
 import crypto from "crypto";
 
 async function verifyPaystackSignature(body: string, signature: string): Promise<boolean> {
   const hash = crypto
-    .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY || "")
+    .createHmac("sha512", getPaystackSecretKey())
     .update(body)
     .digest("hex");
 
@@ -15,6 +16,7 @@ async function verifyPaystackSignature(body: string, signature: string): Promise
 
 export async function POST(req: NextRequest) {
   try {
+    getPaystackSecretKey();
     const signature = req.headers.get("x-paystack-signature");
     if (!signature) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });

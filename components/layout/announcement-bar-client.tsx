@@ -13,8 +13,8 @@ function isExternalLink(link: string) {
 function AnnouncementCopy({ announcement }: { announcement: AnnouncementMessage }) {
   const content = (
     <>
-      <span className="text-lg sm:text-xl md:text-2xl flex-shrink-0">{announcement.icon}</span>
-      <span className="block min-w-0 flex-1 truncate font-bold">{announcement.text}</span>
+      <span className="text-sm flex-shrink-0 sm:text-base md:text-lg">{announcement.icon}</span>
+      <span className="block min-w-0 flex-1 truncate font-normal">{announcement.text}</span>
     </>
   );
 
@@ -108,15 +108,15 @@ export function AnnouncementBarClient({
         animate={{ x: ["-10%", "240%"] }}
         transition={{ duration: 3.4, ease: "linear", repeat: Infinity }}
       />
-      <div className="mx-auto flex max-w-7xl items-center gap-1 px-2 py-2.5 sm:px-4 sm:py-3">
+      <div className="mx-auto flex max-w-7xl items-center gap-0.5 px-2 py-1.5 sm:px-4 sm:py-2">
         <button
           type="button"
           onClick={goToPrevious}
           disabled={!hasMultipleAnnouncements}
-          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-35"
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-35"
           aria-label="Show previous announcement"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
 
         <div className="relative flex-1 overflow-hidden" aria-live="polite">
@@ -128,13 +128,13 @@ export function AnnouncementBarClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="flex min-h-10 items-center justify-center px-2 text-center text-[13px] font-black sm:text-base md:text-lg"
+                className="flex min-h-8 items-center justify-center px-2 text-center text-[12px] font-normal leading-tight sm:text-[13px] md:text-sm"
               >
                 <AnnouncementCopy announcement={activeAnnouncement} />
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="flex min-h-10 items-center justify-center px-2 text-center text-[13px] font-black sm:text-base md:text-lg">
+            <div className="flex min-h-8 items-center justify-center px-2 text-center text-[12px] font-normal leading-tight sm:text-[13px] md:text-sm">
               <AnnouncementCopy announcement={activeAnnouncement} />
             </div>
           )}
@@ -144,19 +144,19 @@ export function AnnouncementBarClient({
           type="button"
           onClick={goToNext}
           disabled={!hasMultipleAnnouncements}
-          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-35"
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-35"
           aria-label="Show next announcement"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-4 w-4" />
         </button>
 
         <button
           type="button"
           onClick={() => setIsVisible(false)}
-          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"
           aria-label="Close announcement bar"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </motion.div>

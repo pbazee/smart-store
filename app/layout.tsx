@@ -14,6 +14,7 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { getAppUrl } from "@/lib/app-url";
+import { getClerkPublishableKey } from "@/lib/clerk-env";
 import { clerkAuthLocalization } from "@/lib/clerk-theme";
 import { getHomepageShellData } from "@/lib/homepage-data";
 
@@ -23,7 +24,7 @@ const display = Bricolage_Grotesque({
   variable: "--font-display",
 });
 const metadataBase = new URL(getAppUrl());
-const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkPublishableKey = getClerkPublishableKey();
 
 export const metadata: Metadata = {
   metadataBase,

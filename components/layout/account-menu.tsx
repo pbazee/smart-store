@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import {
   ArrowRight,
   Heart,
@@ -93,7 +93,7 @@ function SignedInAccountMenu({
         <DropdownMenuItem asChild>
           <Link href="/orders">
             <Package2 className="h-4 w-4" />
-            My Orders
+            Orders
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -137,7 +137,7 @@ function SignedOutAccountButton({ isLoading = false }: { isLoading?: boolean }) 
         type="button"
         disabled
         aria-label="Signing out"
-        className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white opacity-80 shadow-[0_12px_30px_rgba(249,115,22,0.24)]"
+        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white opacity-80 shadow-[0_16px_40px_rgba(249,115,22,0.28)]"
       >
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="hidden sm:inline">Signing out...</span>
@@ -149,9 +149,8 @@ function SignedOutAccountButton({ isLoading = false }: { isLoading?: boolean }) 
   return (
     <Link
       href="/sign-in"
-      className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(249,115,22,0.24)] transition-colors hover:bg-orange-600"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.02] hover:bg-orange-600 active:scale-[0.98]"
     >
-      <User2 className="h-4 w-4" />
       <span className="hidden sm:inline">Sign In / Join</span>
       <span className="sm:hidden">Sign In</span>
       <ArrowRight className="h-4 w-4" />
@@ -163,45 +162,73 @@ function AccountMenuSkeleton() {
   return (
     <div
       aria-hidden="true"
-      className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-2 py-1.5"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border/70 bg-background/80 px-4 py-2"
     >
       <span className="h-8 w-8 animate-pulse rounded-full bg-muted" />
-      <span className="hidden h-4 w-16 animate-pulse rounded-full bg-muted lg:block" />
+      <span className="hidden h-4 w-20 animate-pulse rounded-full bg-muted sm:block" />
     </div>
   );
 }
 
 export function AccountMenu() {
   const router = useRouter();
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { signOut: clerkSignOut } = useClerk();
   const { isLoaded: clerkLoaded, user } = useUser();
-  const { sessionUser, signOut } = useSessionUser();
+  const { hasLoadedServerSession, sessionUser, signOut } = useSessionUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const previousResolvedUserId = useRef<string | null | undefined>(undefined);
 
   const fallbackSessionUser =
-    sessionUser && sessionUser.authProvider !== "clerk" ? sessionUser : null;
-  const metadataRole = user ? getRoleFromClerkUser(user) : "guest";
-  const clerkSessionUser: SessionUser | null =
-    authLoaded && isSignedIn && clerkLoaded && user
-      ? {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          fullName: user.fullName,
-          email: user.primaryEmailAddress?.emailAddress ?? null,
-          imageUrl: user.imageUrl ?? null,
-          role:
-            sessionUser?.id === user.id
-              ? sessionUser.role
-              : metadataRole === "guest"
-                ? "customer"
-                : metadataRole,
-          isDemo: false,
-          authProvider: "clerk",
-        }
+    sessionUser &&
+    (sessionUser.authProvider !== "clerk" || !clerkLoaded || !user)
+      ? sessionUser
       : null;
+  const clerkSessionUser = useMemo<SessionUser | null>(() => {
+    if (!clerkLoaded || !user) {
+      return null;
+    }
+
+    const metadataRole = getRoleFromClerkUser(user);
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      email: user.primaryEmailAddress?.emailAddress ?? null,
+      imageUrl: user.imageUrl ?? null,
+      role:
+        sessionUser?.id === user.id
+          ? sessionUser.role
+          : metadataRole === "guest"
+            ? "customer"
+            : metadataRole,
+      isDemo: false,
+      authProvider: "clerk",
+    };
+  }, [clerkLoaded, sessionUser?.id, sessionUser?.role, user]);
   const activeSessionUser = clerkSessionUser ?? fallbackSessionUser;
+
+  useEffect(() => {
+    if (!hasLoadedServerSession) {
+      return;
+    }
+
+    const resolvedUserId = clerkSessionUser?.id ?? fallbackSessionUser?.id ?? null;
+
+    if (previousResolvedUserId.current === undefined) {
+      previousResolvedUserId.current = resolvedUserId;
+      return;
+    }
+
+    if (previousResolvedUserId.current !== resolvedUserId) {
+      previousResolvedUserId.current = resolvedUserId;
+      router.refresh();
+      return;
+    }
+
+    previousResolvedUserId.current = resolvedUserId;
+  }, [clerkSessionUser?.id, fallbackSessionUser?.id, hasLoadedServerSession, router]);
 
   const handleSignOut = async () => {
     if (!activeSessionUser || isSigningOut) {
@@ -228,10 +255,10 @@ export function AccountMenu() {
     return <SignedOutAccountButton isLoading />;
   }
 
-  if (fallbackSessionUser) {
+  if (activeSessionUser) {
     return (
       <SignedInAccountMenu
-        sessionUser={fallbackSessionUser}
+        sessionUser={activeSessionUser}
         isSigningOut={isSigningOut}
         onSignOut={() => {
           void handleSignOut();
@@ -240,20 +267,8 @@ export function AccountMenu() {
     );
   }
 
-  if (!authLoaded || (isSignedIn && !clerkLoaded)) {
+  if (!hasLoadedServerSession && !clerkLoaded) {
     return <AccountMenuSkeleton />;
-  }
-
-  if (clerkSessionUser) {
-    return (
-      <SignedInAccountMenu
-        sessionUser={clerkSessionUser}
-        isSigningOut={isSigningOut}
-        onSignOut={() => {
-          void handleSignOut();
-        }}
-      />
-    );
   }
 
   return <SignedOutAccountButton />;

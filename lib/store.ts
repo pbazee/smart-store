@@ -106,9 +106,10 @@ export const useCartStore = create<CartStore>()(
         set({ items: [], isOpen: false });
         clearPersistedCart();
       },
-      openCart: () => set({ isOpen: true }),
+      openCart: () => set({ isOpen: get().items.length > 0 }),
       closeCart: () => set({ isOpen: false }),
-      toggleCart: () => set({ isOpen: !get().isOpen }),
+      toggleCart: () =>
+        set({ isOpen: get().items.length > 0 ? !get().isOpen : false }),
       total: () =>
         get().items.reduce(
           (sum, item) => sum + item.variant.price * item.quantity,

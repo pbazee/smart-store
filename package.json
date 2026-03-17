@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "prisma generate",
     "dev": "next dev",
     "build": "node scripts/build.mjs",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
     "test:integration": "node --experimental-strip-types scripts/run-integration-tests.mjs",

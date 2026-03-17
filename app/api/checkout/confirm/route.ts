@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Temporary service unavailable. Please refresh and try again.",
+          error: "Payment confirmation could not connect to the order service. Please try again in a moment.",
         },
         { status: 503 }
       );

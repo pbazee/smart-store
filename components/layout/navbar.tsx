@@ -128,6 +128,15 @@ export function Navbar() {
   const count = hasHydrated ? itemCount() : 0;
   const searchValue = searchParams.get("search") ?? "";
 
+  const handleCartClick = () => {
+    if (count === 0) {
+      closeCart();
+      return;
+    }
+
+    toggleCart();
+  };
+
   const submitSearch = (form: HTMLFormElement) => {
     const q = (form.elements.namedItem("q") as HTMLInputElement).value;
 
@@ -191,7 +200,7 @@ export function Navbar() {
             </HeaderIconButton>
 
             <HeaderIconButton
-              onClick={toggleCart}
+              onClick={handleCartClick}
               className={pathname === "/cart" ? "border-orange-200 bg-muted text-foreground" : ""}
               aria-label="Open cart"
               suppressHydrationWarning

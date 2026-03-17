@@ -12,7 +12,7 @@ export const clerkAuthAppearance = {
     headerSubtitle: "hidden",
     socialButtonsRoot: "mb-7 grid gap-4",
     socialButtonsBlockButton:
-      "min-h-16 rounded-[1.6rem] border-2 border-emerald-500/70 bg-white px-5 text-slate-950 shadow-[0_18px_44px_rgba(249,115,22,0.26)] transition-all duration-200 hover:scale-[1.02] hover:border-emerald-600 hover:bg-orange-50 hover:shadow-[0_24px_54px_rgba(249,115,22,0.3)]",
+      "min-h-[72px] rounded-[1.6rem] border border-white/75 bg-white px-5 text-slate-950 shadow-[0_18px_44px_rgba(249,115,22,0.26)] ring-1 ring-white/60 transition-all duration-200 hover:scale-[1.02] hover:bg-orange-50 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.85),0_24px_54px_rgba(249,115,22,0.3)]",
     socialButtonsBlockButtonText: "text-base font-black text-slate-950",
     socialButtonsProviderIcon: "h-5 w-5",
     formButtonPrimary:

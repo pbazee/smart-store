@@ -92,9 +92,9 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                       <p className="overlay-readable-text mt-5 max-w-2xl text-base sm:text-lg">
                         {slide.subtitle}
                       </p>
-                      <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
+                      <div className="overlay-readable-text mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
                         <MapPin className="h-3.5 w-3.5 text-orange-300" />
-                        <span className="overlay-readable-text">{slide.locationBadge}</span>
+                        <span>{slide.locationBadge}</span>
                       </div>
                       <div className="mt-8 flex flex-wrap items-center gap-3">
                         <Link

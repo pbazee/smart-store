@@ -91,6 +91,7 @@ export function useSessionUser() {
 
   return {
     isLoaded: hasLoadedServerSession && isLoaded,
+    hasLoadedServerSession,
     isSignedIn: !!sessionUser,
     sessionUser,
     signOut: async () => {

@@ -19,6 +19,15 @@ export function MobileBottomNav() {
   const { sessionUser } = useSessionUser();
   const cartCount = hasHydrated ? itemCount() : 0;
 
+  const handleCartClick = () => {
+    if (cartCount === 0) {
+      closeCart();
+      return;
+    }
+
+    toggleCart();
+  };
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/96 backdrop-blur-md md:hidden">
       <div className="grid grid-cols-5">
@@ -39,7 +48,7 @@ export function MobileBottomNav() {
 
         <button
           type="button"
-          onClick={toggleCart}
+          onClick={handleCartClick}
           className="relative flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground"
         >
           <ShoppingCart className="h-4 w-4" />

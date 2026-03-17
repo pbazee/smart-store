@@ -54,7 +54,8 @@
 }
 
 @layer utilities {
-  .overlay-readable-text {
+  .overlay-readable-text,
+  .overlay-readable-text * {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   }
@@ -63,6 +64,11 @@
   .overlay-readable-surface * {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+
+  .overlay-readable-text svg,
+  .overlay-readable-surface svg {
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
   }
 }
 

@@ -3,6 +3,7 @@ import {
   getPaystackVerificationError,
   isDuplicatePaymentVerification,
 } from "@/lib/paystack-verification";
+import { getPaystackSecretKey } from "@/lib/paystack-config";
 
 const LATE_PAYMENT_NOTE =
   "Payment completed after reservation expiry; stock was re-reserved.";
@@ -25,14 +26,12 @@ export async function initializePaystackTransaction(input: {
   channels: Array<"mobile_money" | "card">;
   metadata?: Record<string, unknown>;
 }) {
-  if (!process.env.PAYSTACK_SECRET_KEY) {
-    throw new Error("Paystack secret key is missing");
-  }
+  const paystackSecretKey = getPaystackSecretKey();
 
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      Authorization: `Bearer ${paystackSecretKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -74,9 +73,10 @@ export async function initializePaystackTransaction(input: {
 }
 
 export async function verifyPaystackTransaction(reference: string) {
+  const paystackSecretKey = getPaystackSecretKey();
   const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
     headers: {
-      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      Authorization: `Bearer ${paystackSecretKey}`,
     },
   });
 
