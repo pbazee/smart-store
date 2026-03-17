@@ -12,7 +12,12 @@ export async function MarketingPopup({
 
   if (!popups) {
     noStore();
-    popups = await getActivePopups();
+    try {
+      popups = await getActivePopups();
+    } catch (error) {
+      console.error("[MarketingPopup] Failed to load popups:", error);
+      popups = [];
+    }
   }
 
   if (popups.length === 0) {

@@ -15,6 +15,7 @@ import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { getAppUrl } from "@/lib/app-url";
 import { clerkAuthLocalization } from "@/lib/clerk-theme";
+import { getHomepageShellData } from "@/lib/homepage-data";
 
 const sans = Space_Grotesk({ subsets: ["latin"], variable: "--font-geist-sans" });
 const display = Bricolage_Grotesque({
@@ -45,11 +46,13 @@ function NavbarFallback() {
   );
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const homepageShellData = await getHomepageShellData();
+
   return (
     <ClerkProvider
       signInUrl="/sign-in"
@@ -67,17 +70,22 @@ export default function RootLayout({
             <RootLayoutShell
               storefrontChrome={
                 <>
-                  <AnnouncementBar />
+                  <AnnouncementBar announcements={homepageShellData.announcements} />
                   <Suspense fallback={<NavbarFallback />}>
                     <Navbar />
                   </Suspense>
                 </>
               }
-              storefrontFooter={<Footer />}
+              storefrontFooter={
+                <Footer
+                  socialLinks={homepageShellData.socialLinks}
+                  storeSettings={homepageShellData.storeSettings}
+                />
+              }
               storefrontOverlays={
                 <>
-                  <MarketingPopup />
-                  <WhatsAppWidget />
+                  <MarketingPopup popups={homepageShellData.popups} />
+                  <WhatsAppWidget settings={homepageShellData.whatsAppSettings} />
                   <MobileBottomNav />
                   <CartDrawer />
                 </>

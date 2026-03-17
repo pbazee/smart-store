@@ -19,17 +19,23 @@ export async function Footer({
 
   if (!socialLinks || typeof resolvedStoreSettings === "undefined") {
     noStore();
-    const [resolvedSocialLinks, fetchedStoreSettings] = await Promise.all([
-      socialLinks
-        ? Promise.resolve(socialLinks)
-        : getSocialLinks({ seedIfEmpty: true }),
-      typeof resolvedStoreSettings === "undefined"
-        ? getStoreSettings({ seedIfEmpty: true })
-        : Promise.resolve(resolvedStoreSettings),
-    ]);
+    try {
+      const [resolvedSocialLinks, fetchedStoreSettings] = await Promise.all([
+        socialLinks
+          ? Promise.resolve(socialLinks)
+          : getSocialLinks({ seedIfEmpty: true }),
+        typeof resolvedStoreSettings === "undefined"
+          ? getStoreSettings({ seedIfEmpty: true })
+          : Promise.resolve(resolvedStoreSettings),
+      ]);
 
-    socialLinks = resolvedSocialLinks;
-    resolvedStoreSettings = fetchedStoreSettings;
+      socialLinks = resolvedSocialLinks;
+      resolvedStoreSettings = fetchedStoreSettings;
+    } catch (error) {
+      console.error("[Footer] Failed to load footer data:", error);
+      socialLinks = socialLinks ?? [];
+      resolvedStoreSettings = resolvedStoreSettings ?? null;
+    }
   }
 
   const supportEmail = resolvedStoreSettings?.supportEmail || "support@smarteststore.ke";
