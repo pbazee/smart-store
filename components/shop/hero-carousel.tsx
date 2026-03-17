@@ -83,18 +83,18 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                       transition={{ duration: 0.45, ease: "easeOut" }}
                       className="max-w-3xl"
                     >
-                      <span className="mb-4 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em] text-orange-300 backdrop-blur">
+                      <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/30 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em] backdrop-blur">
                         Smartest edit
                       </span>
-                      <h1 className="font-display text-4xl font-black leading-[0.92] text-white sm:text-5xl lg:text-7xl">
+                      <h1 className="overlay-readable-text font-display text-4xl font-black leading-[0.92] sm:text-5xl lg:text-7xl">
                         {slide.title}
                       </h1>
-                      <p className="mt-5 max-w-2xl text-base text-white/78 sm:text-lg">
+                      <p className="overlay-readable-text mt-5 max-w-2xl text-base sm:text-lg">
                         {slide.subtitle}
                       </p>
-                      <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 backdrop-blur">
+                      <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
                         <MapPin className="h-3.5 w-3.5 text-orange-300" />
-                        {slide.locationBadge}
+                        <span className="overlay-readable-text">{slide.locationBadge}</span>
                       </div>
                       <div className="mt-8 flex flex-wrap items-center gap-3">
                         <Link
@@ -109,7 +109,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                             {slide.moodTags.slice(0, 3).map((tag) => (
                               <span
                                 key={`${slide.id}-${tag}`}
-                                className="rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/70 backdrop-blur"
+                                className="overlay-readable-text rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] backdrop-blur"
                               >
                                 {tag}
                               </span>
@@ -126,40 +126,40 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                         y: selectedIndex === index ? 0 : 18,
                       }}
                       transition={{ duration: 0.45, ease: "easeOut" }}
-                      className="hidden rounded-[2rem] border border-white/12 bg-white/8 p-5 text-white backdrop-blur-lg lg:block"
+                      className="overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/30 p-5 backdrop-blur-lg lg:block"
                     >
-                      <p className="text-xs font-bold uppercase tracking-[0.28em] text-white/45">
+                      <p className="text-xs font-bold uppercase tracking-[0.28em]">
                         Hero details
                       </p>
                       <div className="mt-6 space-y-5">
                         <div>
                           <p className="text-3xl font-black">{String(index + 1).padStart(2, "0")}</p>
-                          <p className="mt-1 text-sm text-white/60">Current slide</p>
+                          <p className="mt-1 text-sm">Current slide</p>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">CTA destination</p>
-                          <p className="mt-1 text-sm text-white/65">{slide.ctaLink}</p>
+                          <p className="text-sm font-semibold">CTA destination</p>
+                          <p className="mt-1 text-sm">{slide.ctaLink}</p>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Mood tags</p>
+                          <p className="text-sm font-semibold">Mood tags</p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {slide.moodTags.length > 0 ? (
                               slide.moodTags.map((tag) => (
                                 <span
                                   key={`${slide.id}-panel-${tag}`}
-                                  className="rounded-full border border-white/12 bg-black/25 px-3 py-1 text-xs font-semibold text-white/75"
+                                  className="rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs font-semibold"
                                 >
                                   {tag}
                                 </span>
                               ))
                             ) : (
-                              <span className="text-sm text-white/55">No tags configured</span>
+                              <span className="text-sm">No tags configured</span>
                             )}
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Location badge</p>
-                          <p className="mt-1 text-sm text-white/65">{slide.locationBadge}</p>
+                          <p className="text-sm font-semibold">Location badge</p>
+                          <p className="mt-1 text-sm">{slide.locationBadge}</p>
                         </div>
                       </div>
                     </motion.div>

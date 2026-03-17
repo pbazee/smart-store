@@ -176,11 +176,11 @@ export function MobileSiteMenu({
               </button>
             </div>
 
-            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/45">
+            <div className="overlay-readable-surface mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em]">
                 Nairobi Summer 2026
               </p>
-              <p className="mt-2 text-sm text-white/75">
+              <p className="mt-2 text-sm">
                 New arrivals, trend edits, brand spotlights, and story pages without touching the
                 main top bar.
               </p>
@@ -189,7 +189,7 @@ export function MobileSiteMenu({
             <div className="mt-6 space-y-6">
               {mobileMenuSections.map((section) => (
                 <section key={section.title}>
-                  <h3 className="text-xs font-bold uppercase tracking-[0.24em] text-white/40">
+                  <h3 className="overlay-readable-text text-xs font-bold uppercase tracking-[0.24em]">
                     {section.title}
                   </h3>
                   <div className="mt-3 grid gap-2">
@@ -213,7 +213,7 @@ export function MobileSiteMenu({
               ))}
 
               <section>
-                <h3 className="text-xs font-bold uppercase tracking-[0.24em] text-white/40">
+                <h3 className="overlay-readable-text text-xs font-bold uppercase tracking-[0.24em]">
                   Popular Brands
                 </h3>
                 <div className="mt-3 grid gap-2">
@@ -224,8 +224,8 @@ export function MobileSiteMenu({
                       onClick={onClose}
                       className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition-colors hover:bg-white/10"
                     >
-                      <p className="text-sm font-semibold text-white">{brand.name}</p>
-                      <p className="mt-1 text-xs text-white/55">{brand.description}</p>
+                      <p className="overlay-readable-text text-sm font-semibold">{brand.name}</p>
+                      <p className="overlay-readable-text mt-1 text-xs">{brand.description}</p>
                     </Link>
                   ))}
                 </div>

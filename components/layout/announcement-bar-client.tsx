@@ -55,7 +55,6 @@ export function AnnouncementBarClient({
   const [isVisible, setIsVisible] = useState(true);
   const hasMultipleAnnouncements = announcements.length > 1;
   const activeAnnouncement = announcements[activeIndex] ?? announcements[0];
-  const textColor = activeAnnouncement?.textColor || "#FFFFFF";
 
   useEffect(() => {
     if (!isVisible || isPaused || !hasMultipleAnnouncements) {
@@ -99,10 +98,9 @@ export function AnnouncementBarClient({
 
   return (
     <motion.div
-      className="relative z-[60] overflow-hidden border-b border-white/25 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] text-white shadow-[0_10px_32px_rgba(255,107,0,0.28)]"
+      className="overlay-readable-surface relative z-[60] overflow-hidden border-b border-white/25 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] text-white shadow-[0_10px_32px_rgba(255,107,0,0.28)]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      style={{ color: textColor }}
     >
       <motion.div
         aria-hidden="true"

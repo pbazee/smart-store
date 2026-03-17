@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SignedIn, SignedOut, useClerk, useUser } from "@clerk/nextjs";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import {
   ArrowRight,
   Heart,
@@ -173,18 +173,17 @@ function AccountMenuSkeleton() {
 
 export function AccountMenu() {
   const router = useRouter();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { signOut: clerkSignOut } = useClerk();
   const { isLoaded: clerkLoaded, user } = useUser();
   const { sessionUser, signOut } = useSessionUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [renderKey, setRenderKey] = useState("auth-loading");
-  const previousAuthStateRef = useRef<string | null>(null);
 
   const fallbackSessionUser =
     sessionUser && sessionUser.authProvider !== "clerk" ? sessionUser : null;
   const metadataRole = user ? getRoleFromClerkUser(user) : "guest";
-  const normalizedSessionUser: SessionUser | null =
-    clerkLoaded && user
+  const clerkSessionUser: SessionUser | null =
+    authLoaded && isSignedIn && clerkLoaded && user
       ? {
           id: user.id,
           firstName: user.firstName,
@@ -201,40 +200,18 @@ export function AccountMenu() {
           isDemo: false,
           authProvider: "clerk",
         }
-      : fallbackSessionUser;
-
-  useEffect(() => {
-    if (!clerkLoaded && !fallbackSessionUser) {
-      return;
-    }
-
-    const nextAuthState = fallbackSessionUser
-      ? `${fallbackSessionUser.authProvider}:${fallbackSessionUser.id}`
-      : normalizedSessionUser
-        ? `clerk:${normalizedSessionUser.id}`
-        : "signed-out";
-
-    setRenderKey(nextAuthState);
-
-    if (
-      previousAuthStateRef.current &&
-      previousAuthStateRef.current !== nextAuthState
-    ) {
-      router.refresh();
-    }
-
-    previousAuthStateRef.current = nextAuthState;
-  }, [clerkLoaded, fallbackSessionUser, normalizedSessionUser, router]);
+      : null;
+  const activeSessionUser = clerkSessionUser ?? fallbackSessionUser;
 
   const handleSignOut = async () => {
-    if (!normalizedSessionUser || isSigningOut) {
+    if (!activeSessionUser || isSigningOut) {
       return;
     }
 
     setIsSigningOut(true);
 
     try {
-      if (normalizedSessionUser.authProvider === "clerk") {
+      if (activeSessionUser.authProvider === "clerk") {
         await clerkSignOut({ redirectUrl: "/" });
         return;
       }
@@ -251,14 +228,9 @@ export function AccountMenu() {
     return <SignedOutAccountButton isLoading />;
   }
 
-  if (!clerkLoaded && !fallbackSessionUser) {
-    return <AccountMenuSkeleton />;
-  }
-
   if (fallbackSessionUser) {
     return (
       <SignedInAccountMenu
-        key={renderKey}
         sessionUser={fallbackSessionUser}
         isSigningOut={isSigningOut}
         onSignOut={() => {
@@ -268,24 +240,21 @@ export function AccountMenu() {
     );
   }
 
-  return (
-    <div key={renderKey}>
-      <SignedIn>
-        {normalizedSessionUser ? (
-          <SignedInAccountMenu
-            sessionUser={normalizedSessionUser}
-            isSigningOut={isSigningOut}
-            onSignOut={() => {
-              void handleSignOut();
-            }}
-          />
-        ) : (
-          <AccountMenuSkeleton />
-        )}
-      </SignedIn>
-      <SignedOut>
-        <SignedOutAccountButton />
-      </SignedOut>
-    </div>
-  );
+  if (!authLoaded || (isSignedIn && !clerkLoaded)) {
+    return <AccountMenuSkeleton />;
+  }
+
+  if (clerkSessionUser) {
+    return (
+      <SignedInAccountMenu
+        sessionUser={clerkSessionUser}
+        isSigningOut={isSigningOut}
+        onSignOut={() => {
+          void handleSignOut();
+        }}
+      />
+    );
+  }
+
+  return <SignedOutAccountButton />;
 }

@@ -17,23 +17,23 @@ export function TrendingSection({ products }: { products: Product[] }) {
           className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
         >
           <div className="max-w-2xl">
-            <div className="flex items-center gap-2 text-brand-300">
+            <div className="overlay-readable-text flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs font-bold uppercase tracking-[0.24em]">
                 Trending in Nairobi
               </span>
             </div>
-            <h2 className="mt-3 font-display text-3xl font-black tracking-tight sm:text-4xl">
+            <h2 className="overlay-readable-text mt-3 font-display text-3xl font-black tracking-tight sm:text-4xl">
               The pieces moving fastest this week
             </h2>
-            <p className="mt-2 text-sm text-white/70 sm:text-base">
+            <p className="overlay-readable-text mt-2 text-sm sm:text-base">
               What the city is wearing now: clean silhouettes, statement color, and easy daily
               rotation energy.
             </p>
           </div>
           <Link
             href="/products?filter=trending"
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white/80 transition-colors hover:border-brand-300 hover:text-white"
+            className="overlay-readable-text inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold transition-colors hover:border-brand-300"
           >
             View Trending
             <ArrowUpRight className="h-4 w-4" />

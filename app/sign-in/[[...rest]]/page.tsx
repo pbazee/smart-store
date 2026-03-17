@@ -4,6 +4,8 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { clerkAuthAppearance } from "@/lib/clerk-theme";
 import { getSessionUser } from "@/lib/session-user";
 
+export const dynamic = "force-dynamic";
+
 export default async function SignInCatchAllPage({
 }: {
   searchParams: Promise<{ redirect_url?: string | string[] }>;

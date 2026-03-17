@@ -8,7 +8,6 @@ import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { SiteMenuDrawer } from "@/components/layout/site-menu-drawer";
-import { useSessionUser } from "@/hooks/use-session-user";
 import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -125,7 +124,6 @@ export function Navbar() {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
-  const { sessionUser } = useSessionUser();
   const { hasHydrated, itemCount, toggleCart, closeCart } = useCartStore();
   const count = hasHydrated ? itemCount() : 0;
   const searchValue = searchParams.get("search") ?? "";

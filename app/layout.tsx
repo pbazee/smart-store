@@ -13,7 +13,6 @@ import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
-import { getHomepageShellData } from "@/lib/homepage-data";
 import { getAppUrl } from "@/lib/app-url";
 import { clerkAuthLocalization } from "@/lib/clerk-theme";
 
@@ -46,13 +45,11 @@ function NavbarFallback() {
   );
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const homepageShellData = await getHomepageShellData();
-
   return (
     <ClerkProvider
       signInUrl="/sign-in"
@@ -70,22 +67,17 @@ export default async function RootLayout({
             <RootLayoutShell
               storefrontChrome={
                 <>
-                  <AnnouncementBar announcements={homepageShellData.announcements} />
+                  <AnnouncementBar />
                   <Suspense fallback={<NavbarFallback />}>
                     <Navbar />
                   </Suspense>
                 </>
               }
-              storefrontFooter={
-                <Footer
-                  socialLinks={homepageShellData.socialLinks}
-                  storeSettings={homepageShellData.storeSettings}
-                />
-              }
+              storefrontFooter={<Footer />}
               storefrontOverlays={
                 <>
-                  <MarketingPopup popups={homepageShellData.popups} />
-                  <WhatsAppWidget settings={homepageShellData.whatsAppSettings} />
+                  <MarketingPopup />
+                  <WhatsAppWidget />
                   <MobileBottomNav />
                   <CartDrawer />
                 </>

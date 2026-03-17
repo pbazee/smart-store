@@ -53,6 +53,19 @@
   body { @apply bg-background text-foreground; }
 }
 
+@layer utilities {
+  .overlay-readable-text {
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+
+  .overlay-readable-surface,
+  .overlay-readable-surface * {
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+}
+
 .product-card-hover {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
