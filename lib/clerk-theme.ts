@@ -27,7 +27,7 @@ export const clerkAuthAppearance = {
     dividerRow: "my-7",
     dividerLine: "bg-white/12",
     dividerText: "text-[11px] font-bold uppercase tracking-[0.24em] text-white/72",
-    footer: "mt-6",
+    footer: "hidden",
     footerAction: "text-sm",
     footerActionText: "text-white/55",
     footerActionLink: "font-semibold text-orange-300 hover:text-orange-200",
@@ -36,6 +36,10 @@ export const clerkAuthAppearance = {
       "h-12 w-12 rounded-[1.1rem] border border-white/12 bg-black/35 text-white",
     identityPreviewText: "text-white/70",
     formResendCodeLink: "text-orange-300 hover:text-orange-200",
+    formResendCodeLinkButton: "text-orange-300 hover:text-orange-200",
+    alternativeMethodsBlockButton:
+      "rounded-[1.1rem] border border-white/12 bg-black/20 text-white transition-colors hover:bg-white/10",
+    alternativeMethodsBlockButtonText: "text-sm font-semibold text-white",
   },
 } as const;
 

@@ -23,6 +23,7 @@ const display = Bricolage_Grotesque({
   variable: "--font-display",
 });
 const metadataBase = new URL(getAppUrl());
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export const metadata: Metadata = {
   metadataBase,
@@ -55,6 +56,7 @@ export default async function RootLayout({
 
   return (
     <ClerkProvider
+      publishableKey={clerkPublishableKey}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       afterSignInUrl="/"

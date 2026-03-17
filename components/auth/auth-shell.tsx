@@ -23,14 +23,26 @@ const authContent = {
 
 export function AuthShell({ mode, children }: AuthShellProps) {
   const content = authContent[mode];
+  const alternateAction =
+    mode === "sign-in"
+      ? {
+          prompt: "New here?",
+          href: "/sign-up",
+          label: "Create an account",
+        }
+      : {
+          prompt: "Already have an account?",
+          href: "/sign-in",
+          label: "Sign in",
+        };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.18),_transparent_30%),linear-gradient(135deg,_#05060a_0%,_#101828_50%,_#140a05_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:44px_44px] opacity-20" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:justify-end lg:px-8">
-        <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.08] p-5 shadow-[0_24px_100px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-8">
+      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-white/[0.08] p-5 shadow-[0_24px_100px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-8">
           <Link href="/" className="inline-flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]">
               SK
@@ -54,6 +66,16 @@ export function AuthShell({ mode, children }: AuthShellProps) {
           </div>
 
           <div className="mt-8">{children}</div>
+
+          <div className="mt-8 border-t border-white/10 pt-5 text-center text-sm text-white/70">
+            {alternateAction.prompt}{" "}
+            <Link
+              href={alternateAction.href}
+              className="font-semibold text-orange-300 transition-colors hover:text-orange-200"
+            >
+              {alternateAction.label}
+            </Link>
+          </div>
         </div>
       </div>
     </div>
