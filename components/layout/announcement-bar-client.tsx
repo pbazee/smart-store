@@ -13,8 +13,8 @@ function isExternalLink(link: string) {
 function AnnouncementCopy({ announcement }: { announcement: AnnouncementMessage }) {
   const content = (
     <>
-      <span className="text-sm sm:text-base">{announcement.icon}</span>
-      <span className="block min-w-0 flex-1 truncate">{announcement.text}</span>
+      <span className="text-lg sm:text-xl md:text-2xl flex-shrink-0">{announcement.icon}</span>
+      <span className="block min-w-0 flex-1 truncate font-bold">{announcement.text}</span>
     </>
   );
 
@@ -55,7 +55,7 @@ export function AnnouncementBarClient({
   const [isVisible, setIsVisible] = useState(true);
   const hasMultipleAnnouncements = announcements.length > 1;
   const activeAnnouncement = announcements[activeIndex] ?? announcements[0];
-  const bgColor = activeAnnouncement?.bgColor || "#120804";
+  const bgColor = activeAnnouncement?.bgColor || "#FF6B00";
   const textColor = activeAnnouncement?.textColor || "#FFFFFF";
 
   useEffect(() => {
@@ -100,22 +100,22 @@ export function AnnouncementBarClient({
 
   return (
     <motion.div
-      className="relative z-[60] border-b border-brand-500/20"
+      className="relative z-[60] border-b border-white/20 shadow-[0_8px_24px_rgba(255,107,0,0.24)]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       animate={{ backgroundColor: bgColor, color: textColor }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       style={{ color: textColor }}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-1 px-2 py-1 sm:px-4">
+      <div className="mx-auto flex max-w-7xl items-center gap-1 px-2 py-2 sm:px-4 sm:py-2">
         <button
           type="button"
           onClick={goToPrevious}
           disabled={!hasMultipleAnnouncements}
-          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:cursor-default disabled:opacity-35"
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-35"
           aria-label="Show previous announcement"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
 
         <div className="relative flex-1 overflow-hidden" aria-live="polite">
@@ -127,13 +127,13 @@ export function AnnouncementBarClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="flex min-h-8 items-center justify-center px-2 text-center text-[11px] font-semibold sm:text-xs md:text-sm"
+                className="flex min-h-9 items-center justify-center px-2 text-center text-sm font-bold sm:text-base md:text-base"
               >
                 <AnnouncementCopy announcement={activeAnnouncement} />
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="flex min-h-8 items-center justify-center px-2 text-center text-[11px] font-semibold sm:text-xs md:text-sm">
+            <div className="flex min-h-9 items-center justify-center px-2 text-center text-sm font-bold sm:text-base md:text-base">
               <AnnouncementCopy announcement={activeAnnouncement} />
             </div>
           )}
@@ -143,19 +143,19 @@ export function AnnouncementBarClient({
           type="button"
           onClick={goToNext}
           disabled={!hasMultipleAnnouncements}
-          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:cursor-default disabled:opacity-35"
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-35"
           aria-label="Show next announcement"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-5 w-5" />
         </button>
 
         <button
           type="button"
           onClick={() => setIsVisible(false)}
-          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"
           aria-label="Close announcement bar"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       </div>
     </motion.div>

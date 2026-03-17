@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
@@ -75,6 +76,9 @@ export async function GET(request: NextRequest) {
       path: "/",
       maxAge: getLocalAuthCookieMaxAge(),
     });
+
+    // Revalidate cache to ensure session is fresh
+    revalidatePath("/", "layout");
 
     // Redirect to requested URL
     return NextResponse.redirect(

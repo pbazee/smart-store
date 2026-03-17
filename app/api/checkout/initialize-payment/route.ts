@@ -313,8 +313,21 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch (error) {
+      // Log Paystack-specific errors for debugging
+      console.error("Paystack initialization failed:", {
+        orderId: order.id,
+        orderNumber,
+        reference,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
+      });
+
+      // Release the reservation since payment initialization failed
       await releaseReservationForReference(reference);
-      throw error;
+      
+      // Re-throw with clear message for client
+      const message = error instanceof Error ? error.message : "Failed to initialize Paystack payment";
+      throw new Error(message);
     }
 
     return NextResponse.json(

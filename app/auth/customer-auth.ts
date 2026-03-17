@@ -7,6 +7,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
@@ -93,6 +94,9 @@ export async function signUpCustomerAction(
       maxAge: getLocalAuthCookieMaxAge(),
     });
 
+    // Revalidate entire layout to refresh session data
+    revalidatePath("/", "layout");
+
     // Redirect to dashboard or requested URL
     const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/") 
       ? payload.redirectUrl 
@@ -173,6 +177,9 @@ export async function signInCustomerAction(
       path: "/",
       maxAge: getLocalAuthCookieMaxAge(),
     });
+
+    // Revalidate entire layout to refresh session data
+    revalidatePath("/", "layout");
 
     // Redirect
     const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/") 

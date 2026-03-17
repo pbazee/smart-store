@@ -163,153 +163,78 @@ export function AuthShell({ mode, children }: AuthShellProps) {
     <div className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.18),_transparent_30%),linear-gradient(135deg,_#05060a_0%,_#101828_50%,_#140a05_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:44px_44px] opacity-20" />
-      <div className="relative mx-auto grid min-h-screen max-w-7xl gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[1.05fr,0.95fr] lg:px-8">
-        <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_120px_rgba(0,0,0,0.32)] backdrop-blur-xl sm:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.18),_transparent_28%),radial-gradient(circle_at_85%_15%,_rgba(125,211,252,0.16),_transparent_22%)]" />
-          <div className="relative flex h-full flex-col">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Link href="/" className="inline-flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]">
-                  SK
-                </div>
-                <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-white/50">
-                    Smartest Store KE
-                  </p>
-                  <p className="text-base font-semibold text-white">Nairobi streetwear, upgraded.</p>
-                </div>
-              </Link>
-
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
-                <Sparkles className="h-3.5 w-3.5 text-brand-300" />
-                East African 2026
-              </div>
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        <div className="absolute top-0 left-0 right-0 flex flex-wrap items-center justify-between gap-3 px-4 py-6 sm:px-6 sm:py-10 lg:px-8 max-w-7xl">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_30px_rgba(249,115,22,0.4)]">
+              SK
             </div>
-
-            <div className="mt-14 max-w-2xl">
-              <p className="text-sm uppercase tracking-[0.28em] text-brand-300">{content.eyebrow}</p>
-              <h1 className="mt-4 font-display text-5xl font-black leading-[0.95] sm:text-6xl">
-                {content.title}
-              </h1>
-              <p className="mt-5 max-w-xl text-lg text-white/70">{content.subtitle}</p>
+            <div>
+              <p className="text-sm uppercase tracking-[0.24em] text-white/50">
+                Smartest Store KE
+              </p>
+              <p className="text-base font-semibold text-white">Nairobi streetwear, upgraded.</p>
             </div>
+          </Link>
 
-            <div className="mt-10 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
-              <div className="rounded-[1.75rem] border border-white/12 bg-black/25 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                      Customer Journey
-                    </p>
-                    <h2 className="mt-3 text-2xl font-black text-white">{content.panelTitle}</h2>
-                    <p className="mt-3 max-w-md text-sm leading-6 text-white/65">
-                      {content.panelDescription}
-                    </p>
-                  </div>
-                  <div className="hidden rounded-full border border-white/12 bg-white/[0.04] p-2 text-white/70 sm:block">
-                    <ArrowUpRight className="h-4 w-4" />
-                  </div>
-                </div>
-
-                <div className="relative mt-6 h-64 overflow-hidden rounded-[1.5rem] border border-white/12 bg-[linear-gradient(140deg,_rgba(249,115,22,0.16),_rgba(15,23,42,0.88)_45%,_rgba(56,189,248,0.14))]">
-                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
-                  <Image
-                    src={content.imageSrc}
-                    alt={content.imageAlt}
-                    fill
-                    priority
-                    sizes="(min-width: 1280px) 28vw, (min-width: 1024px) 34vw, 90vw"
-                    className="object-cover object-center opacity-85"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-[#05060a]/25 to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
-                      Google-first access
-                    </span>
-                    <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
-                      Wishlist ready
-                    </span>
-                    <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
-                      M-Pesa friendly
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                {features.map((feature) => (
-                  <div
-                    key={feature.title}
-                    className="rounded-[1.5rem] border border-white/12 bg-white/[0.04] p-5"
-                  >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500/18 text-brand-200">
-                      <feature.icon className="h-5 w-5" />
-                    </div>
-                    <h3 className="mt-4 text-lg font-bold text-white">{feature.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/65">{feature.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
+            <Sparkles className="h-3.5 w-3.5 text-brand-300" />
+            East African 2026
           </div>
         </div>
 
-        <div className="flex items-center justify-center">
-          <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.06] p-4 shadow-[0_20px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-6">
-            <div className="mb-6 rounded-[1.6rem] border border-white/10 bg-black/20 p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.26em] text-brand-300">
-                    {content.formEyebrow}
-                  </p>
-                  <h2 className="mt-3 text-3xl font-black">{content.formTitle}</h2>
-                  <p className="mt-2 text-sm leading-6 text-white/65">{content.formSubtitle}</p>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
-                  <LockKeyhole className="h-3.5 w-3.5" />
-                  Secure login powered by Google
-                </div>
-              </div>
-            </div>
-
-            {children}
-
-            {showGoogleInstead && (
-              <div className="mt-6 rounded-[1.6rem] border border-brand-400/20 bg-brand-500/10 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-300">
-                  Prefer Google?
-                </p>
-                <p className="mt-2 text-sm leading-6 text-white/70">
-                  Leave this code step and jump back to the Google-first sign-in flow instead.
-                </p>
-                <Link
-                  href={useGoogleInsteadHref}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(249,115,22,0.26)] transition-all hover:scale-[1.02] hover:bg-brand-600 hover:brightness-105"
-                >
-                  Use Google instead
-                </Link>
-              </div>
-            )}
-
-            {isSignUp ? (
-              <p className="mt-6 text-xs leading-6 text-white/45">
-                By signing up, you agree to our{" "}
-                <Link href="/privacy-policy" className="text-brand-300 hover:text-brand-200">
-                  Terms
-                </Link>{" "}
-                &{" "}
-                <Link href="/privacy-policy" className="text-brand-300 hover:text-brand-200">
-                  Privacy Policy
-                </Link>
-                .
+        <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.06] p-4 shadow-[0_20px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8">
+          <div className="mb-8 rounded-[1.6rem] border border-white/10 bg-black/20 p-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.26em] text-brand-300">
+                {content.formEyebrow}
               </p>
-            ) : (
-              <div className="mt-6 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-white/45">
-                <Star className="h-3.5 w-3.5 text-brand-300" />
-                Premium customer access for wishlist, orders, and tailored picks.
-              </div>
-            )}
+              <h2 className="mt-3 text-3xl font-black">{content.formTitle}</h2>
+              <p className="mt-2 text-sm leading-6 text-white/65">{content.formSubtitle}</p>
+            </div>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
+              <LockKeyhole className="h-3.5 w-3.5" />
+              Secure login powered by Google
+            </div>
           </div>
+
+          {children}
+
+          {showGoogleInstead && (
+            <div className="mt-6 rounded-[1.6rem] border border-brand-400/20 bg-brand-500/10 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-300">
+                Prefer Google?
+              </p>
+              <p className="mt-2 text-sm leading-6 text-white/70">
+                Leave this code step and jump back to the Google-first sign-in flow instead.
+              </p>
+              <Link
+                href={useGoogleInsteadHref}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(249,115,22,0.26)] transition-all hover:scale-[1.02] hover:bg-brand-600 hover:brightness-105"
+              >
+                Use Google instead
+              </Link>
+            </div>
+          )}
+
+          {isSignUp ? (
+            <p className="mt-6 text-xs leading-6 text-white/45">
+              By signing up, you agree to our{" "}
+              <Link href="/privacy-policy" className="text-brand-300 hover:text-brand-200">
+                Terms
+              </Link>{" "}
+              &{" "}
+              <Link href="/privacy-policy" className="text-brand-300 hover:text-brand-200">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          ) : (
+            <div className="mt-6 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-white/45">
+              <Star className="h-3.5 w-3.5 text-brand-300" />
+              Premium customer access for wishlist, orders, and tailored picks.
+            </div>
+          )}
         </div>
       </div>
     </div>
