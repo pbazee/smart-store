@@ -17,7 +17,7 @@ export default async function AuthCompletePage({
   }>;
 }) {
   const sessionUser = await getSessionUser();
-  const { flow, redirect_url } = await searchParams;
+  const { flow } = await searchParams;
   const flowValue = readFirst(flow);
 
   if (!sessionUser) {
@@ -28,5 +28,5 @@ export default async function AuthCompletePage({
     redirect(sessionUser.role === "admin" ? "/admin/dashboard" : "/");
   }
 
-  redirect(resolveSignedInRedirectPath(sessionUser.role, redirect_url, "/"));
+  redirect(resolveSignedInRedirectPath(sessionUser.role, "/"));
 }

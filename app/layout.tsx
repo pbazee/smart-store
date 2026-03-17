@@ -15,6 +15,7 @@ import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { getHomepageShellData } from "@/lib/homepage-data";
 import { getAppUrl } from "@/lib/app-url";
+import { clerkAuthLocalization } from "@/lib/clerk-theme";
 
 const sans = Space_Grotesk({ subsets: ["latin"], variable: "--font-geist-sans" });
 const display = Bricolage_Grotesque({
@@ -54,9 +55,14 @@ export default async function RootLayout({
 
   return (
     <ClerkProvider
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/"
+      afterSignUpUrl="/"
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
       afterSignOutUrl="/"
+      localization={clerkAuthLocalization}
     >
       <html lang="en" suppressHydrationWarning>
         <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
@@ -65,10 +71,10 @@ export default async function RootLayout({
               storefrontChrome={
                 <>
                   <AnnouncementBar announcements={homepageShellData.announcements} />
-              <Suspense fallback={<NavbarFallback />}>
-                <Navbar />
-              </Suspense>
-            </>
+                  <Suspense fallback={<NavbarFallback />}>
+                    <Navbar />
+                  </Suspense>
+                </>
               }
               storefrontFooter={
                 <Footer

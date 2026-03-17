@@ -24,7 +24,7 @@ function run(name, fn) {
 run("auth redirect flow", () => {
   assert.equal(
     getAuthRedirectPath({ path: "/admin/products", userId: null }),
-    "/login?redirect_url=%2Fadmin%2Fproducts"
+    "/sign-in?redirect_url=%2Fadmin%2Fproducts"
   );
   assert.equal(
     getAuthRedirectPath({ path: "/admin", userId: "user_123", role: "customer" }),
@@ -62,6 +62,7 @@ run("multi-step checkout payload", () => {
       shipping: {
         address: "123 Ngong Road",
         city: "Nairobi CBD",
+        county: "Nairobi",
         deliveryNotes: "Call on arrival",
       },
       payment: {
@@ -193,3 +194,5 @@ run("admin product create delete helpers", () => {
 });
 
 console.log("Integration checks passed.");
+
+

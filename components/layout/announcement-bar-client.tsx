@@ -55,7 +55,6 @@ export function AnnouncementBarClient({
   const [isVisible, setIsVisible] = useState(true);
   const hasMultipleAnnouncements = announcements.length > 1;
   const activeAnnouncement = announcements[activeIndex] ?? announcements[0];
-  const bgColor = activeAnnouncement?.bgColor || "#FF6B00";
   const textColor = activeAnnouncement?.textColor || "#FFFFFF";
 
   useEffect(() => {
@@ -100,14 +99,18 @@ export function AnnouncementBarClient({
 
   return (
     <motion.div
-      className="relative z-[60] border-b border-white/20 shadow-[0_8px_24px_rgba(255,107,0,0.24)]"
+      className="relative z-[60] overflow-hidden border-b border-white/25 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] text-white shadow-[0_10px_32px_rgba(255,107,0,0.28)]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      animate={{ backgroundColor: bgColor, color: textColor }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
       style={{ color: textColor }}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-1 px-2 py-2 sm:px-4 sm:py-2">
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-[-20%] w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)]"
+        animate={{ x: ["-10%", "240%"] }}
+        transition={{ duration: 3.4, ease: "linear", repeat: Infinity }}
+      />
+      <div className="mx-auto flex max-w-7xl items-center gap-1 px-2 py-2.5 sm:px-4 sm:py-3">
         <button
           type="button"
           onClick={goToPrevious}
@@ -127,13 +130,13 @@ export function AnnouncementBarClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="flex min-h-9 items-center justify-center px-2 text-center text-sm font-bold sm:text-base md:text-base"
+                className="flex min-h-10 items-center justify-center px-2 text-center text-[13px] font-black sm:text-base md:text-lg"
               >
                 <AnnouncementCopy announcement={activeAnnouncement} />
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="flex min-h-9 items-center justify-center px-2 text-center text-sm font-bold sm:text-base md:text-base">
+            <div className="flex min-h-10 items-center justify-center px-2 text-center text-[13px] font-black sm:text-base md:text-lg">
               <AnnouncementCopy announcement={activeAnnouncement} />
             </div>
           )}

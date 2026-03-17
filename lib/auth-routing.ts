@@ -17,6 +17,10 @@ export function getAuthRedirectPath(input: {
     if (!userId) {
       return `/sign-in?redirect_url=${encodeURIComponent(path)}`;
     }
+
+    if (role !== "admin") {
+      return "/";
+    }
   }
 
   if (
@@ -79,12 +83,11 @@ export function resolveAdminRedirectPath(
 
 export function resolveSignedInRedirectPath(
   role: string | null | undefined,
-  redirectUrl?: string | string[] | null,
   fallback: string = "/"
 ) {
   if (role === "admin") {
     return "/admin/dashboard";
   }
 
-  return resolveAuthRedirectPath(redirectUrl, fallback);
+  return fallback;
 }

@@ -29,7 +29,7 @@ export default clerkMiddleware(async (auth, req) => {
   });
 
   if (!redirectPath) {
-    return;
+    return NextResponse.next();
   }
 
   return NextResponse.redirect(new URL(redirectPath, req.url));

@@ -16,8 +16,15 @@ export function RootLayoutShell({
   const pathname = usePathname();
   const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminLoginPath = pathname === "/admin-login" || pathname === "/login";
+  const isAuthPath =
+    pathname === "/sign-in" ||
+    pathname.startsWith("/sign-in/") ||
+    pathname === "/sign-up" ||
+    pathname.startsWith("/sign-up/") ||
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/");
 
-  if (isAdminPath || isAdminLoginPath) {
+  if (isAdminPath || isAdminLoginPath || isAuthPath) {
     return <>{children}</>;
   }
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, useClerk, useUser } from "@clerk/nextjs";
 import {
   ArrowRight,
   Heart,
@@ -21,8 +21,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { SessionUser } from "@/types";
 import { useSessionUser } from "@/hooks/use-session-user";
+import { getRoleFromClerkUser } from "@/lib/user-role";
+import type { SessionUser } from "@/types";
 
 function SignedInAccountMenu({
   sessionUser,
@@ -174,23 +175,56 @@ export function AccountMenu() {
   const router = useRouter();
   const { signOut: clerkSignOut } = useClerk();
   const { isLoaded: clerkLoaded, user } = useUser();
-  const { isLoaded, sessionUser, signOut } = useSessionUser();
+  const { sessionUser, signOut } = useSessionUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [renderKey, setRenderKey] = useState("auth-loading");
+  const previousAuthStateRef = useRef<string | null>(null);
 
-  const normalizedSessionUser =
-    sessionUser?.authProvider === "clerk"
+  const fallbackSessionUser =
+    sessionUser && sessionUser.authProvider !== "clerk" ? sessionUser : null;
+  const metadataRole = user ? getRoleFromClerkUser(user) : "guest";
+  const normalizedSessionUser: SessionUser | null =
+    clerkLoaded && user
       ? {
-          ...sessionUser,
-          firstName: user?.firstName ?? sessionUser.firstName,
-          lastName: user?.lastName ?? sessionUser.lastName,
-          fullName: user?.fullName ?? sessionUser.fullName,
-          email: user?.primaryEmailAddress?.emailAddress ?? sessionUser.email ?? null,
-          imageUrl: user?.imageUrl ?? sessionUser.imageUrl ?? null,
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          fullName: user.fullName,
+          email: user.primaryEmailAddress?.emailAddress ?? null,
+          imageUrl: user.imageUrl ?? null,
+          role:
+            sessionUser?.id === user.id
+              ? sessionUser.role
+              : metadataRole === "guest"
+                ? "customer"
+                : metadataRole,
+          isDemo: false,
+          authProvider: "clerk",
         }
-      : sessionUser;
+      : fallbackSessionUser;
 
-  const hasFallbackSession =
-    !!normalizedSessionUser && normalizedSessionUser.authProvider !== "clerk";
+  useEffect(() => {
+    if (!clerkLoaded && !fallbackSessionUser) {
+      return;
+    }
+
+    const nextAuthState = fallbackSessionUser
+      ? `${fallbackSessionUser.authProvider}:${fallbackSessionUser.id}`
+      : normalizedSessionUser
+        ? `clerk:${normalizedSessionUser.id}`
+        : "signed-out";
+
+    setRenderKey(nextAuthState);
+
+    if (
+      previousAuthStateRef.current &&
+      previousAuthStateRef.current !== nextAuthState
+    ) {
+      router.refresh();
+    }
+
+    previousAuthStateRef.current = nextAuthState;
+  }, [clerkLoaded, fallbackSessionUser, normalizedSessionUser, router]);
 
   const handleSignOut = async () => {
     if (!normalizedSessionUser || isSigningOut) {
@@ -217,14 +251,15 @@ export function AccountMenu() {
     return <SignedOutAccountButton isLoading />;
   }
 
-  if (!isLoaded && !hasFallbackSession) {
+  if (!clerkLoaded && !fallbackSessionUser) {
     return <AccountMenuSkeleton />;
   }
 
-  if (normalizedSessionUser) {
+  if (fallbackSessionUser) {
     return (
       <SignedInAccountMenu
-        sessionUser={normalizedSessionUser}
+        key={renderKey}
+        sessionUser={fallbackSessionUser}
         isSigningOut={isSigningOut}
         onSignOut={() => {
           void handleSignOut();
@@ -233,9 +268,24 @@ export function AccountMenu() {
     );
   }
 
-  if (!clerkLoaded && !hasFallbackSession) {
-    return <AccountMenuSkeleton />;
-  }
-
-  return <SignedOutAccountButton />;
+  return (
+    <div key={renderKey}>
+      <SignedIn>
+        {normalizedSessionUser ? (
+          <SignedInAccountMenu
+            sessionUser={normalizedSessionUser}
+            isSigningOut={isSigningOut}
+            onSignOut={() => {
+              void handleSignOut();
+            }}
+          />
+        ) : (
+          <AccountMenuSkeleton />
+        )}
+      </SignedIn>
+      <SignedOut>
+        <SignedOutAccountButton />
+      </SignedOut>
+    </div>
+  );
 }
