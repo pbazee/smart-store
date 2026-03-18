@@ -1,6 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
 import { getSessionUser } from "@/lib/session-user";
-import { getRoleFromSessionClaims } from "@/lib/user-role";
 
 /**
  * Check if current user is authenticated
@@ -49,9 +47,4 @@ export async function requireAdminAuth() {
   }
 
   return user.role === "admin";
-}
-
-export async function getServerRole() {
-  const { sessionClaims } = await auth();
-  return getRoleFromSessionClaims(sessionClaims);
 }

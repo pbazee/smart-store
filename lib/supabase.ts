@@ -47,3 +47,24 @@ export async function createSupabaseServerClient() {
 export function createSupabaseClientClient() {
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
+
+/**
+ * Middleware Supabase client
+ * Use this in Next.js middleware for session handling
+ */
+export function createMiddlewareSupabaseClient(request: Request) {
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        const cookieHeader = request.headers.get("cookie") ?? "";
+        return cookieHeader.split(";").map((cookie) => {
+          const [name, ...rest] = cookie.trim().split("=");
+          return { name, value: rest.join("=") };
+        });
+      },
+      setAll(cookiesToSet) {
+        // Cookies are set via the response in middleware
+      },
+    },
+  });
+}

@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Space_Grotesk } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
+import { Bricolage_Grotesque, Space_Grotesk, Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
@@ -13,10 +12,13 @@ import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
+import { SupabaseProvider } from "@/components/supabase-provider";
+import { createSupabaseServerClient } from "@/lib/supabase";
 import { getAppUrl } from "@/lib/app-url";
-import { getClerkPublishableKey } from "@/lib/clerk-env";
-import { clerkAuthLocalization } from "@/lib/clerk-theme";
 import { getHomepageShellData } from "@/lib/homepage-data";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const sans = Space_Grotesk({ subsets: ["latin"], variable: "--font-geist-sans" });
 const display = Bricolage_Grotesque({
@@ -24,7 +26,6 @@ const display = Bricolage_Grotesque({
   variable: "--font-display",
 });
 const metadataBase = new URL(getAppUrl());
-const clerkPublishableKey = getClerkPublishableKey();
 
 export const metadata: Metadata = {
   metadataBase,
@@ -54,21 +55,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const homepageShellData = await getHomepageShellData();
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   return (
-    <ClerkProvider
-      publishableKey={clerkPublishableKey}
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/"
-      afterSignOutUrl="/"
-      localization={clerkAuthLocalization}
-    >
-      <html lang="en" suppressHydrationWarning>
-        <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+      <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
+        <SupabaseProvider initialSession={session}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <RootLayoutShell
               storefrontChrome={
@@ -98,8 +93,8 @@ export default async function RootLayout({
             </RootLayoutShell>
             <Toaster />
           </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </SupabaseProvider>
+      </body>
+    </html>
   );
 }

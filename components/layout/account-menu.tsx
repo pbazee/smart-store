@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
 import {
   ArrowRight,
   Heart,
@@ -22,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSessionUser } from "@/hooks/use-session-user";
-import { getRoleFromClerkUser } from "@/lib/user-role";
 import type { SessionUser } from "@/types";
 
 function SignedInAccountMenu({
@@ -172,49 +170,16 @@ function AccountMenuSkeleton() {
 
 export function AccountMenu() {
   const router = useRouter();
-  const { signOut: clerkSignOut } = useClerk();
-  const { isLoaded: clerkLoaded, user } = useUser();
-  const { hasLoadedServerSession, sessionUser, signOut } = useSessionUser();
+  const { isLoaded, sessionUser, signOut } = useSessionUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const previousResolvedUserId = useRef<string | null | undefined>(undefined);
 
-  const fallbackSessionUser =
-    sessionUser &&
-    (sessionUser.authProvider !== "clerk" || !clerkLoaded || !user)
-      ? sessionUser
-      : null;
-  const clerkSessionUser = useMemo<SessionUser | null>(() => {
-    if (!clerkLoaded || !user) {
-      return null;
-    }
-
-    const metadataRole = getRoleFromClerkUser(user);
-
-    return {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      email: user.primaryEmailAddress?.emailAddress ?? null,
-      imageUrl: user.imageUrl ?? null,
-      role:
-        sessionUser?.id === user.id
-          ? sessionUser.role
-          : metadataRole === "guest"
-            ? "customer"
-            : metadataRole,
-      isDemo: false,
-      authProvider: "clerk",
-    };
-  }, [clerkLoaded, sessionUser?.id, sessionUser?.role, user]);
-  const activeSessionUser = clerkSessionUser ?? fallbackSessionUser;
-
   useEffect(() => {
-    if (!hasLoadedServerSession) {
+    if (!isLoaded) {
       return;
     }
 
-    const resolvedUserId = clerkSessionUser?.id ?? fallbackSessionUser?.id ?? null;
+    const resolvedUserId = sessionUser?.id ?? null;
 
     if (previousResolvedUserId.current === undefined) {
       previousResolvedUserId.current = resolvedUserId;
@@ -228,21 +193,16 @@ export function AccountMenu() {
     }
 
     previousResolvedUserId.current = resolvedUserId;
-  }, [clerkSessionUser?.id, fallbackSessionUser?.id, hasLoadedServerSession, router]);
+  }, [sessionUser?.id, isLoaded, router]);
 
   const handleSignOut = async () => {
-    if (!activeSessionUser || isSigningOut) {
+    if (!sessionUser || isSigningOut) {
       return;
     }
 
     setIsSigningOut(true);
 
     try {
-      if (activeSessionUser.authProvider === "clerk") {
-        await clerkSignOut({ redirectUrl: "/" });
-        return;
-      }
-
       await signOut();
       router.push("/");
       router.refresh();
@@ -255,10 +215,10 @@ export function AccountMenu() {
     return <SignedOutAccountButton isLoading />;
   }
 
-  if (activeSessionUser) {
+  if (sessionUser) {
     return (
       <SignedInAccountMenu
-        sessionUser={activeSessionUser}
+        sessionUser={sessionUser}
         isSigningOut={isSigningOut}
         onSignOut={() => {
           void handleSignOut();
@@ -267,7 +227,7 @@ export function AccountMenu() {
     );
   }
 
-  if (!hasLoadedServerSession && !clerkLoaded) {
+  if (!isLoaded) {
     return <AccountMenuSkeleton />;
   }
 

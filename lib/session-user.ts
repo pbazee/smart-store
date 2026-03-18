@@ -1,12 +1,10 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import type { SessionUser } from "@/types";
 import { getLocalAuthSession } from "@/lib/local-auth";
 import { prisma } from "@/lib/prisma";
+import { createSupabaseServerClient } from "@/lib/supabase";
 import {
   DEMO_AUTH_COOKIE,
-  getRoleFromClerkUser,
-  getRoleFromSessionClaims,
   normalizeUserRole,
   parseDemoAuthCookie,
 } from "@/lib/user-role";
@@ -47,19 +45,26 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     };
   }
 
-  const authResult = await auth();
-  if (!authResult.userId) {
+  // Check Supabase session
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return null;
   }
 
-  const user = await currentUser();
-  const roleFromMetadata = getRoleFromClerkUser(user);
-  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? null;
+  const userEmail = user.email?.toLowerCase() ?? null;
+  let role: "admin" | "customer" | "guest" = "customer";
 
-  console.log("User metadata:", user?.publicMetadata);
+  // Check user metadata for role
+  const metadataRole = user.user_metadata?.role;
+  if (metadataRole === "admin" || metadataRole === "customer") {
+    role = metadataRole;
+  }
 
-  let role = roleFromMetadata;
-
+  // Check database for role if not admin
   if (role !== "admin" && userEmail) {
     try {
       const persistedUser = await prisma.user.findUnique({
@@ -75,28 +80,25 @@ export async function getSessionUser(): Promise<SessionUser | null> {
         role = normalizeUserRole(persistedUser.role);
       }
     } catch (error) {
-      console.error("Failed to resolve persisted Clerk role:", error);
+      console.error("Failed to resolve persisted Supabase role:", error);
     }
   }
 
-  if (role === "guest") {
-    role = getRoleFromSessionClaims(authResult.sessionClaims);
-  }
-
+  // Hardcoded admin email check
   if (role !== "admin" && userEmail === "peterkinuthia726@gmail.com") {
     role = "admin";
   }
 
   return {
-    id: authResult.userId,
-    firstName: user?.firstName,
-    lastName: user?.lastName,
-    fullName: user?.fullName,
-    email: user?.primaryEmailAddress?.emailAddress ?? null,
-    imageUrl: user?.imageUrl ?? null,
+    id: user.id,
+    firstName: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(" ")[0],
+    lastName: user.user_metadata?.last_name,
+    fullName: user.user_metadata?.full_name,
+    email: user.email ?? null,
+    imageUrl: user.user_metadata?.avatar_url ?? null,
     role,
     isDemo: false,
-    authProvider: "clerk",
+    authProvider: "supabase",
   };
 }
 

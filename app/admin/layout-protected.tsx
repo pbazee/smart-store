@@ -12,13 +12,14 @@ import {
   Database,
   ArrowLeft,
   LogOut,
+  User2,
   TicketPercent,
   Pin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useDemoStore } from "@/lib/store";
-import { UserButton } from "@clerk/nextjs";
+import { useSessionUser } from "@/hooks/use-session-user";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -35,6 +36,12 @@ const navItems = [
 export default function AdminLayoutProtected({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isMockMode, toggleMockMode } = useDemoStore();
+  const { sessionUser, signOut } = useSessionUser();
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = "/";
+  };
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
@@ -108,15 +115,33 @@ export default function AdminLayoutProtected({ children }: { children: React.Rea
 
         {/* User Section */}
         <div className="p-3 border-t border-zinc-800 space-y-3">
-          <div className="px-4 py-2">
-            <UserButton 
-              appearance={{
-                elements: {
-                  avatarBox: "w-8 h-8",
-                }
-              }}
-            />
+          <div className="px-4 py-2 flex items-center gap-3">
+            {sessionUser?.imageUrl ? (
+              <img
+                src={sessionUser.imageUrl}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                <User2 className="w-4 h-4 text-zinc-400" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-zinc-200 truncate">
+                {sessionUser?.fullName || sessionUser?.email || "Admin User"}
+              </p>
+              <p className="text-xs text-zinc-500">{sessionUser?.role || "admin"}</p>
+            </div>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50 w-full"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
           <Link
             href="/"
             className="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-medium text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50"

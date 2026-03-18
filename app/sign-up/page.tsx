@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { ClerkAuthView } from "@/components/auth/clerk-auth-view";
 import { getSessionUser } from "@/lib/session-user";
+import { SupabaseSignUp } from "@/components/auth/supabase-sign-up";
 
 export const dynamic = "force-dynamic";
 
-export default async function SignInCatchAllPage({
+export default async function SignUpPage({
+  searchParams,
 }: {
   searchParams: Promise<{ redirect_url?: string | string[] }>;
 }) {
@@ -15,9 +16,14 @@ export default async function SignInCatchAllPage({
     redirect("/");
   }
 
+  const params = await searchParams;
+  const redirectUrl = Array.isArray(params.redirect_url)
+    ? params.redirect_url[0]
+    : params.redirect_url;
+
   return (
-    <AuthShell mode="sign-in">
-      <ClerkAuthView mode="sign-in" />
+    <AuthShell mode="sign-up">
+      <SupabaseSignUp redirectUrl={redirectUrl} />
     </AuthShell>
   );
 }

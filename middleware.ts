@@ -1,27 +1,60 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createMiddlewareSupabaseClient } from "@/lib/supabase";
 import { getAuthRedirectPath } from "@/lib/auth-routing";
 import { LOCAL_AUTH_COOKIE, verifyLocalAuthToken } from "@/lib/local-auth";
 import { shouldUseMockData } from "@/lib/live-data-mode";
-import { DEMO_AUTH_COOKIE, getRoleFromSessionClaims, parseDemoAuthCookie } from "@/lib/user-role";
+import { DEMO_AUTH_COOKIE, normalizeUserRole, parseDemoAuthCookie } from "@/lib/user-role";
 
-export default clerkMiddleware(async (auth, req) => {
-  const path = req.nextUrl.pathname;
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
 
-  if (/^\/sign-(in|up)(?:\/.*)?$/.test(path)) {
+  // Allow sign-in/sign-up pages
+  if (/^\/(sign-in|sign-up)(?:\/.*)?$/.test(path)) {
     return NextResponse.next();
   }
 
-  const { userId, sessionClaims } = await auth();
+  // Check for demo auth
   const useMockData = shouldUseMockData();
   const demoAuth = useMockData
-    ? parseDemoAuthCookie(req.cookies.get(DEMO_AUTH_COOKIE)?.value)
+    ? parseDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)
     : null;
-  const localAuth = await verifyLocalAuthToken(req.cookies.get(LOCAL_AUTH_COOKIE)?.value);
-  const effectiveUserId =
-    demoAuth ? `demo-${demoAuth.role}` : localAuth?.userId ?? userId ?? null;
-  const effectiveRole =
-    demoAuth?.role ?? localAuth?.role ?? getRoleFromSessionClaims(sessionClaims);
+
+  // Check for local auth
+  const localAuth = await verifyLocalAuthToken(request.cookies.get(LOCAL_AUTH_COOKIE)?.value);
+
+  // Check Supabase session
+  const supabase = createMiddlewareSupabaseClient(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Determine effective user ID and role
+  const effectiveUserId = demoAuth
+    ? `demo-${demoAuth.role}`
+    : localAuth?.userId ?? user?.id ?? null;
+
+  let effectiveRole: "admin" | "customer" | "guest" = "guest";
+  if (demoAuth) {
+    effectiveRole = demoAuth.role;
+  } else if (localAuth) {
+    effectiveRole = localAuth.role;
+  } else if (user) {
+    // Check user metadata for role
+    const metadataRole = user.user_metadata?.role;
+    if (metadataRole === "admin" || metadataRole === "customer") {
+      effectiveRole = metadataRole;
+    } else {
+      effectiveRole = "customer";
+    }
+
+    // Check for hardcoded admin email
+    if (effectiveRole !== "admin" && user.email === "peterkinuthia726@gmail.com") {
+      effectiveRole = "admin";
+    }
+  }
+
+  // Check auth redirect path
   const redirectPath = getAuthRedirectPath({
     path,
     userId: effectiveUserId,
@@ -32,8 +65,8 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  return NextResponse.redirect(new URL(redirectPath, req.url));
-});
+  return NextResponse.redirect(new URL(redirectPath, request.url));
+}
 
 export const config = {
   matcher: [

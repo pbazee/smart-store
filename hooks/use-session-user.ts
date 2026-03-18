@@ -1,18 +1,44 @@
 "use client";
 
-import { useClerk, useUser } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
+import { createSupabaseClientClient } from "@/lib/supabase";
 import type { SessionUser } from "@/types";
 import { useDemoAuthStore } from "@/lib/demo-auth";
-import { getRoleFromClerkUser } from "@/lib/user-role";
+import type { User } from "@supabase/supabase-js";
+
+function getRoleFromSupabaseUser(user: User): "admin" | "customer" | "guest" {
+  const role = user.user_metadata?.role;
+  if (role === "admin" || role === "customer") {
+    return role;
+  }
+  return "customer";
+}
 
 export function useSessionUser() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { signOut: clerkSignOut } = useClerk();
+  const [supabase] = useState(() => createSupabaseClientClient());
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const demoUser = useDemoAuthStore((state) => state.user);
   const demoSignOut = useDemoAuthStore((state) => state.signOut);
   const [serverUser, setServerUser] = useState<SessionUser | null>(null);
   const [hasLoadedServerSession, setHasLoadedServerSession] = useState(false);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   useEffect(() => {
     let isActive = true;
@@ -45,29 +71,27 @@ export function useSessionUser() {
     return () => {
       isActive = false;
     };
-  }, [demoUser, isLoaded, isSignedIn, user?.id]);
+  }, [demoUser, user?.id]);
 
-  const clerkSessionUser = useMemo<SessionUser | null>(() => {
-    if (!isLoaded || !isSignedIn || !user) {
+  const supabaseSessionUser = useMemo<SessionUser | null>(() => {
+    if (!user) {
       return null;
     }
 
-    const roleFromMetadata = getRoleFromClerkUser(user);
-    const role =
-      roleFromMetadata === "guest" ? (serverUser?.role ?? "customer") : roleFromMetadata;
+    const role = getRoleFromSupabaseUser(user);
 
     return {
       id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      email: user.primaryEmailAddress?.emailAddress ?? null,
-      imageUrl: user.imageUrl ?? null,
+      firstName: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(" ")[0],
+      lastName: user.user_metadata?.last_name,
+      fullName: user.user_metadata?.full_name,
+      email: user.email ?? null,
+      imageUrl: user.user_metadata?.avatar_url ?? null,
       role,
       isDemo: false,
-      authProvider: "clerk",
+      authProvider: "supabase",
     };
-  }, [isLoaded, isSignedIn, serverUser?.role, user]);
+  }, [user]);
 
   const sessionUser = useMemo<SessionUser | null>(() => {
     if (demoUser?.isDemo) {
@@ -78,19 +102,19 @@ export function useSessionUser() {
       return serverUser;
     }
 
-    if (clerkSessionUser) {
-      return clerkSessionUser;
+    if (supabaseSessionUser) {
+      return supabaseSessionUser;
     }
 
-    if (isLoaded && !isSignedIn) {
+    if (!isLoading && !user) {
       return null;
     }
 
     return serverUser;
-  }, [clerkSessionUser, demoUser, isLoaded, isSignedIn, serverUser]);
+  }, [supabaseSessionUser, demoUser, isLoading, user, serverUser]);
 
   return {
-    isLoaded: hasLoadedServerSession && isLoaded,
+    isLoaded: hasLoadedServerSession && !isLoading,
     hasLoadedServerSession,
     isSignedIn: !!sessionUser,
     sessionUser,
@@ -110,8 +134,8 @@ export function useSessionUser() {
         return;
       }
 
+      await supabase.auth.signOut();
       setServerUser(null);
-      await clerkSignOut({ redirectUrl: "/" });
     },
   };
 }

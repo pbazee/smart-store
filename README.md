@@ -75,14 +75,11 @@ USE_MOCK_DATA=false
 DATABASE_URL="postgresql://postgres:[password]@[host]:5432/postgres"
 NEXT_PUBLIC_SUPABASE_URL="https://[project-ref].supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
+SUPABASE_SERVICE_ROLE_KEY="eyJ..."
 
 # Paystack (Kenya payments)
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY="pk_live_..."
 PAYSTACK_SECRET_KEY="sk_live_..."
-
-# Clerk Auth
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_live_..."
-CLERK_SECRET_KEY="sk_live_..."
 
 # Email (Resend)
 RESEND_API_KEY="re_..."
@@ -174,7 +171,7 @@ Or click:
 | Forms | React Hook Form + Zod |
 | Carousel | Embla Carousel |
 | Database | Prisma + Supabase (when live) |
-| Auth | Clerk (when live) |
+| Auth | Supabase Auth (when live) |
 | Payments | Paystack + Stripe (when live) |
 | Email | Resend (order confirmations + admin alerts) |
 | Deployment | Vercel |
