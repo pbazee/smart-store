@@ -29,7 +29,7 @@ export function MobileBottomNav() {
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/96 backdrop-blur-md md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/60 bg-background/98 backdrop-blur-xl md:hidden dark:bg-[#121212] dark:border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
       <div className="grid grid-cols-5">
         {navItems.map((item) => (
           <Link

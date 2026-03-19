@@ -64,7 +64,7 @@ export function CartDrawer() {
                   <Link
                     href="/shop"
                     onClick={closeCart}
-                    className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-lg transition-colors"
+                    className="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-all shadow-[0_12px_24px_rgba(249,115,22,0.25)] active:scale-95 text-center flex items-center justify-center"
                   >
                     Shop Now
                   </Link>

@@ -1,4 +1,4 @@
-import { CategoryGrid } from "@/components/shop/category-grid";
+import { HomepageCategoryGrid } from "@/components/shop/homepage-category-grid";
 import { BlogTeaserSection } from "@/components/shop/blog-teaser-section";
 import { HeroCarousel } from "@/components/shop/hero-carousel";
 import { HomeProductSections } from "@/components/shop/home-product-sections";
@@ -15,7 +15,7 @@ export default async function HomePage() {
       <HeroCarousel slides={homepageData.heroSlides} />
       <PromoCards />
       <TrustBar />
-      <CategoryGrid categories={homepageData.categories} />
+      <HomepageCategoryGrid categories={homepageData.categories} />
       <HomeProductSections data={homepageData.productSections} />
       <TestimonialsSection />
       <BlogTeaserSection posts={homepageData.blogPosts} />

@@ -37,7 +37,7 @@ export default function CartPage() {
         <div className="text-6xl mb-6">🛍️</div>
         <h1 className="text-2xl font-black mb-3">Your cart is empty</h1>
         <p className="text-muted-foreground mb-8">Add some fire pieces to your cart!</p>
-        <Link href="/shop" className="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-colors">
+        <Link href="/shop" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-all shadow-[0_12px_24px_rgba(249,115,22,0.25)] active:scale-95">
           Shop Now
         </Link>
       </div>

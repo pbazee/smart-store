@@ -5,7 +5,7 @@ import { getProducts } from "@/lib/data-service";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
 import { DEFAULT_WHATSAPP_SETTINGS, createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
 import { getActiveHeroSlides, getDemoHeroSlides } from "@/lib/hero-slide-service";
-import { getActiveCategories } from "@/lib/category-service";
+import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { getActiveLandingOverrides, mergeOverridesWithAuto } from "@/lib/landing-section-overrides";
 import { getDemoPopups } from "@/lib/popup-service";
@@ -19,6 +19,7 @@ import type {
   BlogPost,
   Category,
   HeroSlide,
+  HomepageCategory,
   Popup,
   Product,
   SocialLink,
@@ -49,7 +50,7 @@ export type HomepageProductSectionsData = {
 
 export type HomepagePageData = {
   heroSlides: HeroSlide[];
-  categories: Category[];
+  categories: HomepageCategory[];
   blogPosts: BlogPost[];
   productSections: HomepageProductSectionsData;
 };
@@ -102,36 +103,36 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
           where: { isActive: true },
           orderBy: [{ order: "asc" }, { createdAt: "asc" }],
         })) as AnnouncementMessage[],
-      () => [createFallbackAnnouncementMessage()]
-    ),
-    safeQuery(
-      async () => (await prisma.popup.findMany({
-        where: {
-          isActive: true,
-          OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
-        },
-        orderBy: { createdAt: "desc" },
-      })) as Popup[],
-      () => []
-    ),
-    safeQuery(
-      async () => (await prisma.socialLink.findMany({
-        orderBy: { createdAt: "asc" },
-      })) as SocialLink[],
-      () => getDemoSocialLinks()
-    ),
+        () => [createFallbackAnnouncementMessage()]
+      ),
+      safeQuery(
+        async () => (await prisma.popup.findMany({
+          where: {
+            isActive: true,
+            OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+          },
+          orderBy: { createdAt: "desc" },
+        })) as Popup[],
+        () => []
+      ),
+      safeQuery(
+        async () => (await prisma.socialLink.findMany({
+          orderBy: { createdAt: "asc" },
+        })) as SocialLink[],
+        () => getDemoSocialLinks()
+      ),
       safeQuery(
         async () =>
           ((await prisma.whatsAppSettings.findUnique({
             where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
           })) as WhatsAppSettings | null) ?? createDefaultWhatsAppSettings(),
-      () => createDefaultWhatsAppSettings()
-    ),
-    safeQuery(
-      async () => (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null,
-      () => getStoreSettings({ seedIfEmpty: true })
-    ),
-  ]);
+        () => createDefaultWhatsAppSettings()
+      ),
+      safeQuery(
+        async () => (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null,
+        () => getStoreSettings({ seedIfEmpty: true })
+      ),
+    ]);
 
   return {
     announcements,
@@ -190,21 +191,18 @@ async function resolveHomepagePageData(): Promise<HomepagePageData> {
     shouldUseMockData()
       ? Promise.resolve(getDemoHeroSlides({ activeOnly: true }))
       : getActiveHeroSlides(),
-    safeQuery(
-      async () => await getActiveCategories(),
-      () => getActiveCategories()
-    ),
+    getActiveHomepageCategories(),
     shouldUseMockData()
       ? Promise.resolve(getDemoBlogPosts({ publishedOnly: true, take: 4 }))
       : safeQuery(
-          async () =>
-            (await prisma.blog.findMany({
-              where: { isPublished: true },
-              orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-              take: 4,
-            })) as BlogPost[],
-          () => getDemoBlogPosts({ publishedOnly: true, take: 4 })
-        ),
+        async () =>
+          (await prisma.blog.findMany({
+            where: { isPublished: true },
+            orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+            take: 4,
+          })) as BlogPost[],
+        () => getDemoBlogPosts({ publishedOnly: true, take: 4 })
+      ),
     getCachedHomepageProductSectionsData(),
   ]);
 
