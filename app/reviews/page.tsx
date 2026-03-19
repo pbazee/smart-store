@@ -1,3 +1,4 @@
+import { getLatestApprovedReviews } from "@/lib/reviews-service";
 import { Star, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";

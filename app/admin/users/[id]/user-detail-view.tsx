@@ -11,9 +11,9 @@ import {
     ShoppingBag,
     ExternalLink,
     ChevronRight,
-    UserCheck,
+    User,
     MoreVertical,
-    AlertTriangle,
+    AlertCircle,
     Loader2
 } from "lucide-react";
 import { formatKES } from "@/lib/utils";
@@ -102,14 +102,14 @@ export function UserDetailView({ user }: UserDetailViewProps) {
                         onClick={toggleRole}
                         disabled={isUpdatingRole}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${user.role === "ADMIN"
-                                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                                : "bg-purple-500 text-white shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98]"
+                            ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                            : "bg-purple-500 text-white shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98]"
                             }`}
                     >
                         {isUpdatingRole ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                         ) : user.role === "ADMIN" ? (
-                            <UserCheck className="h-4 w-4" />
+                            <User className="h-4 w-4" />
                         ) : (
                             <Shield className="h-4 w-4" />
                         )}
@@ -216,7 +216,7 @@ export function UserDetailView({ user }: UserDetailViewProps) {
                                                     </span>
                                                     <span className="h-1 w-1 rounded-full bg-zinc-800" />
                                                     <span className={`text-[10px] font-black uppercase tracking-widest ${order.status === "delivered" ? "text-emerald-400" :
-                                                            order.status === "cancelled" ? "text-rose-400" : "text-amber-400"
+                                                        order.status === "cancelled" ? "text-rose-400" : "text-amber-400"
                                                         }`}>
                                                         {order.status}
                                                     </span>

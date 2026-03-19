@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, MessageCircle, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -37,6 +38,7 @@ type AdminDashboardStats = {
 };
 
 export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
+  const router = useRouter();
   const cards = [
     {
       title: "Total Revenue",
@@ -102,7 +104,7 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
             className={`cursor-pointer group p-6 rounded-2xl border shadow-lg shadow-black/20 ${card.bg} transition-all hover:scale-[1.02] active:scale-[0.98]`}
             onClick={() => {
               if ("href" in card) {
-                window.location.href = (card as any).href;
+                router.push((card as any).href);
               }
             }}
           >

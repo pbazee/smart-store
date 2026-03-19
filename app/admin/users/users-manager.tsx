@@ -6,8 +6,8 @@ import {
     Search,
     ChevronRight,
     ArrowUpDown,
-    UserCircle2,
-    ShieldCheck,
+    User,
+    Shield,
     History,
     WalletCards
 } from "lucide-react";
@@ -138,7 +138,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                             <td className="px-6 py-5">
                                                 <Link href={`/admin/users/${user.id}`} className="flex items-center gap-3">
                                                     <div className="h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-orange-500 group-hover:text-white transition-all">
-                                                        <UserCircle2 className="h-6 w-6" />
+                                                        <User className="h-4 w-4" />
                                                     </div>
                                                     <div>
                                                         <p className="font-black text-white group-hover:text-orange-400 transition-colors truncate max-w-[180px]">
@@ -152,8 +152,8 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                             </td>
                                             <td className="px-6 py-5">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${user.role === "ADMIN"
-                                                        ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                                                        : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                                    ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                                    : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                                                     }`}>
                                                     {user.role === "ADMIN" && <ShieldCheck className="h-3 w-3" />}
                                                     {user.role}

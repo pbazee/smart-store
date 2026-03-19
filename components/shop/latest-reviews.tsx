@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Star, MessageSquare, ArrowRight } from "lucide-react";
+import { Star, MessageCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +98,7 @@ export function LatestReviews({ reviews }: { reviews: ReviewWithProduct[] }) {
                             href={`/product/${review.product.slug}`}
                             className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 transition-colors hover:text-orange-700"
                         >
-                            <MessageSquare className="h-3 w-3" />
+                            <MessageCircle className="h-3 w-3" />
                             Regarding {review.product.name}
                         </Link>
                     </motion.article>
