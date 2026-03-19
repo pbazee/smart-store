@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, Mail } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Download, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import type { NewsletterSubscriber } from "@/types";
 
 function escapeCsv(value: string) {
@@ -23,9 +24,17 @@ function downloadCsv(filename: string, rows: string[]) {
 
 export function NewsletterManager({
   initialSubscribers,
+  resendConfigured,
 }: {
   initialSubscribers: NewsletterSubscriber[];
+  resendConfigured: boolean;
 }) {
+  const [isSending, setIsSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
   const exportSubscribers = () => {
     const rows = [
       "Email,Subscribed At",
@@ -84,6 +93,25 @@ export function NewsletterManager({
         </div>
       </div>
 
+      {/* API Key Warning */}
+      {!resendConfigured && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-300">Resend API key is missing</p>
+              <p className="mt-1 text-sm text-amber-400/80">
+                Add it in Vercel Environment Variables as <code className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-xs">RESEND_API_KEY</code>.
+                Get your key from{" "}
+                <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="underline hover:text-amber-300">
+                  resend.com/api-keys
+                </a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
         <h2 className="flex items-center gap-3 text-xl font-black text-white">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-500/20">
@@ -95,33 +123,72 @@ export function NewsletterManager({
           This will send an email to all {initialSubscribers.length} active subscribers.
         </p>
 
+        {/* Send Result Feedback */}
+        {sendResult && (
+          <div className={`mt-4 rounded-xl border p-4 text-sm ${sendResult.type === "success"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+            : "border-red-500/30 bg-red-500/10 text-red-400"
+            }`}>
+            <div className="flex items-center gap-2">
+              {sendResult.type === "success" ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              <span className="font-semibold">{sendResult.message}</span>
+            </div>
+          </div>
+        )}
+
         <form
           onSubmit={async (e) => {
             e.preventDefault();
+            setSendResult(null);
+            setIsSending(true);
+
             const formData = new FormData(e.currentTarget);
             const subject = formData.get("subject") as string;
             const content = formData.get("content") as string;
 
-            if (!subject || !content) return;
+            if (!subject || !content) {
+              setIsSending(false);
+              return;
+            }
 
             try {
               const res = await (await import("./actions")).sendNewsletterAction({ subject, content });
+
               if (res.success) {
-                alert(`Newsletter sent successfully to ${res.count} subscribers!`);
+                setSendResult({
+                  type: "success",
+                  message: `Newsletter sent successfully to ${res.count} subscriber(s)!`,
+                });
                 (e.target as HTMLFormElement).reset();
+              } else {
+                const total = (res as any).totalSubscribers || 0;
+                setSendResult({
+                  type: "error",
+                  message: res.error || `Sent to ${res.count}/${total} subscribers. Some emails failed.`,
+                });
               }
-            } catch (err) {
-              alert("Failed to send newsletter. Check console/Resend API key.");
+            } catch (err: any) {
+              console.error("[Newsletter UI] Send error:", err);
+              setSendResult({
+                type: "error",
+                message: err?.message || "Failed to send newsletter. Check Vercel logs for details.",
+              });
+            } finally {
+              setIsSending(false);
             }
           }}
-          className="mt-8 space-y-4"
+          className="mt-6 space-y-4"
         >
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Subject</label>
             <input
               name="subject"
               required
-              placeholder="e.g. New Drops: Premium Collection is Live!"
+              placeholder='e.g. New Drops: Premium Collection is Live!'
               className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-4 text-white outline-none focus:border-orange-500/50"
             />
           </div>
@@ -137,9 +204,17 @@ export function NewsletterManager({
           </div>
           <button
             type="submit"
-            className="w-full rounded-2xl bg-orange-500 py-4 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-orange-600 active:scale-[0.98]"
+            disabled={isSending || !resendConfigured}
+            className="w-full rounded-2xl bg-orange-500 py-4 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Blast Newsletter
+            {isSending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              "Blast Newsletter"
+            )}
           </button>
         </form>
       </div>

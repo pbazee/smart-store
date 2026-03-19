@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
-import { getNewsletterSubscribers, subscribeToNewsletter, sendNewsletter } from "@/lib/newsletter-service";
+import { getNewsletterSubscribers, subscribeToNewsletter, sendNewsletter, isResendConfigured } from "@/lib/newsletter-service";
 
 const newsletterSubscriptionSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address."),
@@ -39,8 +39,23 @@ export async function fetchAdminNewsletterSubscribers() {
   return getNewsletterSubscribers();
 }
 
+export async function checkResendKeyAction() {
+  return { configured: isResendConfigured() };
+}
+
 export async function sendNewsletterAction(input: { subject: string; content: string }) {
   await ensureAdmin();
   const data = newsletterSendSchema.parse(input);
-  return sendNewsletter(data.subject, data.content);
+
+  try {
+    const result = await sendNewsletter(data.subject, data.content);
+    return result;
+  } catch (err: any) {
+    console.error("[Newsletter Action] Unexpected error:", err);
+    return {
+      success: false,
+      error: err?.message || "An unexpected error occurred while sending the newsletter.",
+      count: 0,
+    };
+  }
 }

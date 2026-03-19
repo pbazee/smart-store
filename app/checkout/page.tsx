@@ -624,18 +624,18 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-black">Checkout</h1>
       </div>
 
-      <div className="mb-8 rounded-3xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50 via-white to-amber-50 p-5 shadow-sm">
+      <div className="mb-8 rounded-3xl border border-emerald-200/70 dark:border-emerald-500/20 bg-gradient-to-r from-emerald-50 via-white to-amber-50 dark:from-emerald-950/30 dark:via-zinc-900 dark:to-amber-950/20 p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600">
+            <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold">Paystack secure checkout</p>
+              <p className="font-semibold text-foreground">Paystack secure checkout</p>
               <p className="text-sm text-muted-foreground">M-Pesa is preferred and card stays available inside the same popup.</p>
             </div>
           </div>
-          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${isPaystackReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${isPaystackReady ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"}`}>
             {isPaystackReady ? <CheckCircle className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
             {isPaystackReady ? "Paystack loaded" : "Loading Paystack"}
           </div>
@@ -892,9 +892,9 @@ function PaymentStep({
   return (
     <div>
       <h2 className="text-xl font-bold mb-6">Payment Method</h2>
-      <div className="mb-5 rounded-2xl border border-emerald-200/60 bg-emerald-50/70 px-4 py-3">
-        <p className="text-sm font-semibold text-emerald-700 flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Paystack popup checkout</p>
-        <p className="mt-1 text-sm text-emerald-700/80">M-Pesa opens first and card remains available inside the same secure flow.</p>
+      <div className="mb-5 rounded-2xl border border-emerald-200/60 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-950/30 px-4 py-3">
+        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Paystack popup checkout</p>
+        <p className="mt-1 text-sm text-emerald-700/80 dark:text-emerald-300/70">M-Pesa opens first and card remains available inside the same secure flow.</p>
         <p className="mt-2 text-xs text-muted-foreground">{isPaystackReady ? "Paystack is loaded and ready." : paystackError || "Loading Paystack checkout for this step."}</p>
       </div>
 
@@ -1051,7 +1051,7 @@ function ReviewStep({
         <div className="flex justify-between font-semibold text-lg"><span>Total</span><span>{formatKES(finalTotal)}</span></div>
       </div>
 
-      <div className={`mt-6 rounded-2xl border p-4 text-sm ${paystackReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+      <div className={`mt-6 rounded-2xl border p-4 text-sm ${paystackReady ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-400" : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-400"}`}>
         <p className="font-semibold flex items-center gap-2">
           {paystackReady ? <CheckCircle className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
           {paystackReady ? "Paystack popup ready" : "Preparing Paystack"}

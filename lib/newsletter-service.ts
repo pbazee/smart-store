@@ -3,7 +3,20 @@ import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { NewsletterSubscriber } from "@/types";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/** Lazily initialize Resend only when actually sending */
+function getResendClient(): Resend | null {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey.trim() === "") {
+    return null;
+  }
+  return new Resend(apiKey);
+}
+
+/** Check if Resend API key is configured */
+export function isResendConfigured(): boolean {
+  const key = process.env.RESEND_API_KEY;
+  return Boolean(key && key.trim().length > 0);
+}
 
 let demoNewsletterSubscribersState: NewsletterSubscriber[] = [];
 
@@ -91,27 +104,65 @@ export async function subscribeToNewsletter(email: string) {
 }
 
 export async function sendNewsletter(subject: string, content: string) {
+  console.log("[Newsletter] Starting newsletter send...");
+
+  // 1. Validate API key
+  const resend = getResendClient();
+  if (!resend) {
+    console.error("[Newsletter] RESEND_API_KEY is not set or empty.");
+    return {
+      success: false,
+      error: "Resend API key is missing. Add RESEND_API_KEY in your Vercel Environment Variables.",
+      count: 0,
+    };
+  }
+  console.log("[Newsletter] Resend API key found ✓");
+
+  // 2. Get subscribers
   const subscribers = await getNewsletterSubscribers();
   const emails = subscribers.map((s) => s.email);
 
   if (emails.length === 0) {
+    console.log("[Newsletter] No subscribers to send to.");
     return { success: true, count: 0 };
   }
+  console.log(`[Newsletter] Sending to ${emails.length} subscriber(s)...`);
 
-  const results = await Promise.all(
-    emails.map((email) =>
-      resend.emails.send({
-        from: "Smartest Store KE <newsletter@smart-store.ke>",
+  // 3. Send emails with rate-limit handling (one by one with small delay)
+  let sent = 0;
+  const errors: string[] = [];
+
+  for (const email of emails) {
+    try {
+      const result = await resend.emails.send({
+        from: "Smartest Store KE <onboarding@resend.dev>",
         to: email,
         subject: subject,
         html: content,
-      })
-    )
-  );
+      });
+
+      if (result.error) {
+        console.error(`[Newsletter] Failed for ${email}:`, result.error);
+        errors.push(`${email}: ${result.error.message}`);
+      } else {
+        sent++;
+        console.log(`[Newsletter] ✓ Sent to ${email}`);
+      }
+    } catch (err: any) {
+      console.error(`[Newsletter] Error sending to ${email}:`, err?.message || err);
+      errors.push(`${email}: ${err?.message || "Unknown error"}`);
+    }
+
+    // Small delay to respect rate limits (Resend free tier: 2 emails/sec)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  console.log(`[Newsletter] Done. Sent: ${sent}/${emails.length}. Errors: ${errors.length}`);
 
   return {
-    success: true,
-    count: emails.length,
-    results
+    success: errors.length === 0,
+    count: sent,
+    totalSubscribers: emails.length,
+    errors: errors.length > 0 ? errors : undefined,
   };
 }

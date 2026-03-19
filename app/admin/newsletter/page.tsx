@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { NewsletterManager } from "@/app/admin/newsletter/newsletter-manager";
 import { fetchAdminNewsletterSubscribers } from "@/app/admin/newsletter/actions";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { isResendConfigured } from "@/lib/newsletter-service";
 
 export default async function AdminNewsletterPage() {
   const isAdmin = await requireAdminAuth();
@@ -10,6 +11,13 @@ export default async function AdminNewsletterPage() {
   }
 
   const subscribers = await fetchAdminNewsletterSubscribers();
+  const resendConfigured = isResendConfigured();
 
-  return <NewsletterManager initialSubscribers={subscribers} />;
+  return (
+    <NewsletterManager
+      initialSubscribers={subscribers}
+      resendConfigured={resendConfigured}
+    />
+  );
 }
+
