@@ -3,7 +3,7 @@
 import { useActionState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle, Loader } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { signUpCustomerAction, signUpWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function CustomerSignUpForm() {
@@ -141,7 +141,7 @@ export function CustomerSignUpForm() {
         disabled={isLoading}
         className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:shadow-lg transition-shadow disabled:opacity-75 flex items-center justify-center gap-2"
       >
-        {isPending && <Loader className="h-4 w-4 animate-spin" />}
+        {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
         {isPending ? "Creating account..." : "Create Account"}
       </button>
 

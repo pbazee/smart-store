@@ -7,7 +7,7 @@ import { createSupabaseClientClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Mail, User, Lock } from "lucide-react";
+import { AlertCircle, Loader2, Mail, User, Shield } from "lucide-react";
 import { getAppUrl } from "@/lib/app-url";
 
 export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
@@ -178,7 +178,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
             Password
           </Label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+            <Shield className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <Input
               id="password"
               type="password"
@@ -197,7 +197,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
             Confirm Password
           </Label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+            <Shield className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <Input
               id="confirmPassword"
               type="password"

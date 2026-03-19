@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Heart,
-  Share2,
+  Share,
   Shield,
   ShoppingBag,
   Smartphone,
@@ -416,7 +416,7 @@ export function ProductDetail({
               });
             }}
           >
-            <Share2 className="h-4 w-4" />
+            <Share className="h-4 w-4" />
             Share this product
           </button>
         </div>

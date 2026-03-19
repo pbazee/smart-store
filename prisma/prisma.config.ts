@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 // Prisma 7+ configuration
 // Database connection URLs are configured here instead of schema.prisma
 
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL;
-  
+
   if (!url) {
     console.error("[Prisma] DATABASE_URL environment variable is not set");
     // Return a placeholder that will fail gracefully or use a fallback
@@ -13,7 +13,7 @@ function getDatabaseUrl(): string {
       "DATABASE_URL is required. Please set it in your .env.local file or environment variables."
     );
   }
-  
+
   return url;
 }
 
@@ -79,9 +79,9 @@ export function getPrismaConfig() {
         url: getResolvedDatabaseUrl(),
       },
     },
-    log: process.env.NODE_ENV === "development" 
-      ? ["query", "info", "warn", "error"] 
-      : ["warn", "error"],
+    log: (process.env.NODE_ENV === "development"
+      ? ["query", "info", "warn", "error"]
+      : ["warn", "error"]) as Prisma.LogLevel[],
   };
 }
 
@@ -90,12 +90,12 @@ export function getPrismaMigrateConfig() {
   const directUrl = getResolvedDirectUrl();
   return directUrl
     ? {
-        datasources: {
-          db: {
-            url: directUrl,
-          },
+      datasources: {
+        db: {
+          url: directUrl,
         },
-      }
+      },
+    }
     : undefined;
 }
 
