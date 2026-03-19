@@ -189,6 +189,8 @@ export async function POST(req: NextRequest) {
     const order = await prisma.$transaction(async (tx) => {
       await releaseExpiredReservationsInTransaction(tx);
 
+      let finalUserId = userId;
+
       if (userId && sessionUser) {
         try {
           const targetEmail = sessionUser.email ?? validatedData.email;
@@ -196,36 +198,26 @@ export async function POST(req: NextRequest) {
           const targetLastName = sessionUser.lastName ?? validatedData.lastName;
           const targetFullName = sessionUser.fullName ?? `${validatedData.firstName} ${validatedData.lastName}`;
 
-          const existingByEmail = await tx.user.findUnique({ where: { email: targetEmail } });
-          const existingById = await tx.user.findUnique({ where: { id: userId } });
+          const upsertedUser = await tx.user.upsert({
+            where: { email: targetEmail },
+            update: {
+              firstName: targetFirstName,
+              lastName: targetLastName,
+              fullName: targetFullName,
+            },
+            create: {
+              id: userId,
+              email: targetEmail,
+              firstName: targetFirstName,
+              lastName: targetLastName,
+              fullName: targetFullName,
+            },
+          });
 
-          if (existingById) {
-            // Only update if email is not taken by someone else
-            if (!existingByEmail || existingByEmail.id === userId) {
-              await tx.user.update({
-                where: { id: userId },
-                data: {
-                  email: targetEmail,
-                  firstName: targetFirstName,
-                  lastName: targetLastName,
-                  fullName: targetFullName,
-                },
-              });
-            }
-          } else if (!existingByEmail) {
-            // Create only if neither ID nor email exists
-            await tx.user.create({
-              data: {
-                id: userId,
-                email: targetEmail,
-                firstName: targetFirstName,
-                lastName: targetLastName,
-                fullName: targetFullName,
-              },
-            });
-          }
+          finalUserId = upsertedUser.id;
         } catch (err) {
-          console.error("Failed to update user profile during checkout. Proceeding anyway:", err);
+          console.error("Failed to upsert user profile during checkout. Falling back to anonymous checkout:", err);
+          finalUserId = null; // Prevent FK constraint failure
         }
       }
 
@@ -250,7 +242,7 @@ export async function POST(req: NextRequest) {
 
       return tx.order.create({
         data: {
-          userId,
+          userId: finalUserId,
           orderNumber,
           customerName: `${validatedData.firstName} ${validatedData.lastName}`,
           customerEmail: validatedData.email,
