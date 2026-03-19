@@ -50,10 +50,10 @@ const resolvedDatabaseUrl = resolveDatabaseUrl();
 const prisma = new PrismaClient({
   datasources: resolvedDatabaseUrl
     ? {
-        db: {
-          url: resolvedDatabaseUrl,
-        },
-      }
+      db: {
+        url: resolvedDatabaseUrl,
+      },
+    }
     : undefined,
 });
 
@@ -75,6 +75,21 @@ async function main() {
         id: "local-admin-store",
         email: "admin@store.com",
         fullName: "Store Admin",
+        role: "ADMIN",
+        passwordHash: adminPasswordHash,
+      },
+    });
+
+    console.log("Seeding second admin user (peterkinuthia726@gmail.com)...");
+    await prisma.user.upsert({
+      where: { email: "peterkinuthia726@gmail.com" },
+      update: {
+        role: "ADMIN",
+      },
+      create: {
+        id: "admin-peter",
+        email: "peterkinuthia726@gmail.com",
+        fullName: "Peter Kinuthia",
         role: "ADMIN",
         passwordHash: adminPasswordHash,
       },

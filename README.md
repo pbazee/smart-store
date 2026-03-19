@@ -65,6 +65,13 @@ smartest-store-ke/
 # Get your DATABASE_URL from Settings > Database
 ```
 
+#### Clean Branding for Google Auth (Important!)
+To ensure the Google Sign-in consent screen shows your brand name instead of a Supabase URL:
+1. Go to Supabase Dashboard → Authentication → Settings.
+2. Look for **Site URL** and set it to your main domain (e.g. `https://smartest-store-ke.com`).
+3. Look for the **Project name** field and set it to a clean, branded name like `Smartest Store KE`.
+4. *(If you use your own Google Cloud OAuth app)* Go to Google Cloud Console → APIs & Services → OAuth consent screen and set the "App name" to `Smartest Store KE`.
+
 ### 2. Update `.env.local`
 
 ```env

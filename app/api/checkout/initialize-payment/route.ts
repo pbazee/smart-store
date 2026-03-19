@@ -146,14 +146,14 @@ export async function POST(req: NextRequest) {
     });
 
     const subtotal = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    
+
     // Parallelize coupon and shipping queries instead of sequential
     const [appliedCoupon, shippingQuote] = await Promise.all([
       validatedData.couponCode
         ? validateCouponForSubtotal({
-            code: validatedData.couponCode,
-            subtotal,
-          })
+          code: validatedData.couponCode,
+          subtotal,
+        })
         : Promise.resolve(null),
       getShippingQuote({
         subtotal,
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
         city: validatedData.city,
       }),
     ]);
-    
+
     const discountAmount = appliedCoupon?.discountAmount ?? 0;
     const shippingCost = shippingQuote.cost;
     const computedTotal = subtotal + shippingCost - discountAmount;
@@ -179,9 +179,8 @@ export async function POST(req: NextRequest) {
     const reservationExpiresAt = getReservationExpiryDate(reservationCreatedAt);
     const customerPhone = normalizeCheckoutPhoneNumber(validatedData.phone);
     const mpesaPhone = normalizeCheckoutPhoneNumber(validatedData.mpesaPhone || validatedData.phone);
-    const callbackUrl = `${
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || req.nextUrl.origin
-    }/checkout/paystack-callback?reference=${encodeURIComponent(reference)}`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || req.nextUrl.origin
+      }/checkout/paystack-callback?reference=${encodeURIComponent(reference)}`;
     const channels =
       validatedData.paymentMethod === "mpesa"
         ? (["mobile_money", "card"] as const)
@@ -191,26 +190,43 @@ export async function POST(req: NextRequest) {
       await releaseExpiredReservationsInTransaction(tx);
 
       if (userId && sessionUser) {
-        await tx.user.upsert({
-          where: { id: userId },
-          update: {
-            email: sessionUser.email ?? validatedData.email,
-            firstName: sessionUser.firstName ?? validatedData.firstName,
-            lastName: sessionUser.lastName ?? validatedData.lastName,
-            fullName:
-              sessionUser.fullName ??
-              `${validatedData.firstName} ${validatedData.lastName}`,
-          },
-          create: {
-            id: userId,
-            email: sessionUser.email ?? validatedData.email,
-            firstName: sessionUser.firstName ?? validatedData.firstName,
-            lastName: sessionUser.lastName ?? validatedData.lastName,
-            fullName:
-              sessionUser.fullName ??
-              `${validatedData.firstName} ${validatedData.lastName}`,
-          },
-        });
+        try {
+          const targetEmail = sessionUser.email ?? validatedData.email;
+          const targetFirstName = sessionUser.firstName ?? validatedData.firstName;
+          const targetLastName = sessionUser.lastName ?? validatedData.lastName;
+          const targetFullName = sessionUser.fullName ?? `${validatedData.firstName} ${validatedData.lastName}`;
+
+          const existingByEmail = await tx.user.findUnique({ where: { email: targetEmail } });
+          const existingById = await tx.user.findUnique({ where: { id: userId } });
+
+          if (existingById) {
+            // Only update if email is not taken by someone else
+            if (!existingByEmail || existingByEmail.id === userId) {
+              await tx.user.update({
+                where: { id: userId },
+                data: {
+                  email: targetEmail,
+                  firstName: targetFirstName,
+                  lastName: targetLastName,
+                  fullName: targetFullName,
+                },
+              });
+            }
+          } else if (!existingByEmail) {
+            // Create only if neither ID nor email exists
+            await tx.user.create({
+              data: {
+                id: userId,
+                email: targetEmail,
+                firstName: targetFirstName,
+                lastName: targetLastName,
+                fullName: targetFullName,
+              },
+            });
+          }
+        } catch (err) {
+          console.error("Failed to update user profile during checkout. Proceeding anyway:", err);
+        }
       }
 
       for (const item of resolvedItems) {
@@ -324,7 +340,7 @@ export async function POST(req: NextRequest) {
 
       // Release the reservation since payment initialization failed
       await releaseReservationForReference(reference);
-      
+
       // Re-throw with clear message for client
       const message = error instanceof Error ? error.message : "Failed to initialize Paystack payment";
       throw new Error(message);
@@ -392,11 +408,11 @@ export async function POST(req: NextRequest) {
     const message = error instanceof Error ? error.message : "Failed to initialize payment";
     const status =
       error instanceof Error &&
-      (message.includes("out of stock") ||
-        message.toLowerCase().includes("coupon") ||
-        message.includes("Invalid product selection") ||
-        message.includes("requested quantity") ||
-        message.includes("Cart pricing"))
+        (message.includes("out of stock") ||
+          message.toLowerCase().includes("coupon") ||
+          message.includes("Invalid product selection") ||
+          message.includes("requested quantity") ||
+          message.includes("Cart pricing"))
         ? 409
         : 500;
 
