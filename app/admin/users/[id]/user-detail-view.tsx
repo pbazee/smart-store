@@ -10,9 +10,7 @@ import {
     Trash2,
     ShoppingBag,
     ExternalLink,
-    ChevronRight,
     User,
-    MoreVertical,
     AlertCircle,
     Loader2
 } from "lucide-react";

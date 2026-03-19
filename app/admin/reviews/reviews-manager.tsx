@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-    CheckCircle,
+    Check,
     Trash2,
     Star,
     Search,
@@ -150,7 +150,7 @@ export function ReviewsManager({ initialReviews }: { initialReviews: ReviewWithP
                                                 onClick={() => handleApprove(review.id)}
                                                 className="flex h-9 items-center gap-2 rounded-xl bg-green-500 px-4 text-xs font-bold text-white shadow-lg shadow-green-500/20 transition-all hover:bg-green-600 active:scale-95"
                                             >
-                                                <CheckCircle className="h-3.5 w-3.5" />
+                                                <Check className="h-3.5 w-3.5" />
                                                 Approve
                                             </button>
                                         )}

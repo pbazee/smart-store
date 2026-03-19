@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
     Search,
     ChevronRight,
-    ArrowUpDown,
+    ChevronDown,
     User,
     Shield,
-    History,
-    WalletCards
+    Clock,
+    CreditCard
 } from "lucide-react";
 import type { AdminUserSummary } from "@/lib/admin-user-service";
 import { formatKES } from "@/lib/utils";
@@ -87,7 +87,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                     onClick={() => toggleSort("fullName")}
                                 >
                                     <div className="flex items-center gap-2">
-                                        User {sortField === "fullName" && <ArrowUpDown className="h-3 w-3" />}
+                                        User {sortField === "fullName" && <ChevronDown className="h-3 w-3" />}
                                     </div>
                                 </th>
                                 <th className="px-6 py-4 font-bold text-zinc-400 uppercase tracking-widest text-[10px]">Role</th>
@@ -96,7 +96,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                     onClick={() => toggleSort("createdAt")}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Joined {sortField === "createdAt" && <ArrowUpDown className="h-3 w-3" />}
+                                        Joined {sortField === "createdAt" && <ChevronDown className="h-3 w-3" />}
                                     </div>
                                 </th>
                                 <th
@@ -104,7 +104,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                     onClick={() => toggleSort("totalOrders")}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Orders {sortField === "totalOrders" && <ArrowUpDown className="h-3 w-3" />}
+                                        Orders {sortField === "totalOrders" && <ChevronDown className="h-3 w-3" />}
                                     </div>
                                 </th>
                                 <th
@@ -112,7 +112,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                     onClick={() => toggleSort("totalSpent")}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Total Spent {sortField === "totalSpent" && <ArrowUpDown className="h-3 w-3" />}
+                                        Total Spent {sortField === "totalSpent" && <ChevronDown className="h-3 w-3" />}
                                     </div>
                                 </th>
                                 <th className="px-6 py-4"></th>
@@ -155,13 +155,13 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                                     ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
                                                     : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                                                     }`}>
-                                                    {user.role === "ADMIN" && <ShieldCheck className="h-3 w-3" />}
+                                                    {user.role === "ADMIN" && <Shield className="h-3 w-3" />}
                                                     {user.role}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2 text-zinc-400">
-                                                    <History className="h-3.5 w-3.5" />
+                                                    <Clock className="h-3.5 w-3.5" />
                                                     <span className="text-xs font-semibold">
                                                         {new Date(user.createdAt).toLocaleDateString("en-KE", {
                                                             month: "short",
@@ -176,7 +176,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-1.5 font-black text-emerald-400">
-                                                    <WalletCards className="h-3.5 w-3.5" />
+                                                    <CreditCard className="h-4 w-4" />
                                                     {formatKES(user.totalSpent)}
                                                 </div>
                                             </td>
