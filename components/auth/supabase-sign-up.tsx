@@ -16,6 +16,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [wantsNewsletter, setWantsNewsletter] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createSupabaseClientClient();
@@ -52,6 +53,15 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
       if (error) {
         setError(error.message);
         return;
+      }
+
+      if (wantsNewsletter) {
+        try {
+          const { subscribeNewsletterAction } = await import("@/app/admin/newsletter/actions");
+          await subscribeNewsletterAction({ email });
+        } catch (e) {
+          console.error("Newsletter subscription failed during signup:", e);
+        }
       }
 
       router.push("/sign-in?message=check-email");
@@ -208,6 +218,19 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
               className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
             />
           </div>
+        </div>
+
+        <div className="flex items-center space-x-3 py-2">
+          <input
+            id="newsletter"
+            type="checkbox"
+            checked={wantsNewsletter}
+            onChange={(e) => setWantsNewsletter(e.target.checked)}
+            className="h-5 w-5 rounded border-white/12 bg-black/35 text-orange-500 focus:ring-orange-400/20"
+          />
+          <Label htmlFor="newsletter" className="text-sm font-medium text-white/72 cursor-pointer select-none">
+            Get notified on more offers, discounts & new arrivals
+          </Label>
         </div>
 
         <Button

@@ -37,10 +37,10 @@ function DrawerLink({ href, label, active, onSelect }: DrawerLinkProps) {
       href={href}
       onClick={onSelect}
       className={cn(
-        "rounded-2xl border px-4 py-3 text-sm font-semibold transition-all",
+        "rounded-2xl border px-4 py-3 text-sm font-semibold transition-all shadow-sm",
         active
-          ? "border-orange-500/50 bg-orange-500/10 text-orange-500 dark:text-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.1)]"
-          : "border-border/80 bg-background/50 text-muted-foreground hover:border-orange-400/50 hover:bg-muted hover:text-foreground dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-white/20 dark:hover:text-white"
+          ? "border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400 shadow-orange-500/10"
+          : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-orange-400/50 hover:bg-zinc-100 hover:text-orange-600 dark:border-white/10 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-white"
       )}
     >
       {label}

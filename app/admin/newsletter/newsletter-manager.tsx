@@ -73,15 +73,75 @@ export function NewsletterManager({
           <p className="mt-2 text-base font-semibold text-white">
             {initialSubscribers[0]
               ? new Date(initialSubscribers[0].subscribedAt).toLocaleString("en-KE", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })
               : "No subscribers yet"}
           </p>
         </div>
+      </div>
+
+      <div className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+        <h2 className="flex items-center gap-3 text-xl font-black text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-500/20">
+            <Mail className="h-5 w-5" />
+          </span>
+          Send Newsletter
+        </h2>
+        <p className="mt-2 text-sm text-zinc-400">
+          This will send an email to all {initialSubscribers.length} active subscribers.
+        </p>
+
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const subject = formData.get("subject") as string;
+            const content = formData.get("content") as string;
+
+            if (!subject || !content) return;
+
+            try {
+              const res = await (await import("./actions")).sendNewsletterAction({ subject, content });
+              if (res.success) {
+                alert(`Newsletter sent successfully to ${res.count} subscribers!`);
+                (e.target as HTMLFormElement).reset();
+              }
+            } catch (err) {
+              alert("Failed to send newsletter. Check console/Resend API key.");
+            }
+          }}
+          className="mt-8 space-y-4"
+        >
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Subject</label>
+            <input
+              name="subject"
+              required
+              placeholder="e.g. New Drops: Premium Collection is Live!"
+              className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-4 text-white outline-none focus:border-orange-500/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Message (HTML supported)</label>
+            <textarea
+              name="content"
+              required
+              rows={8}
+              placeholder="Write your fire update here..."
+              className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-4 text-white outline-none focus:border-orange-500/50"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full rounded-2xl bg-orange-500 py-4 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-orange-600 active:scale-[0.98]"
+          >
+            Blast Newsletter
+          </button>
+        </form>
       </div>
 
       <div className="overflow-hidden rounded-[1.75rem] border border-zinc-800 bg-zinc-900">

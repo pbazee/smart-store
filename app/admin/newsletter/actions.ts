@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
-import { getNewsletterSubscribers, subscribeToNewsletter } from "@/lib/newsletter-service";
+import { getNewsletterSubscribers, subscribeToNewsletter, sendNewsletter } from "@/lib/newsletter-service";
 
 const newsletterSubscriptionSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address."),
+});
+
+const newsletterSendSchema = z.object({
+  subject: z.string().min(5),
+  content: z.string().min(20),
 });
 
 async function ensureAdmin() {
@@ -32,4 +37,10 @@ export async function subscribeNewsletterAction(input: { email: string }) {
 export async function fetchAdminNewsletterSubscribers() {
   await ensureAdmin();
   return getNewsletterSubscribers();
+}
+
+export async function sendNewsletterAction(input: { subject: string; content: string }) {
+  await ensureAdmin();
+  const data = newsletterSendSchema.parse(input);
+  return sendNewsletter(data.subject, data.content);
 }

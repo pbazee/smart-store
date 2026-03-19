@@ -73,6 +73,7 @@ export type CustomerData = {
   lastName: string;
   email: string;
   phone: string;
+  wantsNewsletter?: boolean;
 };
 
 export type ShippingData = {

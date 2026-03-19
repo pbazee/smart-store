@@ -37,6 +37,7 @@ const customerSchema = z.object({
   lastName: z.string().min(2, "Last name is required"),
   email: z.string().email("Valid email required"),
   phone: z.string().min(10, "Valid Kenyan phone number required"),
+  wantsNewsletter: z.boolean().default(true),
 });
 
 const shippingSchema = z.object({
@@ -347,6 +348,19 @@ export default function CheckoutPage() {
   const handleNext = (stepData?: CustomerData | ShippingData | PaymentData) => {
     if (stepData) {
       setCheckoutData((previous) => ({ ...previous, [steps[currentStep].id]: stepData }));
+
+      // Handle newsletter subscription if on customer step
+      if (currentStep === 0 && (stepData as CustomerData).wantsNewsletter) {
+        const email = (stepData as CustomerData).email;
+        void (async () => {
+          try {
+            const { subscribeNewsletterAction } = await import("@/app/admin/newsletter/actions");
+            await subscribeNewsletterAction({ email });
+          } catch (e) {
+            console.error("Newsletter subscription failed during checkout:", e);
+          }
+        })();
+      }
     }
 
     if (currentStep < steps.length - 1) {
@@ -773,6 +787,20 @@ function CustomerStep({ data, onNext }: { data?: CustomerData; onNext: (data: Cu
           <input {...register("phone")} className="w-full px-3 py-2.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="+254 7XX XXX XXX" />
           {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>}
         </div>
+
+        <div className="flex items-center space-x-3 py-2">
+          <input
+            id="checkout-newsletter"
+            type="checkbox"
+            defaultChecked={true}
+            className="h-5 w-5 rounded border-border bg-background text-brand-500 focus:ring-brand-500/20"
+            {...register("wantsNewsletter")}
+          />
+          <label htmlFor="checkout-newsletter" className="text-sm font-medium text-muted-foreground cursor-pointer select-none">
+            Get notified on more offers, discounts & new arrivals
+          </label>
+        </div>
+
         <button type="submit" className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">Continue to Shipping</button>
       </form>
     </div>

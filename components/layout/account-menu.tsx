@@ -71,7 +71,10 @@ function SignedInAccountMenu({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-72 border border-border/80 bg-background/95 shadow-2xl backdrop-blur-xl dark:border-border/60 dark:bg-[#1f1f1f]/98">
+      <DropdownMenuContent
+        align="end"
+        className="w-72 border border-border/80 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:border-white/10 dark:bg-zinc-900 px-1 py-1"
+      >
         <DropdownMenuLabel className="text-muted-foreground dark:text-gray-400">
           <div className="space-y-1 normal-case tracking-normal">
             <p className="text-sm font-semibold text-foreground dark:text-white">{displayName}</p>

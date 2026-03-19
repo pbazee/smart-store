@@ -89,6 +89,8 @@ export async function Footer({
                 { label: "Returns", href: "/returns" },
                 { label: "Track Order", href: "/track-order" },
                 { label: "Wishlist", href: "/wishlist" },
+                { label: "Reviews", href: "/reviews" },
+                { label: "Blog", href: "/blog" },
                 { label: "Contact Us", href: "/contact" },
                 { label: "FAQ", href: "/faq" },
               ].map((item) => (

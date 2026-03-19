@@ -29,6 +29,7 @@ const navItems = [
   { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
   { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
   { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
+  { href: "/admin/users", label: "Users", icon: User2 },
   { href: "/admin/landing-overrides", label: "Landing Page Overrides", icon: MapPin },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

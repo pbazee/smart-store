@@ -47,6 +47,7 @@ export function HomepageCategoryGrid({
                             fill
                             className="object-cover transition-all duration-700 group-hover:scale-105 group-hover:brightness-110"
                             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            quality={100}
                         />
                         {/* Overlay Gradient */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity group-hover:opacity-90" />
@@ -77,6 +78,21 @@ export function HomepageCategoryGrid({
                     </motion.article>
                 ))}
             </div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="mt-16 text-center"
+            >
+                <Link
+                    href="/shop"
+                    className="inline-flex items-center gap-3 rounded-full border border-border bg-background px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-foreground transition-all hover:border-orange-500/50 hover:bg-orange-500/5 hover:text-orange-600"
+                >
+                    View More Categories
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </motion.div>
         </section>
     );
 }

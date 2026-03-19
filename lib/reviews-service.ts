@@ -10,13 +10,77 @@ export async function getProductReviews(productId: string) {
 
   try {
     return await prisma.review.findMany({
-      where: { productId },
+      where: { productId, isApproved: true },
       orderBy: { createdAt: "desc" },
     });
   } catch (error) {
     console.error("Falling back to mock reviews:", error);
     return getDemoReviews(productId);
   }
+}
+
+export async function getLatestApprovedReviews(limit: number = 6) {
+  if (shouldUseMockData()) {
+    return [];
+  }
+
+  try {
+    return await prisma.review.findMany({
+      where: { isApproved: true },
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        product: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch latest reviews:", error);
+    return [];
+  }
+}
+
+export async function getAllReviewsAdmin() {
+  if (shouldUseMockData()) {
+    return [];
+  }
+
+  return await prisma.review.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      product: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  });
+}
+
+export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: boolean, rating: number, title: string, content: string }>) {
+  if (shouldUseMockData()) {
+    return null;
+  }
+
+  return await prisma.review.update({
+    where: { id },
+    data,
+  });
+}
+
+export async function deleteReviewAdmin(id: string) {
+  if (shouldUseMockData()) {
+    return null;
+  }
+
+  return await prisma.review.delete({
+    where: { id },
+  });
 }
 
 export async function createProductReview(input: {

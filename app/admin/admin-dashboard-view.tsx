@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { AlertTriangle, MessageCircle, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -70,6 +70,15 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
       color: "text-amber-400",
       bg: "bg-amber-500/10 border-amber-500/20",
     },
+    {
+      title: "Reviews",
+      value: "Manage",
+      sub: "Customer feedback",
+      icon: MessageCircle,
+      color: "text-rose-400",
+      bg: "bg-rose-500/10 border-rose-500/20",
+      href: "/admin/reviews",
+    },
   ];
 
   const latestOrders = (stats.recentOrders || []).slice(0, 5);
@@ -90,11 +99,16 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.08 }}
-            className={`p-6 rounded-2xl border shadow-lg shadow-black/20 ${card.bg}`}
+            className={`cursor-pointer group p-6 rounded-2xl border shadow-lg shadow-black/20 ${card.bg} transition-all hover:scale-[1.02] active:scale-[0.98]`}
+            onClick={() => {
+              if ("href" in card) {
+                window.location.href = (card as any).href;
+              }
+            }}
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-zinc-400">{card.title}</p>
-              <card.icon className={`w-5 h-5 ${card.color}`} />
+              <card.icon className={`w-5 h-5 ${card.color} group-hover:scale-110 transition-transform`} />
             </div>
             <p className="text-2xl font-black mb-1">{card.value}</p>
             <p className="text-xs text-zinc-500">{card.sub}</p>

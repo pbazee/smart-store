@@ -5,6 +5,7 @@ import { HomeProductSections } from "@/components/shop/home-product-sections";
 import { PromoCards } from "@/components/shop/promo-cards";
 import { TestimonialsSection } from "@/components/shop/testimonials-section";
 import { TrustBar } from "@/components/shop/trust-bar";
+import { LatestReviews } from "@/components/shop/latest-reviews";
 import { getHomepagePageData } from "@/lib/homepage-data";
 
 export default async function HomePage() {
@@ -19,6 +20,7 @@ export default async function HomePage() {
       <HomeProductSections data={homepageData.productSections} />
       <TestimonialsSection />
       <BlogTeaserSection posts={homepageData.blogPosts} />
+      <LatestReviews reviews={homepageData.latestReviews} />
     </div>
   );
 }

@@ -63,7 +63,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                   fill
                   priority={index === 0}
                   sizes="100vw"
-                  quality={90}
+                  quality={100}
                   placeholder="blur"
                   blurDataURL={heroBlurDataUrl}
                   className="object-cover object-center"
@@ -180,11 +180,10 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                 type="button"
                 onClick={() => emblaApi?.scrollTo(index)}
                 aria-label={`Go to slide ${index + 1}`}
-                className={`h-2.5 rounded-full transition-all ${
-                  selectedIndex === index
+                className={`h-2.5 rounded-full transition-all ${selectedIndex === index
                     ? "w-10 bg-orange-500"
                     : "w-2.5 bg-white/45 hover:bg-white/70"
-                }`}
+                  }`}
               />
             ))}
           </div>

@@ -1,6 +1,9 @@
+import { Resend } from "resend";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { NewsletterSubscriber } from "@/types";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 let demoNewsletterSubscribersState: NewsletterSubscriber[] = [];
 
@@ -85,4 +88,30 @@ export async function subscribeToNewsletter(email: string) {
   });
 
   return subscriber as NewsletterSubscriber;
+}
+
+export async function sendNewsletter(subject: string, content: string) {
+  const subscribers = await getNewsletterSubscribers();
+  const emails = subscribers.map((s) => s.email);
+
+  if (emails.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const results = await Promise.all(
+    emails.map((email) =>
+      resend.emails.send({
+        from: "Smartest Store KE <newsletter@smart-store.ke>",
+        to: email,
+        subject: subject,
+        html: content,
+      })
+    )
+  );
+
+  return {
+    success: true,
+    count: emails.length,
+    results
+  };
 }

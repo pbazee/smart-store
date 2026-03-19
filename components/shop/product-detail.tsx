@@ -167,7 +167,7 @@ export function ProductDetail({
               fill
               priority
               placeholder="blur"
-              quality={90}
+              quality={100}
               blurDataURL={blurDataUrl}
               className={cn(
                 "object-cover transition-transform duration-200",
@@ -216,7 +216,7 @@ export function ProductDetail({
                   alt={`${product.name} view ${index + 1}`}
                   fill
                   placeholder="blur"
-                  quality={85}
+                  quality={100}
                   blurDataURL={blurDataUrl}
                   className="object-cover"
                   sizes="120px"
