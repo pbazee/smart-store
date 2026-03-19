@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createMiddlewareSupabaseClient } from "@/lib/supabase";
+import { createMiddlewareSupabaseClient } from "@/lib/supabase-server";
 import { getAuthRedirectPath } from "@/lib/auth-routing";
 import { LOCAL_AUTH_COOKIE, verifyLocalAuthToken } from "@/lib/local-auth";
 import { shouldUseMockData } from "@/lib/live-data-mode";

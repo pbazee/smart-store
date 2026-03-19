@@ -4,7 +4,7 @@ import confetti from "canvas-confetti";
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle2, LoaderCircle, Receipt, ShoppingBag } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, Receipt, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
@@ -209,7 +209,7 @@ function CheckoutCompleteContent() {
       <div className="max-w-3xl mx-auto px-4 py-16">
         <div className="rounded-[2rem] border border-emerald-200 dark:border-emerald-500/40 bg-gradient-to-br from-emerald-50 via-white to-amber-50 dark:from-emerald-950 dark:via-zinc-950 dark:to-zinc-900 p-8 sm:p-10 shadow-sm">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
-            <CheckCircle2 className="h-10 w-10" />
+            <CheckCircle className="h-10 w-10" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700">Payment confirmed</p>
@@ -314,7 +314,7 @@ function CheckoutCompleteContent() {
   return (
     <div className="max-w-xl mx-auto px-4 py-20 text-center">
       <div className="w-16 h-16 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center mx-auto mb-6">
-        <LoaderCircle className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
       <h1 className="text-2xl font-black mb-3">Confirming payment</h1>
       <p className="text-muted-foreground">
@@ -335,7 +335,7 @@ export default function CheckoutCompletePage() {
       fallback={
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <div className="w-16 h-16 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center mx-auto mb-6">
-            <LoaderCircle className="w-8 h-8 animate-spin" />
+            <Loader2 className="w-8 h-8 animate-spin" />
           </div>
           <h1 className="text-2xl font-black mb-3">Confirming payment</h1>
           <p className="text-muted-foreground">

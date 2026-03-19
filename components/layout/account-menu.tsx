@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   Heart,
   LayoutDashboard,
   Loader2,
@@ -72,49 +71,50 @@ function SignedInAccountMenu({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-72 border border-border/80 bg-background/95 shadow-2xl backdrop-blur-xl dark:border-border/60 dark:bg-[#1f1f1f]/98">
+        <DropdownMenuLabel className="text-muted-foreground dark:text-gray-400">
           <div className="space-y-1 normal-case tracking-normal">
-            <p className="text-sm font-semibold text-foreground">{displayName}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm font-semibold text-foreground dark:text-white">{displayName}</p>
+            <p className="text-xs text-muted-foreground dark:text-gray-400">
               {sessionUser.isDemo ? "Demo session" : sessionUser.email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
+        <DropdownMenuSeparator className="bg-border/60 dark:bg-gray-700" />
+        <DropdownMenuItem asChild className="text-foreground hover:bg-orange-500/10 hover:text-orange-600 dark:text-gray-200 dark:hover:bg-orange-500/20 dark:hover:text-orange-400">
           <Link href="/account">
             <User2 className="h-4 w-4" />
             My Account
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
+        <DropdownMenuItem asChild className="text-foreground hover:bg-orange-500/10 hover:text-orange-600 dark:text-gray-200 dark:hover:bg-orange-500/20 dark:hover:text-orange-400">
           <Link href="/orders">
             <Package2 className="h-4 w-4" />
             Orders
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
+        <DropdownMenuItem asChild className="text-foreground hover:bg-orange-500/10 hover:text-orange-600 dark:text-gray-200 dark:hover:bg-orange-500/20 dark:hover:text-orange-400">
           <Link href="/wishlist">
             <Heart className="h-4 w-4" />
             Wishlist
           </Link>
         </DropdownMenuItem>
         {sessionUser.role === "admin" && (
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild className="text-foreground hover:bg-orange-500/10 hover:text-orange-600 dark:text-gray-200 dark:hover:bg-orange-500/20 dark:hover:text-orange-400">
             <Link href="/admin">
               <LayoutDashboard className="h-4 w-4" />
               Admin Dashboard
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-border/60 dark:bg-gray-700" />
         <DropdownMenuItem
           disabled={isSigningOut}
           onSelect={(event) => {
             event.preventDefault();
             onSignOut();
           }}
+          className="text-foreground hover:bg-red-500/10 hover:text-red-600 dark:text-gray-200 dark:hover:bg-red-500/20 dark:hover:text-red-400"
         >
           {isSigningOut ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -147,11 +147,9 @@ function SignedOutAccountButton({ isLoading = false }: { isLoading?: boolean }) 
   return (
     <Link
       href="/sign-in"
-      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.02] hover:bg-orange-600 active:scale-[0.98]"
+      className="inline-flex h-10 items-center justify-center rounded-full bg-orange-500 px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.02] hover:bg-orange-600 active:scale-[0.98]"
     >
-      <span className="hidden sm:inline">Sign In / Join</span>
-      <span className="sm:hidden">Sign In</span>
-      <ArrowRight className="h-4 w-4" />
+      Login
     </Link>
   );
 }

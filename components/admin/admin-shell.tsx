@@ -16,7 +16,7 @@ import {
   NotebookText,
   Package,
   Settings,
-  Share2,
+  Share,
   ShoppingCart,
   Sparkles,
   TicketPercent,
@@ -58,7 +58,7 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
   { href: "/admin/shipping-rules", label: "Shipping Rules", icon: MapPin },
   { href: "/admin/popups", label: "Popups", icon: Sparkles },
   { href: "/admin/newsletter", label: "Subscribers", icon: Users, count: subscriberCount },
-  { href: "/admin/social-links", label: "Social Links", icon: Share2 },
+  { href: "/admin/social-links", label: "Social Links", icon: Share },
   { href: "/admin/whatsapp-settings", label: "WhatsApp Settings", icon: MessageCircleMore },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   ];

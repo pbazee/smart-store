@@ -13,7 +13,7 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseProvider } from "@/components/supabase-provider";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getAppUrl } from "@/lib/app-url";
 import { getHomepageShellData } from "@/lib/homepage-data";
 import { cn } from "@/lib/utils";

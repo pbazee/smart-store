@@ -12,7 +12,7 @@ import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getAppUrl } from "@/lib/app-url";
 
 const signUpSchema = z.object({

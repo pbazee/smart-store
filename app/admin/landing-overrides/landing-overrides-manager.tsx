@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Reorder } from "framer-motion";
 import {
   Calendar,
-  GripVertical,
-  Pin,
+  Grip,
+  MapPin,
   Plus,
   RefreshCw,
   Trash2,
@@ -214,7 +214,7 @@ export function LandingOverridesManager({
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm uppercase tracking-[0.18em] text-amber-400">
-            <Pin className="h-4 w-4" />
+            <MapPin className="h-4 w-4" />
             Landing page overrides
           </div>
           <h1 className="mt-1 text-3xl font-black text-white">Pin products per section</h1>
@@ -264,7 +264,7 @@ export function LandingOverridesManager({
             <div>
               <p className="text-base font-semibold">No overrides for this section.</p>
               <p className="text-sm text-zinc-500">
-                Use “Add Override” to pin a product to the top of this section.
+                Use "Add Override" to map a product to the top of this section.
               </p>
             </div>
             <button
@@ -288,7 +288,7 @@ export function LandingOverridesManager({
                 value={override}
                 className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3"
               >
-                <GripVertical className="h-5 w-5 text-zinc-500" />
+                <Grip className="h-5 w-5 text-zinc-500" />
                 {getProductThumb(override.product)}
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-white">{override.product.name}</p>

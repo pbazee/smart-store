@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { SessionUser } from "@/types";
 import { getLocalAuthSession } from "@/lib/local-auth";
 import { prisma } from "@/lib/prisma";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
   DEMO_AUTH_COOKIE,
   normalizeUserRole,

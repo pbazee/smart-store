@@ -2,10 +2,9 @@
 
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import {
-  ArrowUpDown,
   Eye,
   EyeOff,
-  GripVertical,
+  Grip,
   ImagePlus,
   Loader2,
   MapPin,
@@ -351,11 +350,10 @@ export function HeroSlidesManager({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
-                          <GripVertical className="h-3.5 w-3.5" />
+                          <Grip className="h-3.5 w-3.5" />
                           Drag to reorder
                         </span>
                         <span className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
-                          <ArrowUpDown className="h-3.5 w-3.5" />
                           Position {slide.order + 1}
                         </span>
                         <span

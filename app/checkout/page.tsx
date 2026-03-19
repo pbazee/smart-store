@@ -12,8 +12,7 @@ import {
   CheckCircle,
   ChevronRight,
   CreditCard,
-  Loader,
-  Lock,
+  Loader2,
   ShieldCheck,
   Smartphone,
   TicketPercent,
@@ -623,7 +622,7 @@ export default function CheckoutPage() {
             </div>
           </div>
           <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${isPaystackReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-            {isPaystackReady ? <CheckCircle className="h-4 w-4" /> : <Loader className="h-4 w-4 animate-spin" />}
+            {isPaystackReady ? <CheckCircle className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
             {isPaystackReady ? "Paystack loaded" : "Loading Paystack"}
           </div>
         </div>
@@ -694,7 +693,7 @@ export default function CheckoutPage() {
                   disabled={isCouponPending}
                   className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
                 >
-                  {isCouponPending ? <Loader className="h-4 w-4 animate-spin" /> : "Apply"}
+                  {isCouponPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
                 </button>
               </div>
               {appliedCoupon && (
@@ -1026,7 +1025,7 @@ function ReviewStep({
 
       <div className={`mt-6 rounded-2xl border p-4 text-sm ${paystackReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
         <p className="font-semibold flex items-center gap-2">
-          {paystackReady ? <CheckCircle className="h-4 w-4" /> : <Loader className="h-4 w-4 animate-spin" />}
+          {paystackReady ? <CheckCircle className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
           {paystackReady ? "Paystack popup ready" : "Preparing Paystack"}
         </p>
         <p className="mt-1">{paystackReady ? "Your final click opens Paystack immediately and keeps M-Pesa available by default." : paystackError || "Paystack is still loading. Wait a moment before placing the order."}</p>
@@ -1037,12 +1036,12 @@ function ReviewStep({
       <button onClick={onNext} disabled={isProcessing || !paystackReady || isShippingQuoting} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 mt-6">
         {isProcessing ? (
           <>
-            <Loader className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             Opening Paystack...
           </>
         ) : (
           <>
-            <Lock className="w-4 h-4" />
+            <ShieldCheck className="w-4 h-4" />
             Pay with Paystack | {formatKES(finalTotal)}
           </>
         )}

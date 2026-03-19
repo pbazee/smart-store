@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createSupabaseClientClient } from "@/lib/supabase";
+import { createSupabaseClientClient } from "@/lib/supabase-client";
 import type { SessionUser } from "@/types";
 import { useDemoAuthStore } from "@/lib/demo-auth";
 import type { User } from "@supabase/supabase-js";

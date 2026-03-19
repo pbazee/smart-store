@@ -288,7 +288,7 @@ export interface SessionUser {
   imageUrl?: string | null;
   role: UserRole;
   isDemo?: boolean;
-  authProvider?: "clerk" | "demo" | "local";
+  authProvider?: "supabase" | "demo" | "local";
 }
 
 export interface ParsedSearchIntent {

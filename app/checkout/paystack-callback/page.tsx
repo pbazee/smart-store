@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const PAYSTACK_COMPLETE_MESSAGE = "paystack:complete";
 
@@ -36,7 +36,7 @@ function PaystackCallbackContent() {
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 text-center">
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/10 text-brand-500">
-        <LoaderCircle className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
       <h1 className="text-2xl font-black">Finalizing Paystack checkout</h1>
       <p className="mt-3 text-muted-foreground">
@@ -52,7 +52,7 @@ export default function PaystackCallbackPage() {
       fallback={
         <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 text-center">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/10 text-brand-500">
-            <LoaderCircle className="h-8 w-8 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
           <h1 className="text-2xl font-black">Finalizing Paystack checkout</h1>
           <p className="mt-3 text-muted-foreground">
