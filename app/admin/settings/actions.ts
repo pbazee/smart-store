@@ -12,6 +12,7 @@ const storeSettingsSchema = z.object({
   supportEmail: z.string().trim().email("Valid support email required"),
   supportPhone: z.string().trim().min(7, "Support phone is required"),
   adminNotificationEmail: z.string().trim().email("Admin notification email required"),
+  contactPhone: z.string().trim().optional(),
 });
 
 export type AdminStoreSettingsInput = z.infer<typeof storeSettingsSchema>;
@@ -44,6 +45,7 @@ export async function updateAdminStoreSettingsAction(input: AdminStoreSettingsIn
     supportEmail: data.supportEmail,
     supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
     adminNotificationEmail: data.adminNotificationEmail,
+    contactPhone: data.contactPhone,
   });
 
   revalidateStorefront();

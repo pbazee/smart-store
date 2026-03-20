@@ -128,6 +128,17 @@ export interface StoreSettings {
   supportEmail?: string | null;
   supportPhone?: string | null;
   adminNotificationEmail?: string | null;
+  contactPhone?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  order: number;
+  isActive: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

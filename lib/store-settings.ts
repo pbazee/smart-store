@@ -7,7 +7,7 @@ let demoStoreSettings: StoreSettings = { ...DEFAULT_STORE_SETTINGS };
 
 type StoreSettingsInput = Pick<
   StoreSettings,
-  "supportEmail" | "supportPhone" | "adminNotificationEmail"
+  "supportEmail" | "supportPhone" | "adminNotificationEmail" | "contactPhone"
 >;
 
 export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) {
@@ -72,6 +72,7 @@ export async function upsertStoreSettings(input: StoreSettingsInput) {
     supportEmail: (input.supportEmail ?? "").trim(),
     supportPhone: (input.supportPhone ?? "").trim(),
     adminNotificationEmail: (input.adminNotificationEmail ?? "").trim(),
+    contactPhone: (input.contactPhone ?? "").trim(),
   };
 
   const settings = await prisma.storeSettings.upsert({

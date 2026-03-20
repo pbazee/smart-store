@@ -124,8 +124,21 @@ model StoreSettings {
   supportEmail           String?
   supportPhone           String?
   adminNotificationEmail String?
+  contactPhone           String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+}
+
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, order])
 }
 
 model HomepageCategory {

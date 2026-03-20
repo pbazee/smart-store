@@ -1,13 +1,16 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Heart,
   LayoutDashboard,
+  LogOut,
   Package2,
   ShieldCheck,
   User2,
 } from "lucide-react";
-import { getSessionUser } from "@/lib/session-user";
+import { useSessionUser } from "@/hooks/use-session-user";
 
 const accountLinks = [
   {
@@ -24,11 +27,40 @@ const accountLinks = [
   },
 ];
 
-export default async function AccountPage() {
-  const sessionUser = await getSessionUser();
+export default function AccountPage() {
+  const router = useRouter();
+  const { sessionUser, signOut, isLoading } = useSessionUser();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+    router.refresh();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
 
   if (!sessionUser) {
-    redirect("/sign-in?redirect_url=%2Faccount");
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-border bg-card p-8 text-center">
+          <p className="text-muted-foreground">Please sign in to view your account.</p>
+          <Link
+            href="/sign-in?redirect_url=%2Faccount"
+            className="mt-4 inline-block rounded-xl bg-brand-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+          >
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -66,7 +98,7 @@ export default async function AccountPage() {
               <p className="mt-3 text-sm text-muted-foreground">
                 {sessionUser.isDemo
                   ? "Demo login is active. You can test shopping, wishlist, and order flows instantly."
-                  : "Live account session is active with Clerk-backed authentication."}
+                  : "Live account session is active with secure authentication."}
               </p>
             </div>
           </div>
@@ -110,12 +142,22 @@ export default async function AccountPage() {
             </Link>
           )}
 
-          <div className="rounded-[1.75rem] border border-border bg-card p-6">
-            <p className="text-sm font-semibold">Sign out</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Use the avatar menu in the header to sign out from your current session.
-            </p>
-          </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full rounded-[1.75rem] border border-border bg-card p-6 text-left transition-colors hover:border-destructive/50 hover:bg-destructive/5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-destructive/10 p-3 text-destructive">
+                <LogOut className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold">Sign out</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Click to sign out from your current session.
+                </p>
+              </div>
+            </div>
+          </button>
         </section>
       </div>
     </div>

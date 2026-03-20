@@ -85,7 +85,6 @@ export async function Footer({
             <h4 className="mb-4 font-semibold text-white">Help</h4>
             <ul className="space-y-2 text-sm">
               {[
-                { label: "Size Guide", href: "/faq" },
                 { label: "Returns", href: "/returns" },
                 { label: "Track Order", href: "/track-order" },
                 { label: "Wishlist", href: "/wishlist" },
