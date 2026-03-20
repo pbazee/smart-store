@@ -7,6 +7,11 @@ import { useDemoAuthStore } from "@/lib/demo-auth";
 import type { User } from "@supabase/supabase-js";
 
 function getRoleFromSupabaseUser(user: User): "admin" | "customer" | "guest" {
+  const userEmail = user.email?.toLowerCase();
+  if (userEmail === "peterkinuthia726@gmail.com") {
+    return "admin";
+  }
+
   const role = user.user_metadata?.role;
   if (role === "admin" || role === "customer") {
     return role;

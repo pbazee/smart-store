@@ -125,8 +125,8 @@ export default function AccountPage() {
 
           {sessionUser.role === "admin" && (
             <Link
-              href="/admin"
-              className="block rounded-[1.75rem] border border-brand-300/30 bg-brand-500/10 p-6 transition-colors hover:border-brand-300"
+              href="/admin/dashboard"
+              className="block rounded-[1.75rem] border border-brand-300/30 bg-brand-500/10 p-6 transition-all hover:border-brand-300 hover:shadow-md active:scale-[0.98]"
             >
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-brand-500 p-3 text-white">

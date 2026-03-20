@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: review }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid review payload" }, { status: 400 });
+      const message = error.errors[0]?.message || "Invalid review payload";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     return NextResponse.json({ error: "Failed to save review" }, { status: 500 });

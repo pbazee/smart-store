@@ -138,7 +138,12 @@ export function SiteMenuDrawer({
                     <Link
                       href="/account"
                       onClick={closeDrawer}
-                      className="flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-orange-200 hover:text-foreground"
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all shadow-sm",
+                        pathname === "/account"
+                          ? "border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-orange-400/50 hover:bg-zinc-100 hover:text-orange-600 dark:border-white/10 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-white"
+                      )}
                     >
                       <User2 className="h-4 w-4" />
                       My Account
@@ -146,7 +151,12 @@ export function SiteMenuDrawer({
                     <Link
                       href="/orders"
                       onClick={closeDrawer}
-                      className="flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-orange-200 hover:text-foreground"
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all shadow-sm",
+                        pathname === "/orders"
+                          ? "border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-orange-400/50 hover:bg-zinc-100 hover:text-orange-600 dark:border-white/10 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-white"
+                      )}
                     >
                       <Package2 className="h-4 w-4" />
                       My Orders
@@ -155,7 +165,12 @@ export function SiteMenuDrawer({
                       <Link
                         href="/admin"
                         onClick={closeDrawer}
-                        className="flex items-center gap-3 rounded-2xl border border-border/70 dark:border-white/10 px-4 py-3 text-sm font-semibold text-muted-foreground transition-all hover:border-orange-400/50 hover:bg-muted hover:text-foreground dark:hover:text-white"
+                        className={cn(
+                          "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all shadow-sm",
+                          pathname.startsWith("/admin")
+                            ? "border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-orange-400/50 hover:bg-zinc-100 hover:text-orange-600 dark:border-white/10 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-white"
+                        )}
                       >
                         <LayoutDashboard className="h-4 w-4" />
                         Admin Dashboard
