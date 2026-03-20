@@ -28,6 +28,8 @@ function revalidateStorefront() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
+  revalidatePath("/contact");
+  revalidatePath("/faq");
   revalidatePath("/admin");
   revalidatePath("/admin/settings");
 }

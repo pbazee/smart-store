@@ -30,12 +30,19 @@ export async function getFAQs(options: { onlyActive?: boolean } = {}) {
       : [...demoFAQs].sort((a, b) => a.order - b.order);
   }
 
-  const faqs = await prisma.fAQ.findMany({
-    where: options.onlyActive ? { isActive: true } : undefined,
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-  });
+  try {
+    const faqs = await prisma.fAQ.findMany({
+      where: options.onlyActive ? { isActive: true } : undefined,
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    });
 
-  return faqs as FAQ[];
+    return faqs as FAQ[];
+  } catch (error) {
+    console.error("Failed to fetch FAQs, falling back to demo settings:", error);
+    return options.onlyActive
+      ? demoFAQs.filter((f) => f.isActive).sort((a, b) => a.order - b.order)
+      : [...demoFAQs].sort((a, b) => a.order - b.order);
+  }
 }
 
 export async function createFAQ(data: { question: string; answer: string; order?: number }) {

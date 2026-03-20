@@ -9,7 +9,13 @@ import {
 import { useToast } from "@/lib/use-toast";
 import type { StoreSettings } from "@/types";
 
-export function StoreSettingsForm({ initialSettings }: { initialSettings: StoreSettings | null }) {
+export function StoreSettingsForm({
+  initialSettings,
+  showHeading = true,
+}: {
+  initialSettings: StoreSettings | null;
+  showHeading?: boolean;
+}) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<AdminStoreSettingsInput>({
@@ -43,15 +49,17 @@ export function StoreSettingsForm({ initialSettings }: { initialSettings: StoreS
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-400">
-          Trust & Support
-        </p>
-        <h1 className="mt-2 text-3xl font-black text-white">Store Settings</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Control customer-facing support details and where new order alerts get delivered.
-        </p>
-      </div>
+      {showHeading && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-400">
+            Trust & Support
+          </p>
+          <h1 className="mt-2 text-3xl font-black text-white">Store Settings</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            Control customer-facing support details and where new order alerts get delivered.
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}

@@ -105,6 +105,8 @@ export type SocialPlatform =
   | "linkedin"
   | "whatsapp";
 
+export type WhatsAppPosition = "left" | "right";
+
 export interface SocialLink {
   id: string;
   platform: SocialPlatform;
@@ -119,6 +121,7 @@ export interface WhatsAppSettings {
   phoneNumber: string;
   defaultMessage: string;
   isActive: boolean;
+  position: WhatsAppPosition;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

@@ -8,7 +8,7 @@ import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import {
   getWhatsAppSettings,
-  normalizeWhatsAppPhoneNumber,
+  serializeWhatsAppSettings,
   updateDemoWhatsAppSettings,
 } from "@/lib/whatsapp-service";
 import { DEFAULT_WHATSAPP_SETTINGS } from "@/lib/default-whatsapp-settings";
@@ -18,6 +18,7 @@ const whatsappSettingsSchema = z.object({
   phoneNumber: z.string().trim().min(7, "Phone number is required"),
   defaultMessage: z.string().trim().min(4, "Default message is required"),
   isActive: z.boolean().default(true),
+  position: z.enum(["left", "right"]).default("right"),
 });
 
 export type AdminWhatsAppSettingsInput = z.infer<typeof whatsappSettingsSchema>;
@@ -29,22 +30,15 @@ async function ensureAdmin() {
   }
 }
 
-function normalizeWhatsAppSettingsInput(input: AdminWhatsAppSettingsInput) {
-  const data = whatsappSettingsSchema.parse(input);
-
-  return {
-    phoneNumber: normalizeWhatsAppPhoneNumber(data.phoneNumber),
-    defaultMessage: data.defaultMessage.trim(),
-    isActive: data.isActive,
-  };
-}
-
 function revalidateWhatsAppPaths() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
+  revalidatePath("/contact");
+  revalidatePath("/faq");
   revalidatePath("/admin");
   revalidatePath("/admin/whatsapp-settings");
+  revalidatePath("/admin/settings");
 }
 
 export async function fetchAdminWhatsAppSettings() {
@@ -56,14 +50,16 @@ export async function updateAdminWhatsAppSettingsAction(
   input: AdminWhatsAppSettingsInput
 ) {
   await ensureAdmin();
-  const data = normalizeWhatsAppSettingsInput(input);
+  const validatedInput = whatsappSettingsSchema.parse(input);
+  const data = serializeWhatsAppSettings(validatedInput);
 
   if (shouldUseMockData()) {
     const settings = updateDemoWhatsAppSettings({
       id: DEFAULT_WHATSAPP_SETTINGS.id,
       phoneNumber: data.phoneNumber,
-      defaultMessage: data.defaultMessage,
+      defaultMessage: validatedInput.defaultMessage.trim(),
       isActive: data.isActive,
+      position: validatedInput.position,
     });
     revalidateWhatsAppPaths();
     return settings;
@@ -85,5 +81,9 @@ export async function updateAdminWhatsAppSettingsAction(
   });
 
   revalidateWhatsAppPaths();
-  return settings as WhatsAppSettings;
+  return {
+    ...settings,
+    defaultMessage: validatedInput.defaultMessage.trim(),
+    position: validatedInput.position,
+  } as WhatsAppSettings;
 }

@@ -49,17 +49,22 @@ export async function getAllReviewsAdmin() {
     return [];
   }
 
-  return await prisma.review.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      product: {
-        select: {
-          name: true,
-          slug: true,
+  try {
+    return await prisma.review.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        product: {
+          select: {
+            name: true,
+            slug: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to fetch admin reviews:", error);
+    return [];
+  }
 }
 
 export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: boolean, rating: number, title: string, content: string }>) {

@@ -31,6 +31,13 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       },
       include: {
         items: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
       },
     });
 

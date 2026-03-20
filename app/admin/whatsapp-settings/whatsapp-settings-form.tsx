@@ -11,8 +11,10 @@ import type { WhatsAppSettings } from "@/types";
 
 export function WhatsAppSettingsForm({
   initialSettings,
+  showHeading = true,
 }: {
   initialSettings: WhatsAppSettings | null;
+  showHeading?: boolean;
 }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -20,6 +22,7 @@ export function WhatsAppSettingsForm({
     phoneNumber: initialSettings?.phoneNumber || "",
     defaultMessage: initialSettings?.defaultMessage || "",
     isActive: initialSettings?.isActive ?? true,
+    position: initialSettings?.position ?? "right",
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -46,15 +49,17 @@ export function WhatsAppSettingsForm({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-400">
-          Direct support
-        </p>
-        <h1 className="mt-2 text-3xl font-black text-white">WhatsApp Settings</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Control the floating WhatsApp button, destination number, and pre-filled message.
-        </p>
-      </div>
+      {showHeading && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-400">
+            Direct support
+          </p>
+          <h1 className="mt-2 text-3xl font-black text-white">WhatsApp Settings</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            Control the floating WhatsApp button, destination number, and pre-filled message.
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}
@@ -86,6 +91,26 @@ export function WhatsAppSettingsForm({
                 }
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
+            </label>
+
+            <label className="space-y-2 text-sm">
+              <span className="font-medium text-zinc-300">Widget position</span>
+              <select
+                value={form.position}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    position: event.target.value as AdminWhatsAppSettingsInput["position"],
+                  }))
+                }
+                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+              >
+                <option value="right">Bottom right</option>
+                <option value="left">Bottom left</option>
+              </select>
+              <p className="text-xs text-zinc-500">
+                Choose which side of the storefront the floating WhatsApp shortcut should sit on.
+              </p>
             </label>
 
             <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
@@ -122,7 +147,12 @@ export function WhatsAppSettingsForm({
           <p className="mt-3 text-lg font-black text-white">
             {form.isActive ? "Widget enabled" : "Widget disabled"}
           </p>
-          <p className="mt-3 text-sm text-emerald-100/80">{form.phoneNumber || "No phone number set"}</p>
+          <p className="mt-3 text-sm text-emerald-100/80">
+            {form.phoneNumber || "No phone number set"}
+          </p>
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/70">
+            {form.position === "left" ? "Bottom left" : "Bottom right"}
+          </p>
           <p className="mt-4 rounded-[1.5rem] bg-black/20 p-4 text-sm text-emerald-50/90">
             {form.defaultMessage || "The saved default message will appear here."}
           </p>

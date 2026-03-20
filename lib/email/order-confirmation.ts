@@ -316,7 +316,7 @@ function renderAdminEmail(details: OrderEmailDetails, baseUrl: string) {
               <tr>
                 <td colspan="2" style="text-align:center;">
                   <a
-                    href="${baseUrl}/admin/orders/${details.order.id}"
+                    href="${baseUrl}/admin/orders/${details.order.orderNumber}"
                     style="background:#38bdf8;color:#0f172a;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none;display:inline-block;"
                   >
                     View in Admin

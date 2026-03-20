@@ -3,7 +3,6 @@ import { getDemoAnnouncementMessages } from "@/lib/announcement-service";
 import { getDemoBlogPosts } from "@/lib/blog-service";
 import { getProducts } from "@/lib/data-service";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
-import { DEFAULT_WHATSAPP_SETTINGS, createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
 import { getActiveHeroSlides, getDemoHeroSlides } from "@/lib/hero-slide-service";
 import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
 import { getLatestApprovedReviews } from "@/lib/reviews-service";
@@ -13,7 +12,8 @@ import { getDemoPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
 import { getCityInspiredProducts, getCustomersAlsoBought } from "@/lib/recommendations";
 import { getDemoSocialLinks } from "@/lib/social-link-service";
-import { getDemoWhatsAppSettings } from "@/lib/whatsapp-service";
+import { createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
+import { getDemoWhatsAppSettings, getWhatsAppSettings } from "@/lib/whatsapp-service";
 import { getStoreSettings } from "@/lib/store-settings";
 import type {
   AnnouncementMessage,
@@ -124,10 +124,7 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
         () => getDemoSocialLinks()
       ),
       safeQuery(
-        async () =>
-          ((await prisma.whatsAppSettings.findUnique({
-            where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
-          })) as WhatsAppSettings | null) ?? createDefaultWhatsAppSettings(),
+        async () => (await getWhatsAppSettings({ seedIfEmpty: true })) ?? createDefaultWhatsAppSettings(),
         () => createDefaultWhatsAppSettings()
       ),
       safeQuery(

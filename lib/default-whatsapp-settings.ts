@@ -8,6 +8,7 @@ export const DEFAULT_WHATSAPP_SETTINGS: Omit<
   phoneNumber: "+254700000000",
   defaultMessage: "Hi Smartest Store KE, I would love help with my order.",
   isActive: true,
+  position: "right",
 };
 
 export function createDefaultWhatsAppSettings(): WhatsAppSettings {

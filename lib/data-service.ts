@@ -6,6 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { getDemoProductBySlug, getDemoProducts } from "@/lib/demo-catalog";
 import type { Order, Product } from "@/types";
 
+export type AdminOrderDetail = Order & {
+  user?: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+  } | null;
+};
+
 export type ProductQueryFilters = {
   category?: string;
   subcategory?: string;
@@ -466,6 +474,49 @@ export async function getAllOrders(): Promise<Order[]> {
       return orders as unknown as Order[];
     },
     () => mockOrders
+  );
+}
+
+export async function getAdminOrderByIdentifier(
+  identifier: string
+): Promise<AdminOrderDetail | null> {
+  return withLiveData(
+    "getAdminOrderByIdentifier",
+    async () => {
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [{ id: identifier }, { orderNumber: identifier }],
+        },
+        include: {
+          items: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      return (order as unknown as AdminOrderDetail | null) ?? null;
+    },
+    () => {
+      const order = mockOrders.find(
+        (candidate) => candidate.id === identifier || candidate.orderNumber === identifier
+      );
+
+      return order
+        ? ({
+            ...order,
+            user: null,
+          } as AdminOrderDetail)
+        : null;
+    },
+    {
+      syncReservations: false,
+      cacheKey: `admin-order:${identifier}`,
+    }
   );
 }
 

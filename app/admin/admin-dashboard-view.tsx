@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { AlertTriangle, MessageCircle, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { AlertTriangle, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -38,7 +37,6 @@ type AdminDashboardStats = {
 };
 
 export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
-  const router = useRouter();
   const cards = [
     {
       title: "Total Revenue",
@@ -72,15 +70,6 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
       color: "text-amber-400",
       bg: "bg-amber-500/10 border-amber-500/20",
     },
-    {
-      title: "Reviews",
-      value: "Manage",
-      sub: "Customer feedback",
-      icon: MessageCircle,
-      color: "text-rose-400",
-      bg: "bg-rose-500/10 border-rose-500/20",
-      href: "/admin/reviews",
-    },
   ];
 
   const latestOrders = (stats.recentOrders || []).slice(0, 5);
@@ -101,12 +90,7 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.08 }}
-            className={`cursor-pointer group p-6 rounded-2xl border shadow-lg shadow-black/20 ${card.bg} transition-all hover:scale-[1.02] active:scale-[0.98]`}
-            onClick={() => {
-              if ("href" in card) {
-                router.push((card as any).href);
-              }
-            }}
+            className={`group rounded-2xl border p-6 shadow-lg shadow-black/20 transition-all ${card.bg}`}
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-zinc-400">{card.title}</p>
@@ -157,7 +141,7 @@ export function AdminDashboardView({ stats }: { stats: AdminDashboardStats }) {
                     <tr key={order.id} className="hover:bg-zinc-900/60">
                       <td className="py-3 pr-4">
                         <Link
-                          href={`/admin/orders/${order.id}`}
+                          href={`/admin/orders/${order.orderNumber}`}
                           className="font-semibold text-white hover:text-brand-400"
                         >
                           {order.orderNumber}

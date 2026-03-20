@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn, formatKES } from "@/lib/utils";
 import type { Order } from "@/types";
@@ -108,7 +109,12 @@ export function OrdersTable({ initialOrders }: { initialOrders: Order[] }) {
                   className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
                 >
                   <td className="px-4 py-4">
-                    <p className="font-bold text-sm text-brand-400">{order.orderNumber}</p>
+                    <Link
+                      href={`/admin/orders/${order.orderNumber}`}
+                      className="font-bold text-sm text-brand-400 hover:text-brand-300"
+                    >
+                      {order.orderNumber}
+                    </Link>
                     <p className="text-xs text-zinc-500">
                       {new Date(order.createdAt).toLocaleDateString("en-KE")}
                     </p>

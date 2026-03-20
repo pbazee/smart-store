@@ -225,7 +225,8 @@ export function UserDetailView({ user }: UserDetailViewProps) {
                                         <div className="flex items-center gap-6">
                                             <p className="font-black text-zinc-200">{formatKES(order.total)}</p>
                                             <Link
-                                                href={`/admin/orders/${order.id}`}
+                                                href={`/admin/orders/${order.orderNumber}`}
+                                                aria-label={`Open order ${order.orderNumber}`}
                                                 className="h-10 w-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 hover:text-brand-400 hover:border-brand-400/50 transition-all shadow-sm"
                                             >
                                                 <ExternalLink className="h-4 w-4" />
