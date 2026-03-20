@@ -37,6 +37,7 @@ test("multi-step checkout payload uses server-safe item identifiers", () => {
       shipping: {
         address: "123 Ngong Road",
         city: "Nairobi CBD",
+        county: "Nairobi",
         deliveryNotes: "Call on arrival",
       },
       payment: {
@@ -63,6 +64,7 @@ test("multi-step checkout payload uses server-safe item identifiers", () => {
     phone: "+254700000000",
     address: "123 Ngong Road",
     city: "Nairobi CBD",
+    county: "Nairobi",
     notes: "Call on arrival",
     paymentMethod: "mpesa",
     mpesaPhone: "+254700000000",

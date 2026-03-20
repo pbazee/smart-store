@@ -115,6 +115,7 @@ export function useSessionUser() {
 
   return {
     isLoaded: hasLoadedServerSession && !isLoading,
+    isLoading,
     hasLoadedServerSession,
     isSignedIn: !!sessionUser,
     sessionUser,

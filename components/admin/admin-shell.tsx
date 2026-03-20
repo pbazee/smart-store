@@ -13,7 +13,6 @@ import {
   Mail,
   Menu,
   MessageCircleMore,
-  MessageSquare,
   NotebookText,
   Package,
   Settings,
@@ -62,7 +61,7 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
     { href: "/admin/popups", label: "Popups", icon: Sparkles },
     { href: "/admin/newsletter", label: "Subscribers", icon: Users, count: subscriberCount },
     { href: "/admin/social-links", label: "Social Links", icon: Share },
-    { href: "/admin/reviews", label: "Reviews", icon: MessageSquare },
+    { href: "/admin/reviews", label: "Reviews", icon: MessageCircleMore },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 }
