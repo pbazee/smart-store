@@ -12,6 +12,7 @@ import {
 } from "@/lib/homepage-category-service";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { ensureHomepageCategoryStorage } from "@/lib/runtime-schema-repair";
 import {
   deleteHomepageCategoryImage,
   uploadHomepageCategoryImage,
@@ -69,6 +70,7 @@ const adminHomepageCategorySchema = z.object({
     .or(z.literal("")),
   imageUrl: imageUrlSchema,
   link: requiredLinkSchema,
+  parentCategoryId: z.string().trim().optional().nullable(),
   isActive: z.boolean().default(true),
   order: z.number().int().min(0).default(0),
 });
@@ -91,6 +93,7 @@ function normalizeHomepageCategoryInput(input: AdminHomepageCategoryInput) {
     subtitle: data.subtitle?.trim() || null,
     imageUrl: data.imageUrl.trim(),
     link: data.link.trim(),
+    parentCategoryId: data.parentCategoryId?.trim() || null,
     isActive: data.isActive,
     order: data.order,
   };
@@ -145,6 +148,7 @@ export async function createAdminHomepageCategoryAction(input: AdminHomepageCate
       subtitle: data.subtitle,
       imageUrl: data.imageUrl,
       link: data.link,
+      parentCategoryId: data.parentCategoryId,
       isActive: data.isActive,
       order: data.order,
     });
@@ -152,12 +156,15 @@ export async function createAdminHomepageCategoryAction(input: AdminHomepageCate
     return category;
   }
 
+  await ensureHomepageCategoryStorage();
+
   const category = await prisma.homepageCategory.create({
     data: {
       title: data.title,
       subtitle: data.subtitle,
       imageUrl: data.imageUrl,
       link: data.link,
+      parentCategoryId: data.parentCategoryId,
       isActive: data.isActive,
       order: data.order,
     },
@@ -179,12 +186,15 @@ export async function updateAdminHomepageCategoryAction(input: AdminHomepageCate
       subtitle: normalized.subtitle,
       imageUrl: normalized.imageUrl,
       link: normalized.link,
+      parentCategoryId: normalized.parentCategoryId,
       isActive: normalized.isActive,
       order: normalized.order,
     });
     revalidateHomepageCategoryPaths();
     return category;
   }
+
+  await ensureHomepageCategoryStorage();
 
   const existingCategory = await prisma.homepageCategory.findUnique({
     where: { id: data.id },
@@ -200,6 +210,7 @@ export async function updateAdminHomepageCategoryAction(input: AdminHomepageCate
       subtitle: normalized.subtitle,
       imageUrl: normalized.imageUrl,
       link: normalized.link,
+      parentCategoryId: normalized.parentCategoryId,
       isActive: normalized.isActive,
       order: normalized.order,
     },
@@ -222,6 +233,8 @@ export async function deleteAdminHomepageCategoryAction(categoryId: string) {
     revalidateHomepageCategoryPaths();
     return { deletedId: id };
   }
+
+  await ensureHomepageCategoryStorage();
 
   const existingCategory = await prisma.homepageCategory.findUnique({
     where: { id },

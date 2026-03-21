@@ -1,14 +1,23 @@
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { ensureStoreSettingsStorage } from "@/lib/runtime-schema-repair";
 import type { StoreSettings } from "@/types";
 
 let demoStoreSettings: StoreSettings = { ...DEFAULT_STORE_SETTINGS };
 
 type StoreSettingsInput = Pick<
   StoreSettings,
-  "supportEmail" | "supportPhone" | "adminNotificationEmail" | "contactPhone"
+  | "supportEmail"
+  | "supportPhone"
+  | "adminNotificationEmail"
+  | "contactPhone"
+  | "footerContactPhone"
 >;
+
+function normalizeOptionalText(value?: string | null) {
+  return (value ?? "").trim();
+}
 
 export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) {
   if (shouldUseMockData()) {
@@ -16,8 +25,10 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
   }
 
   try {
-    const settings = await prisma.storeSettings.findUnique({
-      where: { id: DEFAULT_STORE_SETTINGS.id },
+    await ensureStoreSettingsStorage();
+
+    const settings = await prisma.storeSettings.findFirst({
+      orderBy: { id: "asc" },
     });
 
     if (!settings && options.seedIfEmpty) {
@@ -27,6 +38,8 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
           supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
           supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
           adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
+          contactPhone: DEFAULT_STORE_SETTINGS.contactPhone,
+          footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
         },
       });
       console.log("[StoreSettings] Seeded successfully");
@@ -37,6 +50,7 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
       console.log("[StoreSettings] Loaded from database:", {
         email: settings.supportEmail,
         phone: settings.supportPhone,
+        footerPhone: settings.footerContactPhone,
       });
     } else {
       console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
@@ -68,21 +82,33 @@ export async function upsertStoreSettings(input: StoreSettingsInput) {
     return demoStoreSettings;
   }
 
+  await ensureStoreSettingsStorage();
+
   const data = {
-    supportEmail: (input.supportEmail ?? "").trim(),
-    supportPhone: (input.supportPhone ?? "").trim(),
-    adminNotificationEmail: (input.adminNotificationEmail ?? "").trim(),
-    contactPhone: (input.contactPhone ?? "").trim(),
+    supportEmail: normalizeOptionalText(input.supportEmail),
+    supportPhone: normalizeOptionalText(input.supportPhone),
+    adminNotificationEmail: normalizeOptionalText(input.adminNotificationEmail),
+    contactPhone:
+      normalizeOptionalText(input.contactPhone) || normalizeOptionalText(input.supportPhone),
+    footerContactPhone: normalizeOptionalText(input.footerContactPhone),
   };
 
-  const settings = await prisma.storeSettings.upsert({
-    where: { id: DEFAULT_STORE_SETTINGS.id },
-    update: data,
-    create: {
-      id: DEFAULT_STORE_SETTINGS.id,
-      ...data,
-    },
+  const existingSettings = await prisma.storeSettings.findFirst({
+    select: { id: true },
+    orderBy: { id: "asc" },
   });
+
+  const settings = existingSettings
+    ? await prisma.storeSettings.update({
+        where: { id: existingSettings.id },
+        data,
+      })
+    : await prisma.storeSettings.create({
+        data: {
+          id: DEFAULT_STORE_SETTINGS.id,
+          ...data,
+        },
+      });
 
   return settings as StoreSettings;
 }

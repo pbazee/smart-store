@@ -101,12 +101,17 @@ async function main() {
       { name: "Clothes", slug: "clothes", description: "Fashion and apparel" },
       { name: "Accessories", slug: "accessories", description: "Complete your look" },
     ];
+    const topLevelCategoriesBySlug = new Map<string, { id: string; slug: string }>();
 
     for (const category of categories) {
-      await prisma.category.upsert({
+      const seededCategory = await prisma.category.upsert({
         where: { slug: category.slug },
         update: category,
         create: category,
+      });
+      topLevelCategoriesBySlug.set(seededCategory.slug, {
+        id: seededCategory.id,
+        slug: seededCategory.slug,
       });
       console.log(`Seeded category: ${category.name}`);
     }
@@ -123,10 +128,28 @@ async function main() {
 
     console.log("Seeding homepage categories...");
     for (const category of DEFAULT_HOMEPAGE_CATEGORY_SEEDS) {
+      const categorySlug = category.link.split("/").filter(Boolean).at(-1)?.toLowerCase() ?? "";
+      const mappedParentSlug =
+        categorySlug === "shoes"
+          ? "shoes"
+          : ["dresses", "jeans", "jackets"].includes(categorySlug)
+            ? "clothes"
+            : null;
+
       await prisma.homepageCategory.upsert({
         where: { id: category.id },
-        update: category,
-        create: category,
+        update: {
+          ...category,
+          parentCategoryId: mappedParentSlug
+            ? topLevelCategoriesBySlug.get(mappedParentSlug)?.id ?? null
+            : null,
+        },
+        create: {
+          ...category,
+          parentCategoryId: mappedParentSlug
+            ? topLevelCategoriesBySlug.get(mappedParentSlug)?.id ?? null
+            : null,
+        },
       });
       console.log(`Seeded homepage category: ${category.title}`);
     }
@@ -246,12 +269,16 @@ async function main() {
         supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
         supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
         adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
+        contactPhone: DEFAULT_STORE_SETTINGS.contactPhone,
+        footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
       },
       create: {
         id: DEFAULT_STORE_SETTINGS.id,
         supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
         supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
         adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
+        contactPhone: DEFAULT_STORE_SETTINGS.contactPhone,
+        footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
       },
     });
     console.log("Seeded store settings");

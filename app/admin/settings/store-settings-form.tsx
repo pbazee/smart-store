@@ -22,7 +22,9 @@ export function StoreSettingsForm({
     supportEmail: initialSettings?.supportEmail || "",
     supportPhone: initialSettings?.supportPhone || "",
     adminNotificationEmail: initialSettings?.adminNotificationEmail || "",
-    contactPhone: initialSettings?.contactPhone || "",
+    contactPhone: initialSettings?.contactPhone || initialSettings?.supportPhone || "",
+    footerContactPhone:
+      initialSettings?.footerContactPhone || initialSettings?.contactPhone || "",
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -66,6 +68,8 @@ export function StoreSettingsForm({
         className="grid gap-6 lg:grid-cols-[minmax(0,1fr),340px]"
       >
         <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-900 p-6 space-y-4">
+          <input type="hidden" value={form.contactPhone} readOnly />
+
           <label className="space-y-2 text-sm">
             <span className="font-medium text-zinc-300 flex items-center gap-2">
               <Mail className="h-4 w-4 text-brand-400" />
@@ -92,13 +96,17 @@ export function StoreSettingsForm({
               required
               value={form.supportPhone}
               onChange={(event) =>
-                setForm((current) => ({ ...current, supportPhone: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  supportPhone: event.target.value,
+                  contactPhone: event.target.value,
+                }))
               }
               placeholder="+254700123456"
               className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
             />
             <p className="text-xs text-zinc-500">
-              Displayed in the storefront footer and used in email footers (tap-to-call friendly).
+              Used on support emails, the FAQ CTA, and any storefront support fallbacks.
             </p>
           </label>
 
@@ -131,15 +139,18 @@ export function StoreSettingsForm({
               Footer Contact Phone
             </span>
             <input
-              value={form.contactPhone}
+              value={form.footerContactPhone}
               onChange={(event) =>
-                setForm((current) => ({ ...current, contactPhone: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  footerContactPhone: event.target.value,
+                }))
               }
               placeholder="+254 700 123 456"
               className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
             />
             <p className="text-xs text-zinc-500">
-              Displayed in the footer "Contact Us" link. Falls back to support phone if empty.
+              Displayed in the homepage footer. Falls back to the main support phone if empty.
             </p>
           </label>
 
@@ -166,7 +177,10 @@ export function StoreSettingsForm({
           <div className="mt-3 rounded-[1.5rem] bg-black/20 p-4 text-sm text-emerald-50/90 space-y-2">
             <p>Email: {form.supportEmail || "support@smarteststore.ke"}</p>
             <p>Phone: {form.supportPhone || "+254 700 123 456"}</p>
-            <p>Contact: {form.contactPhone || form.supportPhone || "+254 700 123 456"}</p>
+            <p>
+              Contact:{" "}
+              {form.footerContactPhone || form.contactPhone || form.supportPhone || "+254 700 123 456"}
+            </p>
             <p>Admin alerts: {form.adminNotificationEmail || "orders@smarteststore.ke"}</p>
           </div>
           <p className="mt-4 text-xs text-emerald-200/80">

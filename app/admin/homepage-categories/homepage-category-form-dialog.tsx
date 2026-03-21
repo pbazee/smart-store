@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/lib/use-toast";
-import type { HomepageCategory } from "@/types";
+import type { Category, HomepageCategory } from "@/types";
 
 type HomepageCategoryFormState = {
   id?: string;
@@ -25,6 +25,7 @@ type HomepageCategoryFormState = {
   subtitle: string;
   imageUrl: string;
   link: string;
+  parentCategoryId: string;
   isActive: boolean;
   order: string;
 };
@@ -35,6 +36,7 @@ function createEmptyFormState(): HomepageCategoryFormState {
     subtitle: "",
     imageUrl: "",
     link: "/shop",
+    parentCategoryId: "",
     isActive: true,
     order: "0",
   };
@@ -51,6 +53,7 @@ function createFormState(category?: HomepageCategory | null): HomepageCategoryFo
     subtitle: category.subtitle || "",
     imageUrl: category.imageUrl,
     link: category.link,
+    parentCategoryId: category.parentCategoryId || "",
     isActive: category.isActive,
     order: String(category.order),
   };
@@ -63,6 +66,7 @@ function toPayload(form: HomepageCategoryFormState, imageUrl: string): AdminHome
     subtitle: form.subtitle.trim(),
     imageUrl,
     link: form.link.trim(),
+    parentCategoryId: form.parentCategoryId || null,
     isActive: form.isActive,
     order: Number(form.order || 0),
   };
@@ -71,11 +75,13 @@ function toPayload(form: HomepageCategoryFormState, imageUrl: string): AdminHome
 export function HomepageCategoryFormDialog({
   open,
   category,
+  topLevelCategories,
   onOpenChange,
   onSaved,
 }: {
   open: boolean;
   category: HomepageCategory | null;
+  topLevelCategories: Category[];
   onOpenChange: (open: boolean) => void;
   onSaved: (category: HomepageCategory) => void;
 }) {
@@ -198,18 +204,25 @@ export function HomepageCategoryFormDialog({
               />
             </label>
 
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Subtitle (optional)</span>
-              <input
-                value={form.subtitle}
+            <label className="space-y-2 text-sm">
+              <span className="font-medium text-zinc-300">Parent Category</span>
+              <select
+                value={form.parentCategoryId}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, subtitle: event.target.value }))
+                  setForm((current) => ({ ...current, parentCategoryId: event.target.value }))
                 }
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
+              >
+                <option value="">Leave unmapped</option>
+                {topLevelCategories.map((topLevelCategory) => (
+                  <option key={topLevelCategory.id} value={topLevelCategory.id}>
+                    {topLevelCategory.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
-            <label className="space-y-2 text-sm md:col-span-2">
+            <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Link</span>
               <input
                 required
@@ -218,6 +231,17 @@ export function HomepageCategoryFormDialog({
                   setForm((current) => ({ ...current, link: event.target.value }))
                 }
                 placeholder="/category/jeans"
+                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm md:col-span-2">
+              <span className="font-medium text-zinc-300">Subtitle (optional)</span>
+              <input
+                value={form.subtitle}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, subtitle: event.target.value }))
+                }
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
             </label>
@@ -281,6 +305,13 @@ export function HomepageCategoryFormDialog({
                 <div>
                   <p className="font-medium text-zinc-300">Saved link</p>
                   <p className="mt-1 break-all">{form.link || "/shop"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-zinc-300">Parent category</p>
+                  <p className="mt-1">
+                    {topLevelCategories.find((item) => item.id === form.parentCategoryId)?.name ||
+                      "Unmapped"}
+                  </p>
                 </div>
                 <div>
                   <p className="font-medium text-zinc-300">Subtitle</p>

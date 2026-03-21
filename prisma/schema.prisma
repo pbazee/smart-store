@@ -60,6 +60,7 @@ model Category {
   parentId    String?
   parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryHierarchy")
+  homepageCategories HomepageCategory[] @relation("HomepageCategoryParent")
   products    Product[]
 }
 
@@ -125,6 +126,7 @@ model StoreSettings {
   supportPhone           String?
   adminNotificationEmail String?
   contactPhone           String?
+  footerContactPhone     String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -142,17 +144,20 @@ model FAQ {
 }
 
 model HomepageCategory {
-  id        String   @id @default(cuid())
-  title     String
-  subtitle  String?
-  imageUrl  String
-  link      String
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String    @id @default(cuid())
+  title            String
+  subtitle         String?
+  imageUrl         String
+  link             String
+  parentCategoryId String?
+  order            Int       @default(0)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  parentCategory   Category? @relation("HomepageCategoryParent", fields: [parentCategoryId], references: [id])
 
   @@index([isActive, order])
+  @@index([parentCategoryId])
 }
 
 model HeroSlide {

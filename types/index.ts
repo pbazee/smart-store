@@ -132,6 +132,7 @@ export interface StoreSettings {
   supportPhone?: string | null;
   adminNotificationEmail?: string | null;
   contactPhone?: string | null;
+  footerContactPhone?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -165,6 +166,7 @@ export interface HomepageCategory {
   subtitle?: string | null;
   imageUrl: string;
   link: string;
+  parentCategoryId?: string | null;
   order: number;
   isActive: boolean;
   createdAt: string | Date;

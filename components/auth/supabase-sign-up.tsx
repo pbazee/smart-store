@@ -1,103 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createSupabaseClientClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2, Mail, User, Shield } from "lucide-react";
-import { getAppUrl } from "@/lib/app-url";
+import { signUpCustomerAction, signUpWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
-  const router = useRouter();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [wantsNewsletter, setWantsNewsletter] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const supabase = createSupabaseClientClient();
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [googlePending, startGoogleTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(signUpCustomerAction, {
+    error: null,
+    success: false,
+  });
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+  const handleEmailSignUp = (event: React.FormEvent<HTMLFormElement>) => {
+    setClientError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
+      event.preventDefault();
+      setClientError("Passwords do not match");
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      setIsLoading(false);
-      return;
+      event.preventDefault();
+      setClientError("Password must be at least 8 characters");
     }
+  };
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-          emailRedirectTo: `${getAppUrl()}/auth/callback`,
-        },
-      });
+  const handleGoogleSignIn = () => {
+    setClientError(null);
 
-      if (error) {
-        setError(error.message);
-        return;
-      }
-
-      if (wantsNewsletter) {
-        try {
-          const { subscribeNewsletterAction } = await import("@/app/admin/newsletter/actions");
-          await subscribeNewsletterAction({ email });
-        } catch (e) {
-          console.error("Newsletter subscription failed during signup:", e);
+    startGoogleTransition(() => {
+      void (async () => {
+        const result = await signUpWithGoogleAction(redirectUrl);
+        if (result?.error) {
+          setClientError(result.error);
         }
-      }
-
-      router.push("/sign-in?message=check-email");
-      router.refresh();
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
+      })();
+    });
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${getAppUrl()}/auth/callback?next=${redirectUrl || "/"}`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const isLoading = isPending || googlePending;
+  const errorMessage = clientError || state.error;
 
   return (
     <div className="space-y-6">
-      {/* Google OAuth Button */}
       <Button
         type="button"
         onClick={handleGoogleSignIn}
@@ -125,7 +82,6 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         <span className="text-base font-black">Continue with Google</span>
       </Button>
 
-      {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-white/12" />
@@ -135,33 +91,56 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
+      {errorMessage && (
         <div className="rounded-[1.1rem] border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-rose-200" />
-            <p className="text-sm">{error}</p>
+            <p className="text-sm">{errorMessage}</p>
           </div>
         </div>
       )}
 
-      {/* Sign Up Form */}
-      <form onSubmit={handleEmailSignUp} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm font-medium text-white/88">
-            Full Name
-          </Label>
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-            <Input
-              id="fullName"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="John Doe"
-              required
-              className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
-            />
+      <form action={formAction} onSubmit={handleEmailSignUp} className="space-y-4">
+        <input type="hidden" name="redirectUrl" value={redirectUrl || "/"} />
+        {wantsNewsletter ? <input type="hidden" name="subscribeNewsletter" value="true" /> : null}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="firstName" className="text-sm font-medium text-white/88">
+              First Name
+            </Label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+              <Input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Peter"
+                required
+                className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="lastName" className="text-sm font-medium text-white/88">
+              Last Name
+            </Label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+              <Input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Kinuthia"
+                required
+                className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
+              />
+            </div>
           </div>
         </div>
 
@@ -173,6 +152,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
             <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <Input
               id="email"
+              name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -191,10 +171,11 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
             <Shield className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <Input
               id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="........"
               required
               minLength={8}
               className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
@@ -213,7 +194,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="........"
               required
               className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
             />
@@ -228,7 +209,10 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
             onChange={(e) => setWantsNewsletter(e.target.checked)}
             className="h-5 w-5 rounded border-white/12 bg-black/35 text-orange-500 focus:ring-orange-400/20"
           />
-          <Label htmlFor="newsletter" className="text-sm font-medium text-white/72 cursor-pointer select-none">
+          <Label
+            htmlFor="newsletter"
+            className="cursor-pointer select-none text-sm font-medium text-white/72"
+          >
             Get notified on more offers, discounts & new arrivals
           </Label>
         </div>
@@ -249,7 +233,6 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         </Button>
       </form>
 
-      {/* Sign In Link */}
       <p className="text-center text-sm text-white/55">
         Already have an account?{" "}
         <Link

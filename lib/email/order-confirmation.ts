@@ -254,7 +254,7 @@ function renderCustomerEmail(details: OrderEmailDetails, baseUrl: string) {
               <tr>
                 <td colspan="2" style="text-align:center;color:#94a3b8;font-size:12px;">
                   Need help? <a href="mailto:${supportEmail}" style="color:#f97316;text-decoration:none;">${supportEmail}</a> ·
-                  <a href="tel:${supportPhone.replace(/[^+\\d]/g, "")}" style="color:#f97316;text-decoration:none;">${supportPhone}</a>
+                  <a href="tel:${supportPhone.replace(/[^+\d]/g, "")}" style="color:#f97316;text-decoration:none;">${supportPhone}</a>
                 </td>
               </tr>
             </table>

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { addDemoReview, getDemoReviews } from "@/lib/demo-catalog";
+import { ensureReviewStorage } from "@/lib/runtime-schema-repair";
 import type { ProductReview } from "@/types";
 
 export async function getProductReviews(productId: string) {
@@ -9,6 +10,8 @@ export async function getProductReviews(productId: string) {
   }
 
   try {
+    await ensureReviewStorage();
+
     return await prisma.review.findMany({
       where: { productId, isApproved: true },
       orderBy: { createdAt: "desc" },
@@ -25,6 +28,8 @@ export async function getLatestApprovedReviews(limit: number = 6) {
   }
 
   try {
+    await ensureReviewStorage();
+
     return await prisma.review.findMany({
       where: { isApproved: true },
       take: limit,
@@ -50,6 +55,8 @@ export async function getAllReviewsAdmin() {
   }
 
   try {
+    await ensureReviewStorage();
+
     return await prisma.review.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -72,6 +79,8 @@ export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: 
     return null;
   }
 
+  await ensureReviewStorage();
+
   return await prisma.review.update({
     where: { id },
     data,
@@ -82,6 +91,8 @@ export async function deleteReviewAdmin(id: string) {
   if (shouldUseMockData()) {
     return null;
   }
+
+  await ensureReviewStorage();
 
   return await prisma.review.delete({
     where: { id },
@@ -110,32 +121,38 @@ export async function createProductReview(input: {
     });
   }
 
-  const review = await prisma.review.create({
-    data: {
-      productId: input.productId,
-      userId: input.userId ?? null,
-      authorName: input.authorName,
-      authorCity: input.authorCity ?? null,
-      rating: input.rating,
-      title: input.title ?? null,
-      content: input.content,
-      verifiedPurchase: input.verifiedPurchase ?? false,
-      isApproved: true,
-    },
-  });
+  await ensureReviewStorage();
 
-  const aggregate = await prisma.review.aggregate({
-    where: { productId: input.productId },
-    _avg: { rating: true },
-    _count: { id: true },
-  });
+  const review = await prisma.$transaction(async (tx) => {
+    const createdReview = await tx.review.create({
+      data: {
+        productId: input.productId,
+        userId: input.userId ?? null,
+        authorName: input.authorName,
+        authorCity: input.authorCity ?? null,
+        rating: input.rating,
+        title: input.title ?? null,
+        content: input.content,
+        verifiedPurchase: input.verifiedPurchase ?? false,
+        isApproved: true,
+      },
+    });
 
-  await prisma.product.update({
-    where: { id: input.productId },
-    data: {
-      rating: Number((aggregate._avg.rating ?? 0).toFixed(1)),
-      reviewCount: aggregate._count.id,
-    },
+    const aggregate = await tx.review.aggregate({
+      where: { productId: input.productId },
+      _avg: { rating: true },
+      _count: { id: true },
+    });
+
+    await tx.product.update({
+      where: { id: input.productId },
+      data: {
+        rating: Number((aggregate._avg.rating ?? 0).toFixed(1)),
+        reviewCount: aggregate._count.id,
+      },
+    });
+
+    return createdReview;
   });
 
   return review as ProductReview;

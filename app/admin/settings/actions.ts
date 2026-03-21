@@ -13,6 +13,7 @@ const storeSettingsSchema = z.object({
   supportPhone: z.string().trim().min(7, "Support phone is required"),
   adminNotificationEmail: z.string().trim().email("Admin notification email required"),
   contactPhone: z.string().trim().optional(),
+  footerContactPhone: z.string().trim().optional(),
 });
 
 export type AdminStoreSettingsInput = z.infer<typeof storeSettingsSchema>;
@@ -20,6 +21,11 @@ export type AdminStoreSettingsInput = z.infer<typeof storeSettingsSchema>;
 export type SaveSettingsResult =
   | { success: true; data: StoreSettings }
   | { success: false; error: string };
+
+function normalizeOptionalPhone(phone?: string) {
+  const trimmed = phone?.trim() ?? "";
+  return trimmed ? normalizeCheckoutPhoneNumber(trimmed) : "";
+}
 
 function revalidateStorefront() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
@@ -61,7 +67,8 @@ export async function updateAdminStoreSettingsAction(
       supportEmail: data.supportEmail,
       supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
       adminNotificationEmail: data.adminNotificationEmail,
-      contactPhone: data.contactPhone,
+      contactPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
+      footerContactPhone: normalizeOptionalPhone(data.footerContactPhone),
     });
 
     revalidateStorefront();

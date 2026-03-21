@@ -6,12 +6,13 @@ import { ImagePlus, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   createAdminProductAction,
+  fetchHomepageSubcategoriesAction,
   updateAdminProductAction,
   type AdminProductInput,
 } from "@/app/admin/products/actions";
 import { useToast } from "@/lib/use-toast";
 import { slugify } from "@/lib/utils";
-import type { Product, Category } from "@/types";
+import type { Category, HomepageCategory, Product } from "@/types";
 
 type VariantFormState = {
   id?: string;
@@ -27,8 +28,8 @@ type ProductFormState = {
   name: string;
   slug: string;
   description: string;
-  category: Product["category"]; // legacy
-  subcategory: string; // legacy
+  category: Product["category"];
+  subcategory: string;
   categoryId?: string | null;
   parentId?: string | null;
   subcategoryId?: string | null;
@@ -54,8 +55,8 @@ function createEmptyFormState(): ProductFormState {
     name: "",
     slug: "",
     description: "",
-    category: "clothes",
-    subcategory: "Streetwear",
+    category: "",
+    subcategory: "",
     categoryId: null,
     parentId: null,
     subcategoryId: null,
@@ -123,9 +124,9 @@ function toPayload(form: ProductFormState): AdminProductInput {
     name: form.name.trim(),
     slug: slugify(form.slug || form.name),
     description: form.description.trim(),
-    category: form.category,
+    category: form.category.trim(),
     subcategory: form.subcategory.trim(),
-    categoryId: form.subcategoryId || form.parentId || null,
+    categoryId: form.parentId || null,
     gender: form.gender,
     basePrice,
     images: form.images.filter(Boolean),
@@ -146,6 +147,10 @@ function toPayload(form: ProductFormState): AdminProductInput {
   };
 }
 
+function normalizeProductSubcategory(value?: string | null) {
+  return slugify(value || "").replace(/-/g, "");
+}
+
 export function ProductFormDialog({
   open,
   product,
@@ -164,45 +169,99 @@ export function ProductFormDialog({
   const [form, setForm] = useState<ProductFormState>(() => createFormState(product));
   const [slugTouched, setSlugTouched] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
+  const [subcategoryOptions, setSubcategoryOptions] = useState<HomepageCategory[]>([]);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
 
-  const byParent = useMemo(() => {
-    const map = new Map<string | null, Category[]>();
-    categories.forEach((c) => {
-      const key = c.parentId ?? null;
-      map.set(key, [...(map.get(key) || []), c]);
-    });
-    map.forEach((list, key) =>
-      map.set(
-        key,
-        list.sort((a, b) =>
-          (a.order ?? 0) === (b.order ?? 0)
-            ? a.name.localeCompare(b.name)
-            : (a.order ?? 0) - (b.order ?? 0)
-        )
-      )
-    );
-    return map;
+  const topLevelCategories = useMemo(() => {
+    return categories
+      .filter((category) => !category.parentId)
+      .sort((left, right) =>
+        (left.order ?? 0) === (right.order ?? 0)
+          ? left.name.localeCompare(right.name)
+          : (left.order ?? 0) - (right.order ?? 0)
+      );
   }, [categories]);
-
-  const topLevelCategories = byParent.get(null) || [];
-  const childCategories = form.parentId ? byParent.get(form.parentId) || [] : [];
 
   useEffect(() => {
     const base = createFormState(product);
+
     if (product?.categoryId) {
-      const cat = categories.find((c) => c.id === product.categoryId);
-      if (cat) {
-        const parentId = cat.parentId ?? cat.id;
-        const subId = cat.parentId ? cat.id : null;
-        base.parentId = parentId;
-        base.subcategoryId = subId;
-        base.categoryId = subId || parentId;
+      const matchedCategory = categories.find((category) => category.id === product.categoryId);
+      if (matchedCategory) {
+        const parentCategory = matchedCategory.parentId
+          ? categories.find((category) => category.id === matchedCategory.parentId)
+          : matchedCategory;
+        const resolvedParent = parentCategory ?? matchedCategory;
+        base.parentId = resolvedParent.id;
+        base.categoryId = resolvedParent.id;
+        base.category = resolvedParent.slug;
       }
     }
+
     setForm(base);
     setSlugTouched(false);
     setImageUrlInput("");
+    setSubcategoryOptions([]);
   }, [product, open, categories]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (!form.parentId) {
+      setSubcategoryOptions([]);
+      return;
+    }
+
+    let isActive = true;
+    setIsLoadingSubcategories(true);
+
+    void (async () => {
+      try {
+        const options = await fetchHomepageSubcategoriesAction(form.parentId ?? null);
+        if (isActive) {
+          setSubcategoryOptions(options);
+        }
+      } catch (error) {
+        if (isActive) {
+          setSubcategoryOptions([]);
+        }
+        console.error("Failed to load homepage subcategories:", error);
+      } finally {
+        if (isActive) {
+          setIsLoadingSubcategories(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [form.parentId, open]);
+
+  useEffect(() => {
+    if (!form.parentId || form.subcategoryId || subcategoryOptions.length === 0) {
+      return;
+    }
+
+    const matchedOption = subcategoryOptions.find((option) => {
+      const optionToken = normalizeProductSubcategory(option.title);
+      const linkToken = normalizeProductSubcategory(option.link.split("/").filter(Boolean).at(-1));
+      const currentToken = normalizeProductSubcategory(form.subcategory);
+      return currentToken === optionToken || currentToken === linkToken;
+    });
+
+    if (!matchedOption) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      subcategoryId: matchedOption.id,
+      subcategory: matchedOption.title,
+    }));
+  }, [form.parentId, form.subcategory, form.subcategoryId, subcategoryOptions]);
 
   const updateVariant = (
     index: number,
@@ -306,21 +365,23 @@ export function ProductFormDialog({
                 value={form.parentId ?? ""}
                 onChange={(event) => {
                   const parentId = event.target.value ? event.target.value : null;
-                  const parent = categories.find((c) => c.id === parentId);
+                  const parentCategory = topLevelCategories.find((category) => category.id === parentId) || null;
+
                   setForm((current) => ({
                     ...current,
                     parentId,
+                    categoryId: parentId,
                     subcategoryId: null,
-                    category: parent ? parent.slug : current.category,
-                    subcategory: parent ? parent.name : current.subcategory,
+                    category: parentCategory?.slug || "",
+                    subcategory: parentCategory?.name || "",
                   }));
                 }}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
                 <option value="">Select top-level</option>
-                {topLevelCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
+                {topLevelCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
@@ -331,22 +392,29 @@ export function ProductFormDialog({
               <select
                 value={form.subcategoryId ?? ""}
                 onChange={(event) => {
-                  const subId = event.target.value ? event.target.value : null;
-                  const sub = categories.find((c) => c.id === subId);
+                  const selectedId = event.target.value || null;
+                  const selectedSubcategory = subcategoryOptions.find((option) => option.id === selectedId);
+                  const parentCategory = topLevelCategories.find((category) => category.id === form.parentId) || null;
+
                   setForm((current) => ({
                     ...current,
-                    subcategoryId: subId,
-                    categoryId: subId || current.parentId || null,
-                    subcategory: sub ? sub.name : current.subcategory,
+                    subcategoryId: selectedId,
+                    subcategory: selectedSubcategory?.title || parentCategory?.name || "",
                   }));
                 }}
-                disabled={!form.parentId}
+                disabled={!form.parentId || isLoadingSubcategories}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
-                <option value="">{form.parentId ? "Use parent only" : "Select parent first"}</option>
-                {childCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
+                <option value="">
+                  {isLoadingSubcategories
+                    ? "Loading subcategories..."
+                    : form.parentId
+                      ? "Use parent only"
+                      : "Select category first"}
+                </option>
+                {subcategoryOptions.map((subcategory) => (
+                  <option key={subcategory.id} value={subcategory.id}>
+                    {subcategory.title}
                   </option>
                 ))}
               </select>

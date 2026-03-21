@@ -5,7 +5,7 @@ import { ImagePlus, LayoutGrid, Loader2, Pencil, Plus, Search, Trash2 } from "lu
 import { deleteAdminHomepageCategoryAction } from "@/app/admin/homepage-categories/actions";
 import { HomepageCategoryFormDialog } from "@/app/admin/homepage-categories/homepage-category-form-dialog";
 import { useToast } from "@/lib/use-toast";
-import type { HomepageCategory } from "@/types";
+import type { Category, HomepageCategory } from "@/types";
 
 function getImagePreviewStyle(imageUrl: string) {
   return imageUrl
@@ -19,8 +19,10 @@ function getImagePreviewStyle(imageUrl: string) {
 
 export function HomepageCategoriesManager({
   initialCategories,
+  topLevelCategories,
 }: {
   initialCategories: HomepageCategory[];
+  topLevelCategories: Category[];
 }) {
   const { toast } = useToast();
   const [categories, setCategories] = useState(initialCategories);
@@ -30,6 +32,10 @@ export function HomepageCategoriesManager({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const deferredSearch = useDeferredValue(search);
+  const topLevelCategoryMap = useMemo(
+    () => new Map(topLevelCategories.map((category) => [category.id, category.name])),
+    [topLevelCategories]
+  );
 
   const visibleCategories = useMemo(() => {
     return [...categories]
@@ -98,7 +104,7 @@ export function HomepageCategoriesManager({
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">Homepage Categories</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Manage the category cards, links, and imagery that appear on the landing page.
+            Manage the category cards, links, imagery, and product grouping that appear on the landing page.
           </p>
         </div>
 
@@ -171,6 +177,9 @@ export function HomepageCategoriesManager({
                   Title
                 </th>
                 <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
+                  Parent
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
                   Link
                 </th>
                 <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -187,7 +196,7 @@ export function HomepageCategoriesManager({
             <tbody>
               {visibleCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-zinc-400">
+                  <td colSpan={7} className="px-6 py-16 text-center text-zinc-400">
                     No homepage categories match the current filters.
                   </td>
                 </tr>
@@ -210,6 +219,13 @@ export function HomepageCategoriesManager({
                           <p className="mt-1 text-xs text-zinc-500">{category.subtitle}</p>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <p className="text-sm text-zinc-300">
+                        {category.parentCategoryId
+                          ? topLevelCategoryMap.get(category.parentCategoryId) || "Unmapped"
+                          : "Unmapped"}
+                      </p>
                     </td>
                     <td className="px-4 py-4 align-middle">
                       <p className="max-w-xs break-all text-sm text-zinc-300">{category.link}</p>
@@ -275,7 +291,8 @@ export function HomepageCategoriesManager({
             </p>
             <p className="inline-flex items-center gap-2 text-zinc-500">
               <ImagePlus className="h-4 w-4" />
-              Uploading a new image replaces the saved artwork for that card.
+              Mapping a homepage category to a parent category also makes it available inside the
+              product form subcategory dropdown.
             </p>
           </div>
         </div>
@@ -284,6 +301,7 @@ export function HomepageCategoriesManager({
       <HomepageCategoryFormDialog
         open={dialogOpen}
         category={editingCategory}
+        topLevelCategories={topLevelCategories}
         onOpenChange={setDialogOpen}
         onSaved={handleSavedCategory}
       />

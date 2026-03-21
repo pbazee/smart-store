@@ -40,8 +40,12 @@ export async function Footer({
 
   const supportEmail = resolvedStoreSettings?.supportEmail || "support@smarteststore.ke";
   const supportPhone = resolvedStoreSettings?.supportPhone || "+254 700 123 456";
+  const footerContactPhone =
+    resolvedStoreSettings?.footerContactPhone ||
+    resolvedStoreSettings?.contactPhone ||
+    supportPhone;
 
-  const normalizedTel = supportPhone.replace(/[^+\\d]/g, "");
+  const normalizedTel = footerContactPhone.replace(/[^+\d]/g, "");
 
   return (
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
@@ -159,7 +163,7 @@ export async function Footer({
                 href={`tel:${normalizedTel}`}
                 className="transition-colors hover:text-white"
               >
-                Call: {supportPhone}
+                Call: {footerContactPhone}
               </a>
             </div>
             <div className="flex items-center gap-4">

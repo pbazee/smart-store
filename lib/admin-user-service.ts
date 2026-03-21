@@ -33,7 +33,11 @@ export async function getAllUsersAdmin(): Promise<AdminUserSummary[]> {
     return users.map((user) => ({
         id: user.id,
         email: user.email,
-        fullName: user.fullName,
+        fullName:
+            user.fullName ||
+            [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+            user.email ||
+            null,
         role: user.role,
         createdAt: user.createdAt,
         totalOrders: user.orders.length,

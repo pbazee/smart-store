@@ -12,7 +12,10 @@ export default async function ContactPage() {
 
   const supportEmail = storeSettings?.supportEmail || DEFAULT_STORE_SETTINGS.supportEmail;
   const supportPhone = storeSettings?.supportPhone || DEFAULT_STORE_SETTINGS.supportPhone;
-  const contactPhone = storeSettings?.contactPhone || supportPhone;
+  const contactPhone =
+    storeSettings?.contactPhone ||
+    storeSettings?.footerContactPhone ||
+    supportPhone;
   const whatsappHref =
     whatsAppSettings?.isActive && whatsAppSettings.phoneNumber.trim()
       ? buildWhatsAppHref(whatsAppSettings.phoneNumber, whatsAppSettings.defaultMessage)

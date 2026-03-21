@@ -1,73 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createSupabaseClientClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
-import { getAppUrl } from "@/lib/app-url";
+import { signInCustomerAction, signInWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const supabase = createSupabaseClientClient();
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const [googlePending, startGoogleTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(signInCustomerAction, {
+    error: null,
+    success: false,
+  });
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+  const handleGoogleSignIn = () => {
+    setOauthError(null);
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-
-      router.push(redirectUrl || "/");
-      router.refresh();
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
+    startGoogleTransition(() => {
+      void (async () => {
+        const result = await signInWithGoogleAction(redirectUrl);
+        if (result?.error) {
+          setOauthError(result.error);
+        }
+      })();
+    });
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${getAppUrl()}/auth/callback?next=${redirectUrl || "/"}`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const isLoading = isPending || googlePending;
+  const errorMessage = oauthError || state.error;
 
   return (
     <div className="space-y-6">
-      {/* Google OAuth Button */}
       <Button
         type="button"
         onClick={handleGoogleSignIn}
@@ -95,7 +63,6 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         <span className="text-base font-black">Continue with Google</span>
       </Button>
 
-      {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-white/12" />
@@ -105,18 +72,18 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
+      {errorMessage && (
         <div className="rounded-[1.1rem] border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-rose-200" />
-            <p className="text-sm">{error}</p>
+            <p className="text-sm">{errorMessage}</p>
           </div>
         </div>
       )}
 
-      {/* Email/Password Form */}
-      <form onSubmit={handleEmailSignIn} className="space-y-4">
+      <form action={formAction} className="space-y-4">
+        <input type="hidden" name="redirectUrl" value={redirectUrl || "/"} />
+
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-white/88">
             Email
@@ -125,6 +92,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
             <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <Input
               id="email"
+              name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -141,10 +109,11 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
           </Label>
           <Input
             id="password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder="........"
             required
             className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
           />
@@ -166,7 +135,6 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         </Button>
       </form>
 
-      {/* Sign Up Link */}
       <p className="text-center text-sm text-white/55">
         Don&apos;t have an account?{" "}
         <Link

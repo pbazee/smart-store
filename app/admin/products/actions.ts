@@ -14,7 +14,8 @@ import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-import type { Product } from "@/types";
+import { getHomepageSubcategoriesForCategory } from "@/lib/homepage-category-service";
+import type { HomepageCategory, Product } from "@/types";
 
 const adminVariantSchema = z.object({
   id: z.string().optional(),
@@ -68,6 +69,7 @@ function toDemoProduct(input: AdminProductInput, current?: Product | null): Prod
     description: input.description,
     category: input.category,
     subcategory: input.subcategory,
+    categoryId: input.categoryId ?? null,
     gender: input.gender,
     tags: input.tags,
     basePrice: input.basePrice,
@@ -98,6 +100,18 @@ export async function fetchAdminProducts() {
     include: { variants: true },
     orderBy: { createdAt: "desc" },
   })) as Product[];
+}
+
+export async function fetchHomepageSubcategoriesAction(
+  parentCategoryId: string | null
+): Promise<HomepageCategory[]> {
+  await ensureAdmin();
+
+  if (!parentCategoryId) {
+    return [];
+  }
+
+  return getHomepageSubcategoriesForCategory(parentCategoryId);
 }
 
 export async function createAdminProductAction(input: AdminProductInput) {

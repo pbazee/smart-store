@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { subscribeToNewsletter } from "@/lib/newsletter-service";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
@@ -18,8 +19,9 @@ import { getAppUrl } from "@/lib/app-url";
 const signUpSchema = z.object({
   email: z.string().trim().email("Valid email required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  firstName: z.string().trim().min(2, "First name required"),
-  lastName: z.string().trim().min(2, "Last name required"),
+  firstName: z.string().trim().min(1, "First name required"),
+  lastName: z.string().trim().min(1, "Last name required"),
+  subscribeNewsletter: z.string().optional(),
   redirectUrl: z.string().optional(),
 });
 
@@ -52,6 +54,7 @@ export async function signUpCustomerAction(
       password: formData.get("password"),
       firstName: formData.get("firstName"),
       lastName: formData.get("lastName"),
+      subscribeNewsletter: formData.get("subscribeNewsletter"),
       redirectUrl: formData.get("redirectUrl"),
     });
 
@@ -83,6 +86,14 @@ export async function signUpCustomerAction(
         role: "CUSTOMER",
       },
     });
+
+    if (payload.subscribeNewsletter) {
+      try {
+        await subscribeToNewsletter(payload.email);
+      } catch (newsletterError) {
+        console.error("Newsletter subscription failed during signup:", newsletterError);
+      }
+    }
 
     // Create authentication token
     const token = await createLocalAuthToken({

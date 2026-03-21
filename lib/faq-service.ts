@@ -1,5 +1,6 @@
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { ensureFAQStorage } from "@/lib/runtime-schema-repair";
 import type { FAQ } from "@/types";
 
 let demoFAQs: FAQ[] = [
@@ -31,6 +32,8 @@ export async function getFAQs(options: { onlyActive?: boolean } = {}) {
   }
 
   try {
+    await ensureFAQStorage();
+
     const faqs = await prisma.fAQ.findMany({
       where: options.onlyActive ? { isActive: true } : undefined,
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
@@ -59,6 +62,8 @@ export async function createFAQ(data: { question: string; answer: string; order?
     demoFAQs.push(newFAQ);
     return newFAQ;
   }
+
+  await ensureFAQStorage();
 
   const maxOrder = await prisma.fAQ.aggregate({
     _max: { order: true },
@@ -90,6 +95,8 @@ export async function updateFAQ(
     return demoFAQs[index];
   }
 
+  await ensureFAQStorage();
+
   const faq = await prisma.fAQ.update({
     where: { id },
     data,
@@ -103,6 +110,8 @@ export async function deleteFAQ(id: string) {
     demoFAQs = demoFAQs.filter((f) => f.id !== id);
     return true;
   }
+
+  await ensureFAQStorage();
 
   await prisma.fAQ.delete({ where: { id } });
   return true;
