@@ -3,6 +3,8 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { getNewsletterSubscribers } from "@/lib/newsletter-service";
 import { getSessionUser } from "@/lib/session-user";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: {
@@ -18,7 +20,13 @@ export default async function AdminLayout({
     redirect("/");
   }
 
-  const subscribers = await getNewsletterSubscribers();
+  let subscriberCount = 0;
+  try {
+    const subscribers = await getNewsletterSubscribers();
+    subscriberCount = subscribers.length;
+  } catch (error) {
+    console.error("[AdminLayout] Failed to load subscriber count:", error);
+  }
 
-  return <AdminShell subscriberCount={subscribers.length}>{children}</AdminShell>;
+  return <AdminShell subscriberCount={subscriberCount}>{children}</AdminShell>;
 }

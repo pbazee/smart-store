@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(grep -rn \"take: \\\\|limit: \" /c/Projects/smartest-store-ke/lib/*.ts)"
+    ]
+  }
+}

@@ -65,20 +65,26 @@ export async function updateAdminWhatsAppSettingsAction(
     return settings;
   }
 
-  const settings = await prisma.whatsAppSettings.upsert({
-    where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
-    update: {
-      phoneNumber: data.phoneNumber,
-      defaultMessage: data.defaultMessage,
-      isActive: data.isActive,
-    },
-    create: {
-      id: DEFAULT_WHATSAPP_SETTINGS.id,
-      phoneNumber: data.phoneNumber,
-      defaultMessage: data.defaultMessage,
-      isActive: data.isActive,
-    },
-  });
+  let settings;
+  try {
+    settings = await prisma.whatsAppSettings.upsert({
+      where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
+      update: {
+        phoneNumber: data.phoneNumber,
+        defaultMessage: data.defaultMessage,
+        isActive: data.isActive,
+      },
+      create: {
+        id: DEFAULT_WHATSAPP_SETTINGS.id,
+        phoneNumber: data.phoneNumber,
+        defaultMessage: data.defaultMessage,
+        isActive: data.isActive,
+      },
+    });
+  } catch (error: any) {
+    console.error("[WhatsApp Settings] upsert failed:", error?.message ?? error);
+    throw new Error("Failed to save WhatsApp settings. Please try again.");
+  }
 
   revalidateWhatsAppPaths();
   return {

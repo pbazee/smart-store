@@ -41,15 +41,27 @@ export async function fetchAdminStoreSettings() {
 
 export async function updateAdminStoreSettingsAction(input: AdminStoreSettingsInput) {
   await ensureAdmin();
-  const data = storeSettingsSchema.parse(input);
 
-  const settings = await upsertStoreSettings({
-    supportEmail: data.supportEmail,
-    supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
-    adminNotificationEmail: data.adminNotificationEmail,
-    contactPhone: data.contactPhone,
-  });
+  let data: ReturnType<typeof storeSettingsSchema.parse>;
+  try {
+    data = storeSettingsSchema.parse(input);
+  } catch (error: any) {
+    const firstIssue = error?.errors?.[0];
+    throw new Error(firstIssue?.message || "Invalid input. Check all fields and try again.");
+  }
 
-  revalidateStorefront();
-  return settings;
+  try {
+    const settings = await upsertStoreSettings({
+      supportEmail: data.supportEmail,
+      supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
+      adminNotificationEmail: data.adminNotificationEmail,
+      contactPhone: data.contactPhone,
+    });
+
+    revalidateStorefront();
+    return settings;
+  } catch (error: any) {
+    console.error("[Settings] upsertStoreSettings failed:", error?.message ?? error);
+    throw new Error("Failed to save settings. Please check your database connection and try again.");
+  }
 }

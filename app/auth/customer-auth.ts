@@ -94,17 +94,21 @@ export async function signUpCustomerAction(
       maxAge: getLocalAuthCookieMaxAge(),
     });
 
-    // Revalidate entire layout to refresh session data
+    // Revalidate entire layout and admin pages to show new user
     revalidatePath("/", "layout");
+    revalidatePath("/admin/users");
 
     // Redirect to dashboard or requested URL
-    const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/") 
-      ? payload.redirectUrl 
+    const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/")
+      ? payload.redirectUrl
       : "/";
     redirect(redirectPath);
   } catch (error) {
     // Re-throw Next.js redirect errors - they should NOT be caught
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+    if (
+      error instanceof Error &&
+      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
+    ) {
       throw error;
     }
 
@@ -182,13 +186,16 @@ export async function signInCustomerAction(
     revalidatePath("/", "layout");
 
     // Redirect
-    const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/") 
-      ? payload.redirectUrl 
+    const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/")
+      ? payload.redirectUrl
       : "/";
     redirect(redirectPath);
   } catch (error) {
     // Re-throw Next.js redirect errors - they should NOT be caught
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+    if (
+      error instanceof Error &&
+      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
+    ) {
       throw error;
     }
 
@@ -240,7 +247,10 @@ export async function signInWithGoogleAction(redirectUrl?: string) {
     return { error: "No redirect URL from OAuth provider", success: false };
   } catch (error) {
     // Re-throw Next.js redirect errors - they should NOT be caught
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+    if (
+      error instanceof Error &&
+      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
+    ) {
       throw error;
     }
 
@@ -278,7 +288,10 @@ export async function signUpWithGoogleAction(redirectUrl?: string) {
     return { error: "No redirect URL from OAuth provider", success: false };
   } catch (error) {
     // Re-throw Next.js redirect errors - they should NOT be caught
-    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+    if (
+      error instanceof Error &&
+      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
+    ) {
       throw error;
     }
 

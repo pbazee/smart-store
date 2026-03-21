@@ -162,7 +162,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               />
             </button>
 
-            {/* Quick add button */}
+            {/* Quick add button — desktop hover only */}
             {firstVariant && (
               <motion.button
                 initial={{ y: 16, opacity: 0 }}
@@ -210,6 +210,18 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
                   ))}
               </div>
             </div>
+
+            {/* Mobile-only always-visible Add to Cart button */}
+            {firstVariant && (
+              <button
+                type="button"
+                onClick={handleQuickAdd}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-2 text-xs font-bold text-white transition-colors active:bg-orange-600 md:hidden"
+              >
+                <ShoppingCart className="h-3.5 w-3.5" />
+                Add to cart
+              </button>
+            )}
           </div>
         </div>
       </Link>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 import {
   Bell,
   MapPin,
@@ -50,11 +52,22 @@ export default async function AdminSettingsPage() {
     redirect("/sign-in?redirect_url=%2Fadmin%2Fsettings");
   }
 
-  const [settings, faqs, whatsAppSettings] = await Promise.all([
+  const [settingsResult, faqsResult, whatsAppResult] = await Promise.allSettled([
     fetchAdminStoreSettings(),
     fetchAdminFAQs(),
     fetchAdminWhatsAppSettings(),
   ]);
+
+  const settings = settingsResult.status === "fulfilled" ? settingsResult.value : null;
+  const faqs = faqsResult.status === "fulfilled" ? faqsResult.value : [];
+  const whatsAppSettings = whatsAppResult.status === "fulfilled" ? whatsAppResult.value : null;
+
+  if (settingsResult.status === "rejected") {
+    console.error("[AdminSettings] Failed to load store settings:", settingsResult.reason);
+  }
+  if (whatsAppResult.status === "rejected") {
+    console.error("[AdminSettings] Failed to load WhatsApp settings:", whatsAppResult.reason);
+  }
 
   return (
     <div className="space-y-8">

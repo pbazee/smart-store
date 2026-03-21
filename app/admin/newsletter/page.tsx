@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { NewsletterManager } from "@/app/admin/newsletter/newsletter-manager";
-import { fetchAdminNewsletterSubscribers } from "@/app/admin/newsletter/actions";
 import { requireAdminAuth } from "@/lib/auth-utils";
-import { isResendConfigured } from "@/lib/newsletter-service";
+import { getNewsletterSubscribers, isResendConfigured } from "@/lib/newsletter-service";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminNewsletterPage() {
   const isAdmin = await requireAdminAuth();
@@ -10,7 +11,13 @@ export default async function AdminNewsletterPage() {
     redirect("/sign-in?redirect_url=%2Fadmin%2Fnewsletter");
   }
 
-  const subscribers = await fetchAdminNewsletterSubscribers();
+  let subscribers: Awaited<ReturnType<typeof getNewsletterSubscribers>> = [];
+  try {
+    subscribers = await getNewsletterSubscribers();
+  } catch (error) {
+    console.error("[AdminNewsletterPage] Failed to load subscribers:", error);
+  }
+
   const resendConfigured = isResendConfigured();
 
   return (
