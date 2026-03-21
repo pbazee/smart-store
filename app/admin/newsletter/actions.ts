@@ -10,8 +10,8 @@ const newsletterSubscriptionSchema = z.object({
 });
 
 const newsletterSendSchema = z.object({
-  subject: z.string().min(5),
-  content: z.string().min(20),
+  subject: z.string().min(1, "Subject is required"),
+  content: z.string().min(1, "Message content is required"),
 });
 
 async function ensureAdmin() {
@@ -27,11 +27,17 @@ function revalidateNewsletterPaths() {
 }
 
 export async function subscribeNewsletterAction(input: { email: string }) {
-  const data = newsletterSubscriptionSchema.parse(input);
-  const subscriber = await subscribeToNewsletter(data.email);
-
-  revalidateNewsletterPaths();
-  return subscriber;
+  try {
+    const data = newsletterSubscriptionSchema.parse(input);
+    const subscriber = await subscribeToNewsletter(data.email);
+    revalidateNewsletterPaths();
+    return { success: true, subscriber };
+  } catch (err: any) {
+    if (err?.errors) {
+      return { success: false, error: err.errors[0]?.message || "Invalid email address." };
+    }
+    return { success: false, error: err?.message || "Failed to subscribe. Please try again." };
+  }
 }
 
 export async function fetchAdminNewsletterSubscribers() {
@@ -44,10 +50,24 @@ export async function checkResendKeyAction() {
 }
 
 export async function sendNewsletterAction(input: { subject: string; content: string }) {
-  await ensureAdmin();
-  const data = newsletterSendSchema.parse(input);
-
   try {
+    const isAdmin = await requireAdminAuth();
+    if (!isAdmin) {
+      return { success: false, error: "Unauthorized. Please log in as admin.", count: 0 };
+    }
+
+    let data: { subject: string; content: string };
+    try {
+      data = newsletterSendSchema.parse(input);
+    } catch (err: any) {
+      const firstIssue = err?.errors?.[0];
+      return {
+        success: false,
+        error: firstIssue?.message || "Please fill in both subject and message fields.",
+        count: 0,
+      };
+    }
+
     const result = await sendNewsletter(data.subject, data.content);
     return result;
   } catch (err: any) {

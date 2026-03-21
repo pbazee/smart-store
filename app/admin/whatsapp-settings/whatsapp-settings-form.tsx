@@ -30,16 +30,16 @@ export function WhatsAppSettingsForm({
 
     startTransition(() => {
       void (async () => {
-        try {
-          await updateAdminWhatsAppSettingsAction(form);
+        const result = await updateAdminWhatsAppSettingsAction(form);
+        if (result.success) {
           toast({
             title: "WhatsApp settings saved",
             description: "The floating chat button is now updated across the storefront.",
           });
-        } catch (error) {
+        } else {
           toast({
             title: "Save failed",
-            description: error instanceof Error ? error.message : "Please try again.",
+            description: result.error || "Please try again.",
             variant: "destructive",
           });
         }

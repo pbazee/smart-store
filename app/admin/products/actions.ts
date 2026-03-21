@@ -33,7 +33,7 @@ const adminProductSchema = z.object({
   category: z.string().min(2, "Category is required"),
   subcategory: z.string().min(2, "Subcategory is required"),
   categoryId: z.string().optional().nullable(),
-  gender: z.enum(["men", "women", "unisex"]),
+  gender: z.enum(["men", "women", "unisex", "children"]),
   basePrice: z.number().int().positive(),
   images: z.array(z.string().min(1)).min(1, "At least one image is required"),
   tags: z.array(z.string()).default([]),

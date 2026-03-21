@@ -367,6 +367,7 @@ export function ProductFormDialog({
                 <option value="unisex">Unisex</option>
                 <option value="men">Men</option>
                 <option value="women">Women</option>
+                <option value="children">Children</option>
               </select>
             </label>
 

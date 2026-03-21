@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
+import { getActiveCategories } from "@/lib/category-service";
 
 const categorySchema = z.object({
   id: z.string().optional(),
@@ -25,9 +26,19 @@ async function ensureAdmin() {
 
 export async function fetchCategoriesAction() {
   await ensureAdmin();
-  return prisma.category.findMany({
-    orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
-  });
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
+    });
+    // If the DB has no child categories yet, fall back to the seeded defaults
+    const hasChildren = categories.some((c) => c.parentId !== null);
+    if (!hasChildren) {
+      return getActiveCategories();
+    }
+    return categories;
+  } catch {
+    return getActiveCategories();
+  }
 }
 
 export async function upsertCategoryAction(input: z.infer<typeof categorySchema>) {

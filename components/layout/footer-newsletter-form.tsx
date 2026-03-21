@@ -15,18 +15,17 @@ export function FooterNewsletterForm() {
 
     startTransition(() => {
       void (async () => {
-        try {
-          await subscribeNewsletterAction({ email });
+        const result = await subscribeNewsletterAction({ email });
+        if (result.success) {
           setEmail("");
           toast({
             title: "You're now part of the family! 🎉",
             description: "Fresh drops, popups, and style notes will land in your inbox.",
           });
-        } catch (error) {
+        } else {
           toast({
             title: "Subscription failed",
-            description:
-              error instanceof Error ? error.message : "Please enter a valid email address.",
+            description: result.error || "Please enter a valid email address.",
             variant: "destructive",
           });
         }

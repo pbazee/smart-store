@@ -43,6 +43,9 @@ export async function signUpCustomerAction(
   _previousState: CustomerSignUpActionState,
   formData: FormData
 ): Promise<CustomerSignUpActionState> {
+  // Keep redirect path outside try-catch — redirect() must not be caught
+  let redirectPath = "/";
+
   try {
     const payload = signUpSchema.parse({
       email: formData.get("email"),
@@ -52,19 +55,24 @@ export async function signUpCustomerAction(
       redirectUrl: formData.get("redirectUrl"),
     });
 
+    redirectPath =
+      payload.redirectUrl && payload.redirectUrl.startsWith("/")
+        ? payload.redirectUrl
+        : "/";
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: payload.email.toLowerCase() },
     });
 
     if (existingUser) {
-      return { error: "Email already registered", success: false };
+      return { error: "Email already registered. Please sign in instead.", success: false };
     }
 
     // Hash password
     const passwordHash = await hashPassword(payload.password);
 
-    // Create user
+    // Create user in database
     const user = await prisma.user.create({
       data: {
         email: payload.email.toLowerCase(),
@@ -84,7 +92,7 @@ export async function signUpCustomerAction(
       role: "customer",
     });
 
-    // Set cookie
+    // Set session cookie
     const cookieStore = await cookies();
     cookieStore.set(LOCAL_AUTH_COOKIE, token, {
       httpOnly: true,
@@ -94,60 +102,52 @@ export async function signUpCustomerAction(
       maxAge: getLocalAuthCookieMaxAge(),
     });
 
-    // Revalidate entire layout and admin pages to show new user
+    // Revalidate layout and admin users list
     revalidatePath("/", "layout");
     revalidatePath("/admin/users");
-
-    // Redirect to dashboard or requested URL
-    const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/")
-      ? payload.redirectUrl
-      : "/";
-    redirect(redirectPath);
   } catch (error) {
-    // Re-throw Next.js redirect errors - they should NOT be caught
-    if (
-      error instanceof Error &&
-      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
-    ) {
-      throw error;
-    }
-
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
       return { error: firstError.message || "Validation failed", success: false };
     }
 
-    // Log detailed error for debugging
-    console.error("Sign up failed:", {
-      error,
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error("Sign up failed:", error instanceof Error ? error.message : error);
 
-    // Return user-friendly error message
     if (error instanceof Error) {
       if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
         return { error: "Service temporarily unavailable. Please try again in a moment.", success: false };
       }
-      if (error.message.includes("duplicate key")) {
-        return { error: "Email already registered", success: false };
+      if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
+        return { error: "Email already registered. Please sign in instead.", success: false };
       }
+      return { error: error.message || "Failed to create account. Please try again.", success: false };
     }
 
     return { error: "Failed to create account. Please try again.", success: false };
   }
+
+  // redirect() must be called OUTSIDE try-catch per Next.js docs
+  redirect(redirectPath);
 }
 
 export async function signInCustomerAction(
   _previousState: CustomerSignInActionState,
   formData: FormData
 ): Promise<CustomerSignInActionState> {
+  let redirectPath = "/";
+
   try {
     const payload = signInSchema.parse({
       email: formData.get("email"),
       password: formData.get("password"),
       redirectUrl: formData.get("redirectUrl"),
     });
+
+    redirectPath =
+      payload.redirectUrl && payload.redirectUrl.startsWith("/")
+        ? payload.redirectUrl
+        : "/";
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -172,7 +172,7 @@ export async function signInCustomerAction(
       role: "customer",
     });
 
-    // Set cookie
+    // Set session cookie
     const cookieStore = await cookies();
     cookieStore.set(LOCAL_AUTH_COOKIE, token, {
       httpOnly: true,
@@ -182,44 +182,28 @@ export async function signInCustomerAction(
       maxAge: getLocalAuthCookieMaxAge(),
     });
 
-    // Revalidate entire layout to refresh session data
+    // Revalidate layout
     revalidatePath("/", "layout");
-
-    // Redirect
-    const redirectPath = payload.redirectUrl && payload.redirectUrl.startsWith("/")
-      ? payload.redirectUrl
-      : "/";
-    redirect(redirectPath);
   } catch (error) {
-    // Re-throw Next.js redirect errors - they should NOT be caught
-    if (
-      error instanceof Error &&
-      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
-    ) {
-      throw error;
-    }
-
-    // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
       return { error: firstError.message || "Validation failed", success: false };
     }
 
-    // Log detailed error for debugging
-    console.error("Sign in failed:", {
-      error,
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error("Sign in failed:", error instanceof Error ? error.message : error);
 
-    // Return user-friendly error message
     if (error instanceof Error) {
       if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
         return { error: "Service temporarily unavailable. Please try again in a moment.", success: false };
       }
+      return { error: error.message || "Failed to sign in. Please try again.", success: false };
     }
 
     return { error: "Failed to sign in. Please try again.", success: false };
   }
+
+  // redirect() must be called OUTSIDE try-catch per Next.js docs
+  redirect(redirectPath);
 }
 
 export async function signInWithGoogleAction(redirectUrl?: string) {
@@ -246,11 +230,8 @@ export async function signInWithGoogleAction(redirectUrl?: string) {
 
     return { error: "No redirect URL from OAuth provider", success: false };
   } catch (error) {
-    // Re-throw Next.js redirect errors - they should NOT be caught
-    if (
-      error instanceof Error &&
-      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
-    ) {
+    // Re-throw Next.js redirect (redirect() is called above, outside try-catch for sign-in/up)
+    if ((error as any)?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
 
@@ -271,7 +252,7 @@ export async function signUpWithGoogleAction(redirectUrl?: string) {
       options: {
         redirectTo: callbackUrl,
         queryParams: {
-          prompt: "consent", // Force account selection on Google
+          prompt: "consent",
         },
       },
     });
@@ -287,11 +268,7 @@ export async function signUpWithGoogleAction(redirectUrl?: string) {
 
     return { error: "No redirect URL from OAuth provider", success: false };
   } catch (error) {
-    // Re-throw Next.js redirect errors - they should NOT be caught
-    if (
-      error instanceof Error &&
-      ((error as any).digest?.startsWith("NEXT_REDIRECT") || error.message === "NEXT_REDIRECT")
-    ) {
+    if ((error as any)?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
 
@@ -300,4 +277,3 @@ export async function signUpWithGoogleAction(redirectUrl?: string) {
     return { error: message, success: false };
   }
 }
-

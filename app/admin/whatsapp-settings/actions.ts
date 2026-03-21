@@ -23,12 +23,9 @@ const whatsappSettingsSchema = z.object({
 
 export type AdminWhatsAppSettingsInput = z.infer<typeof whatsappSettingsSchema>;
 
-async function ensureAdmin() {
-  const isAdmin = await requireAdminAuth();
-  if (!isAdmin) {
-    throw new Error("Unauthorized");
-  }
-}
+export type SaveWhatsAppResult =
+  | { success: true; data: WhatsAppSettings }
+  | { success: false; error: string };
 
 function revalidateWhatsAppPaths() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
@@ -42,32 +39,51 @@ function revalidateWhatsAppPaths() {
 }
 
 export async function fetchAdminWhatsAppSettings() {
-  await ensureAdmin();
-  return getWhatsAppSettings({ seedIfEmpty: true });
+  const isAdmin = await requireAdminAuth();
+  if (!isAdmin) return null;
+  try {
+    return await getWhatsAppSettings({ seedIfEmpty: true });
+  } catch (err) {
+    console.error("[WhatsApp] fetchAdminWhatsAppSettings failed:", err);
+    return null;
+  }
 }
 
 export async function updateAdminWhatsAppSettingsAction(
   input: AdminWhatsAppSettingsInput
-) {
-  await ensureAdmin();
-  const validatedInput = whatsappSettingsSchema.parse(input);
-  const data = serializeWhatsAppSettings(validatedInput);
-
-  if (shouldUseMockData()) {
-    const settings = updateDemoWhatsAppSettings({
-      id: DEFAULT_WHATSAPP_SETTINGS.id,
-      phoneNumber: data.phoneNumber,
-      defaultMessage: validatedInput.defaultMessage.trim(),
-      isActive: data.isActive,
-      position: validatedInput.position,
-    });
-    revalidateWhatsAppPaths();
-    return settings;
-  }
-
-  let settings;
+): Promise<SaveWhatsAppResult> {
   try {
-    settings = await prisma.whatsAppSettings.upsert({
+    const isAdmin = await requireAdminAuth();
+    if (!isAdmin) {
+      return { success: false, error: "Unauthorized. Please log in as admin." };
+    }
+
+    let validatedInput: AdminWhatsAppSettingsInput;
+    try {
+      validatedInput = whatsappSettingsSchema.parse(input);
+    } catch (err: any) {
+      const firstIssue = err?.errors?.[0];
+      return {
+        success: false,
+        error: firstIssue?.message || "Invalid input. Check all fields and try again.",
+      };
+    }
+
+    const data = serializeWhatsAppSettings(validatedInput);
+
+    if (shouldUseMockData()) {
+      const settings = updateDemoWhatsAppSettings({
+        id: DEFAULT_WHATSAPP_SETTINGS.id,
+        phoneNumber: data.phoneNumber,
+        defaultMessage: validatedInput.defaultMessage.trim(),
+        isActive: data.isActive,
+        position: validatedInput.position,
+      });
+      revalidateWhatsAppPaths();
+      return { success: true, data: settings as WhatsAppSettings };
+    }
+
+    const settings = await prisma.whatsAppSettings.upsert({
       where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
       update: {
         phoneNumber: data.phoneNumber,
@@ -81,15 +97,21 @@ export async function updateAdminWhatsAppSettingsAction(
         isActive: data.isActive,
       },
     });
-  } catch (error: any) {
-    console.error("[WhatsApp Settings] upsert failed:", error?.message ?? error);
-    throw new Error("Failed to save WhatsApp settings. Please try again.");
-  }
 
-  revalidateWhatsAppPaths();
-  return {
-    ...settings,
-    defaultMessage: validatedInput.defaultMessage.trim(),
-    position: validatedInput.position,
-  } as WhatsAppSettings;
+    revalidateWhatsAppPaths();
+    return {
+      success: true,
+      data: {
+        ...settings,
+        defaultMessage: validatedInput.defaultMessage.trim(),
+        position: validatedInput.position,
+      } as WhatsAppSettings,
+    };
+  } catch (err: any) {
+    console.error("[WhatsApp Settings] updateAdminWhatsAppSettingsAction failed:", err?.message ?? err);
+    return {
+      success: false,
+      error: err?.message || "Failed to save WhatsApp settings. Please try again.",
+    };
+  }
 }

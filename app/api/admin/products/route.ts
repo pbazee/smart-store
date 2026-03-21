@@ -6,7 +6,7 @@ import { releaseExpiredReservations } from "@/lib/order-reservations";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
-const genderSchema = z.enum(["men", "women", "unisex", "male", "female"]);
+const genderSchema = z.enum(["men", "women", "unisex", "children", "male", "female"]);
 
 const createProductSchema = z.object({
   name: z.string().min(2, "Name required"),

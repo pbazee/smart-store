@@ -17,12 +17,9 @@ const storeSettingsSchema = z.object({
 
 export type AdminStoreSettingsInput = z.infer<typeof storeSettingsSchema>;
 
-async function ensureAdmin() {
-  const isAdmin = await requireAdminAuth();
-  if (!isAdmin) {
-    throw new Error("Unauthorized");
-  }
-}
+export type SaveSettingsResult =
+  | { success: true; data: StoreSettings }
+  | { success: false; error: string };
 
 function revalidateStorefront() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
@@ -35,22 +32,31 @@ function revalidateStorefront() {
 }
 
 export async function fetchAdminStoreSettings() {
-  await ensureAdmin();
+  const isAdmin = await requireAdminAuth();
+  if (!isAdmin) return null;
   return (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null;
 }
 
-export async function updateAdminStoreSettingsAction(input: AdminStoreSettingsInput) {
-  await ensureAdmin();
-
-  let data: ReturnType<typeof storeSettingsSchema.parse>;
+export async function updateAdminStoreSettingsAction(
+  input: AdminStoreSettingsInput
+): Promise<SaveSettingsResult> {
   try {
-    data = storeSettingsSchema.parse(input);
-  } catch (error: any) {
-    const firstIssue = error?.errors?.[0];
-    throw new Error(firstIssue?.message || "Invalid input. Check all fields and try again.");
-  }
+    const isAdmin = await requireAdminAuth();
+    if (!isAdmin) {
+      return { success: false, error: "Unauthorized. Please log in as admin." };
+    }
 
-  try {
+    let data: AdminStoreSettingsInput;
+    try {
+      data = storeSettingsSchema.parse(input);
+    } catch (err: any) {
+      const firstIssue = err?.errors?.[0];
+      return {
+        success: false,
+        error: firstIssue?.message || "Invalid input. Check all fields and try again.",
+      };
+    }
+
     const settings = await upsertStoreSettings({
       supportEmail: data.supportEmail,
       supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
@@ -59,9 +65,12 @@ export async function updateAdminStoreSettingsAction(input: AdminStoreSettingsIn
     });
 
     revalidateStorefront();
-    return settings;
-  } catch (error: any) {
-    console.error("[Settings] upsertStoreSettings failed:", error?.message ?? error);
-    throw new Error("Failed to save settings. Please check your database connection and try again.");
+    return { success: true, data: settings as StoreSettings };
+  } catch (err: any) {
+    console.error("[Settings] updateAdminStoreSettingsAction failed:", err?.message ?? err);
+    return {
+      success: false,
+      error: err?.message || "Failed to save settings. Please check your database connection and try again.",
+    };
   }
 }

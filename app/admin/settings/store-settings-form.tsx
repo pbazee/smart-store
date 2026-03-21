@@ -30,16 +30,16 @@ export function StoreSettingsForm({
 
     startTransition(() => {
       void (async () => {
-        try {
-          await updateAdminStoreSettingsAction(form);
+        const result = await updateAdminStoreSettingsAction(form);
+        if (result.success) {
           toast({
             title: "Store settings saved",
             description: "Support contacts and admin notifications updated across the storefront.",
           });
-        } catch (error) {
+        } else {
           toast({
             title: "Save failed",
-            description: error instanceof Error ? error.message : "Please try again.",
+            description: result.error || "Please try again.",
             variant: "destructive",
           });
         }

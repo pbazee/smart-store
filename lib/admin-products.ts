@@ -1,4 +1,4 @@
-export function normalizeAdminGender(gender: "men" | "women" | "unisex" | "male" | "female") {
+export function normalizeAdminGender(gender: "men" | "women" | "unisex" | "children" | "male" | "female") {
   if (gender === "male") {
     return "men";
   }
@@ -17,7 +17,7 @@ export function buildAdminProductCreateData(input: {
   category: string;
   subcategory: string;
   categoryId?: string | null;
-  gender: "men" | "women" | "unisex" | "male" | "female";
+  gender: "men" | "women" | "unisex" | "children" | "male" | "female";
   basePrice: number;
   images: string[];
   tags?: string[];

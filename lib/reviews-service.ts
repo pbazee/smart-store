@@ -120,6 +120,7 @@ export async function createProductReview(input: {
       title: input.title ?? null,
       content: input.content,
       verifiedPurchase: input.verifiedPurchase ?? false,
+      isApproved: true,
     },
   });
 

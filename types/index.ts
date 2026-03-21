@@ -15,7 +15,7 @@ export interface Product {
   category: string;
   subcategory: string;
   categoryId?: string | null;
-  gender: "men" | "women" | "unisex";
+  gender: "men" | "women" | "unisex" | "children";
   tags: string[];
   basePrice: number;
   images: string[];
