@@ -85,6 +85,19 @@ model NewsletterSubscriber {
   subscribedAt DateTime @default(now())
 }
 
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("unread")
+  createdAt DateTime @default(now())
+  repliedAt DateTime?
+
+  @@index([status, createdAt])
+}
+
 model Popup {
   id           String             @id @default(cuid())
   title        String

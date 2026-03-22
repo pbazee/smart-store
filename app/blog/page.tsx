@@ -24,29 +24,29 @@ export default async function BlogPage() {
   const [featuredPost, ...remainingPosts] = posts;
 
   return (
-    <div className="bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.12),_transparent_30%),linear-gradient(180deg,_rgba(255,255,255,1)_0%,_rgba(249,250,251,1)_100%)]">
+    <div className="bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.14),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,1)_0%,_rgba(248,250,252,1)_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.16),_transparent_28%),linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)]">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-brand-500">Journal</p>
-          <h1 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-6xl">
+          <h1 className="mt-4 font-display text-4xl font-black tracking-tight text-zinc-950 sm:text-6xl dark:text-zinc-50">
             Streetwear notes from Nairobi and beyond
           </h1>
-          <p className="mt-5 text-lg text-muted-foreground">
+          <p className="mt-5 text-lg text-zinc-700 dark:text-zinc-400">
             Trend reports, styling tips, and quick reads built around how people are actually
             dressing right now.
           </p>
         </div>
 
         {!featuredPost ? (
-          <div className="mt-12 rounded-[2.5rem] border border-border bg-card p-10 text-center">
-            <h2 className="text-2xl font-black">Blog stories are coming soon</h2>
-            <p className="mt-3 text-muted-foreground">
+          <div className="mt-12 rounded-[2.5rem] border border-zinc-200 bg-white/90 p-10 text-center shadow-[0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none">
+            <h2 className="text-2xl font-black text-zinc-950 dark:text-zinc-50">Blog stories are coming soon</h2>
+            <p className="mt-3 text-zinc-700 dark:text-zinc-400">
               Check back soon for styling guides, trend notes, and editorial picks.
             </p>
           </div>
         ) : (
           <>
-            <section className="mt-12 overflow-hidden rounded-[2.5rem] border border-border bg-card shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+            <section className="mt-12 overflow-hidden rounded-[2.5rem] border border-zinc-200 bg-white/95 shadow-[0_30px_80px_rgba(15,23,42,0.10)] dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none">
               <div className="grid lg:grid-cols-[1.15fr,0.85fr]">
                 <div className="relative min-h-[320px]">
                   <Image
@@ -65,7 +65,7 @@ export default async function BlogPage() {
                 </div>
                 <div className="flex flex-col justify-between p-8 sm:p-10">
                   <div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                       <span>
                         {new Date(
                           featuredPost.publishedAt || featuredPost.createdAt
@@ -77,17 +77,17 @@ export default async function BlogPage() {
                       </span>
                       <span>{getBlogReadTime(featuredPost.content)}</span>
                     </div>
-                    <h2 className="mt-5 font-display text-3xl font-black tracking-tight sm:text-4xl">
+                    <h2 className="mt-5 font-display text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl dark:text-zinc-50">
                       {featuredPost.title}
                     </h2>
-                    <p className="mt-4 text-base text-muted-foreground">
+                    <p className="mt-4 text-base leading-8 text-zinc-700 dark:text-zinc-400">
                       {getBlogExcerpt(featuredPost.content, 180)}
                     </p>
                   </div>
 
                   <Link
                     href={`/blog/${featuredPost.slug}`}
-                    className="mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+                    className="mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(249,115,22,0.22)] transition-colors hover:bg-brand-600"
                   >
                     Read more
                     <ArrowUpRight className="h-4 w-4" />
@@ -101,7 +101,7 @@ export default async function BlogPage() {
                 {remainingPosts.map((post) => (
                   <article
                     key={post.id}
-                    className="overflow-hidden rounded-[2rem] border border-border bg-card transition-transform duration-300 hover:-translate-y-1"
+                    className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition-transform duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none"
                   >
                     <div className="relative h-56">
                       <Image
@@ -119,7 +119,7 @@ export default async function BlogPage() {
                       />
                     </div>
                     <div className="p-6">
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                         <span>
                           {new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-KE", {
                             month: "long",
@@ -129,13 +129,13 @@ export default async function BlogPage() {
                         </span>
                         <span>{getBlogReadTime(post.content)}</span>
                       </div>
-                      <h2 className="mt-4 text-2xl font-black tracking-tight">{post.title}</h2>
-                      <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      <h2 className="mt-4 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{post.title}</h2>
+                      <p className="mt-3 text-sm leading-7 text-zinc-700 dark:text-zinc-400">
                         {getBlogExcerpt(post.content, 140)}
                       </p>
                       <Link
                         href={`/blog/${post.slug}`}
-                        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+                        className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-brand-700 transition-colors hover:bg-orange-200 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/20"
                       >
                         Read more
                         <ArrowUpRight className="h-4 w-4" />

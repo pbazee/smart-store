@@ -35,26 +35,45 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseUser = sessionData.user;
+    const normalizedEmail = supabaseUser.email?.toLowerCase();
+
+    if (!normalizedEmail) {
+      return NextResponse.redirect(
+        new URL(`/sign-in?error=missing_email&redirect_url=${encodeURIComponent(redirectUrl)}`, request.url)
+      );
+    }
 
     // Find or create user in our database
     let user = await prisma.user.findUnique({
-      where: { email: supabaseUser.email! },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
       // Create new user from OAuth
-      const nameParts = (supabaseUser.user_metadata?.name || supabaseUser.email).split(" ");
+      const displayName = supabaseUser.user_metadata?.name || normalizedEmail;
+      const nameParts = displayName.split(" ");
       const firstName = nameParts[0] || "User";
       const lastName = nameParts.slice(1).join(" ") || "";
 
       user = await prisma.user.create({
         data: {
-          email: supabaseUser.email!,
+          email: normalizedEmail,
           firstName,
           lastName,
-          fullName: supabaseUser.user_metadata?.name || supabaseUser.email,
+          fullName: displayName,
           role: "CUSTOMER",
           // No password for OAuth users
+        },
+      });
+    } else if (!user.fullName || !user.firstName) {
+      const displayName = supabaseUser.user_metadata?.name || user.email || normalizedEmail;
+      const nameParts = displayName.split(" ");
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          firstName: user.firstName || nameParts[0] || "User",
+          lastName: user.lastName || nameParts.slice(1).join(" ") || "",
+          fullName: user.fullName || displayName,
         },
       });
     }
@@ -62,7 +81,7 @@ export async function GET(request: NextRequest) {
     // Create our local auth token
     const token = await createLocalAuthToken({
       userId: user.id,
-      email: user.email ?? supabaseUser.email!,
+      email: user.email ?? normalizedEmail,
       name: user.fullName ?? "Customer",
       role: "customer",
     });
@@ -79,6 +98,7 @@ export async function GET(request: NextRequest) {
 
     // Revalidate cache to ensure session is fresh
     revalidatePath("/", "layout");
+    revalidatePath("/admin/users");
 
     // Redirect to requested URL
     return NextResponse.redirect(

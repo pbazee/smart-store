@@ -27,6 +27,7 @@ const navItems = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
   { href: "/admin/users", label: "Users", icon: User2 },
+  { href: "/admin/messages", label: "Messages", icon: MessageCircle },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/reviews", label: "Reviews", icon: MessageCircle },
   { href: "/admin/announcements", label: "Announcements", icon: Bell },

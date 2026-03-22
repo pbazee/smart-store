@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { Clock3, Mail, MapPin, MessageCircleMore, Phone } from "lucide-react";
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { getStoreSettings } from "@/lib/store-settings";
 import { buildWhatsAppHref, getWhatsAppSettings } from "@/lib/whatsapp-service";
+import { ContactFormCard } from "./contact-form-card";
 
 export default async function ContactPage() {
   const [storeSettings, whatsAppSettings] = await Promise.all([
@@ -10,8 +10,14 @@ export default async function ContactPage() {
     getWhatsAppSettings({ seedIfEmpty: true }),
   ]);
 
-  const supportEmail = storeSettings?.supportEmail || DEFAULT_STORE_SETTINGS.supportEmail;
-  const supportPhone = storeSettings?.supportPhone || DEFAULT_STORE_SETTINGS.supportPhone;
+  const supportEmail =
+    storeSettings?.supportEmail ||
+    DEFAULT_STORE_SETTINGS.supportEmail ||
+    "support@smarteststore.ke";
+  const supportPhone =
+    storeSettings?.supportPhone ||
+    DEFAULT_STORE_SETTINGS.supportPhone ||
+    "+254 700 123 456";
   const contactPhone =
     storeSettings?.contactPhone ||
     storeSettings?.footerContactPhone ||
@@ -107,85 +113,7 @@ export default async function ContactPage() {
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-border bg-card p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-          <h2 className="text-2xl font-black">Send Us a Message</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Prefer email? Send the essentials and our support team will reply from{" "}
-            <span className="font-semibold text-foreground">{supportEmail}</span>.
-          </p>
-
-          <form className="mt-8 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium">First Name</label>
-                <input
-                  type="text"
-                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="John"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium">Last Name</label>
-                <input
-                  type="text"
-                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">Email</label>
-              <input
-                type="email"
-                className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="john@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">Subject</label>
-              <select className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option>General Inquiry</option>
-                <option>Order Support</option>
-                <option>Product Question</option>
-                <option>Return Request</option>
-                <option>Partnership</option>
-                <option>Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">Message</label>
-              <textarea
-                rows={6}
-                className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="How can we help you?"
-              />
-            </div>
-
-            <div className="rounded-[1.5rem] bg-muted/50 p-4 text-sm text-muted-foreground">
-              Support replies come from{" "}
-              <span className="font-semibold text-foreground">{supportEmail}</span>. Include
-              your order number when the message is about delivery, payment, or returns so the
-              team can help faster.
-            </div>
-
-            <button
-              type="submit"
-              className="w-full rounded-full bg-brand-500 px-6 py-3 font-semibold text-white transition hover:bg-brand-600"
-            >
-              Send Message
-            </button>
-          </form>
-
-          <p className="mt-6 text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Looking for quick answers?{" "}
-            <Link href="/faq" className="font-semibold text-brand-500 hover:text-brand-600">
-              Browse the FAQ
-            </Link>
-          </p>
-        </div>
+        <ContactFormCard supportEmail={supportEmail} />
       </div>
     </div>
   );

@@ -79,6 +79,17 @@ export interface NewsletterSubscriber {
   subscribedAt: string | Date;
 }
 
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "unread" | "replied";
+  createdAt: string | Date;
+  repliedAt?: string | Date | null;
+}
+
 export type PopupDisplayTarget = "homepage" | "all";
 
 export interface Popup {

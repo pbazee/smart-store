@@ -30,17 +30,17 @@ export async function BlogTeaserSection({
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-brand-500">
             Journal
           </p>
-          <h2 className="mt-3 font-display text-3xl font-black tracking-tight sm:text-4xl">
+          <h2 className="mt-3 font-display text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl dark:text-zinc-50">
             Latest from the Blog
           </h2>
-          <p className="mt-3 text-muted-foreground">
+          <p className="mt-3 text-zinc-700 dark:text-zinc-400">
             Style notes, trend alerts, and smarter outfit ideas pulled straight from the latest edit.
           </p>
         </div>
 
         <Link
           href="/blog"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200"
         >
           View all posts
           <ArrowUpRight className="h-4 w-4" />
@@ -51,7 +51,7 @@ export async function BlogTeaserSection({
         {posts.map((post) => (
           <article
             key={post.id}
-            className="group overflow-hidden rounded-[2rem] border border-border bg-card transition-transform duration-300 hover:-translate-y-1"
+            className="group overflow-hidden rounded-[2rem] border border-zinc-200 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition-transform duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none"
           >
             <div className="relative h-56 overflow-hidden">
               <Image
@@ -70,7 +70,7 @@ export async function BlogTeaserSection({
               />
             </div>
             <div className="p-6">
-              <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                 <span>
                   {new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-KE", {
                     month: "short",
@@ -80,13 +80,13 @@ export async function BlogTeaserSection({
                 </span>
                 <span>{getBlogReadTime(post.content)}</span>
               </div>
-              <h3 className="mt-4 text-2xl font-black tracking-tight">{post.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              <h3 className="mt-4 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{post.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-zinc-700 dark:text-zinc-400">
                 {getBlogExcerpt(post.content, 100)}
               </p>
               <Link
                 href={`/blog/${post.slug}`}
-                className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-brand-700 transition-colors hover:bg-orange-200 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/20"
               >
                 Read more
                 <ArrowUpRight className="h-4 w-4" />

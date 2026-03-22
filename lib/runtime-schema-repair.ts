@@ -144,3 +144,30 @@ export async function ensureHomepageCategoryStorage() {
     ]);
   });
 }
+
+export async function ensureContactMessageStorage() {
+  await runSchemaRepair("contact-message", async () => {
+    await executeRepairStatements([
+      `
+        CREATE TABLE IF NOT EXISTS "ContactMessage" (
+          "id" TEXT PRIMARY KEY,
+          "name" TEXT NOT NULL,
+          "email" TEXT NOT NULL,
+          "subject" TEXT NOT NULL,
+          "message" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'unread',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "repliedAt" TIMESTAMP(3)
+        );
+      `,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "name" TEXT;`,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "email" TEXT;`,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "subject" TEXT;`,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "message" TEXT;`,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'unread';`,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`,
+      `ALTER TABLE "ContactMessage" ADD COLUMN IF NOT EXISTS "repliedAt" TIMESTAMP(3);`,
+      `CREATE INDEX IF NOT EXISTS "ContactMessage_status_createdAt_idx" ON "ContactMessage" ("status", "createdAt");`,
+    ]);
+  });
+}

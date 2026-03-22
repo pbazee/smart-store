@@ -51,6 +51,7 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
     { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/messages", label: "Messages", icon: Mail },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/announcements", label: "Announcements", icon: Bell },
     { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
