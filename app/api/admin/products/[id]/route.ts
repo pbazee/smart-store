@@ -2,14 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { buildAdminProductDeleteOperations } from "@/lib/admin-products";
+import {
+  buildValidCatalogProductWhere,
+  resolveAdminProductCatalogAssignment,
+} from "@/lib/product-integrity";
+import { slugify } from "@/lib/utils";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 const updateProductSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
+  name: z.string().min(2).optional(),
+  slug: z.string().min(2).optional(),
+  description: z.string().min(10).optional(),
   category: z.string().optional(),
-  basePrice: z.number().optional(),
+  categoryId: z.string().min(1).optional().nullable(),
+  subcategory: z.string().min(2).optional(),
+  gender: z.enum(["men", "women", "unisex", "children", "male", "female"]).optional(),
+  basePrice: z.number().int().positive().optional(),
+  images: z.array(z.string().min(1)).optional(),
+  tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().optional(),
   isNew: z.boolean().optional(),
 });
@@ -20,9 +31,14 @@ type RouteContext = {
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   try {
+    const isAdmin = await requireAdminAuth();
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
-    const product = await prisma.product.findUnique({
-      where: { id },
+    const product = await prisma.product.findFirst({
+      where: buildValidCatalogProductWhere({ id }),
       include: { variants: true },
     });
 
@@ -47,10 +63,27 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const body = await req.json();
     const validatedData = updateProductSchema.parse(body);
     const { id } = await params;
+    const existingProduct = await prisma.product.findFirst({
+      where: buildValidCatalogProductWhere({ id }),
+      include: { variants: true },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    const catalogAssignment = await resolveAdminProductCatalogAssignment({
+      categoryId: validatedData.categoryId ?? existingProduct.categoryId ?? null,
+      subcategory: validatedData.subcategory ?? existingProduct.subcategory,
+    });
 
     const product = await prisma.product.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...validatedData,
+        slug: slugify(validatedData.slug ?? validatedData.name ?? existingProduct.slug),
+        ...catalogAssignment,
+      },
       include: { variants: true },
     });
 

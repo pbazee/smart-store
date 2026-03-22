@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { shouldUseMockData } from "@/lib/live-data-mode";
+import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import {
   getDemoProducts,
   getDemoWishlistProductIds,
@@ -33,7 +34,9 @@ export async function getWishlistProducts(userId: string): Promise<Product[]> {
 
   try {
     return (await prisma.product.findMany({
-      where: { id: { in: ids } },
+      where: buildValidCatalogProductWhere({
+        id: { in: ids },
+      }),
       include: { variants: true },
     })) as Product[];
   } catch (error) {

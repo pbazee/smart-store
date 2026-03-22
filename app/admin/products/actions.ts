@@ -12,7 +12,13 @@ import {
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { shouldUseMockData } from "@/lib/live-data-mode";
+import { mockProducts } from "@/lib/mock-data";
 import { prisma } from "@/lib/prisma";
+import {
+  buildInvalidCatalogProductWhere,
+  buildValidCatalogProductWhere,
+  resolveAdminProductCatalogAssignment,
+} from "@/lib/product-integrity";
 import { slugify } from "@/lib/utils";
 import { getHomepageSubcategoriesForCategory } from "@/lib/homepage-category-service";
 import type { HomepageCategory, Product } from "@/types";
@@ -44,6 +50,7 @@ const adminProductSchema = z.object({
 });
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
+const LEGACY_SEEDED_PRODUCT_IDS = mockProducts.map((product) => product.id);
 
 async function ensureAdmin() {
   const isAdmin = await requireAdminAuth();
@@ -59,6 +66,30 @@ function revalidateCatalogPaths() {
   revalidatePath("/wishlist");
   revalidatePath("/admin");
   revalidatePath("/admin/products");
+}
+
+async function normalizeAdminProductInput(input: AdminProductInput) {
+  const catalogAssignment = await resolveAdminProductCatalogAssignment({
+    categoryId: input.categoryId ?? null,
+    subcategory: input.subcategory,
+  });
+
+  return {
+    ...input,
+    slug: slugify(input.slug || input.name),
+    ...catalogAssignment,
+  };
+}
+
+async function normalizeAdminProductUpdateInput(
+  input: AdminProductInput & { id: string }
+) {
+  const normalizedInput = await normalizeAdminProductInput(input);
+
+  return {
+    ...normalizedInput,
+    id: input.id,
+  };
 }
 
 function toDemoProduct(input: AdminProductInput, current?: Product | null): Product {
@@ -97,9 +128,22 @@ export async function fetchAdminProducts() {
   }
 
   return (await prisma.product.findMany({
+    where: buildValidCatalogProductWhere(),
     include: { variants: true },
     orderBy: { createdAt: "desc" },
   })) as Product[];
+}
+
+export async function fetchInvalidAdminProductCount() {
+  await ensureAdmin();
+
+  if (shouldUseMockData()) {
+    return 0;
+  }
+
+  return prisma.product.count({
+    where: buildInvalidCatalogProductWhere(LEGACY_SEEDED_PRODUCT_IDS),
+  });
 }
 
 export async function fetchHomepageSubcategoriesAction(
@@ -117,18 +161,18 @@ export async function fetchHomepageSubcategoriesAction(
 export async function createAdminProductAction(input: AdminProductInput) {
   await ensureAdmin();
   const data = adminProductSchema.parse(input);
+  const normalizedData = await normalizeAdminProductInput(data);
 
   if (shouldUseMockData()) {
-    const product = createDemoProduct(toDemoProduct(data));
+    const product = createDemoProduct(toDemoProduct(normalizedData));
     revalidateCatalogPaths();
     return product;
   }
 
   const product = await prisma.product.create({
     data: buildAdminProductCreateData({
-      ...data,
-      slug: slugify(data.slug || data.name),
-      categoryId: data.categoryId ?? null,
+      ...normalizedData,
+      categoryId: normalizedData.categoryId ?? null,
     }),
     include: { variants: true },
   });
@@ -140,36 +184,37 @@ export async function createAdminProductAction(input: AdminProductInput) {
 export async function updateAdminProductAction(input: AdminProductInput) {
   await ensureAdmin();
   const data = adminProductSchema.extend({ id: z.string().min(1) }).parse(input);
+  const normalizedData = await normalizeAdminProductUpdateInput(data);
 
   if (shouldUseMockData()) {
-    const current = getDemoProducts().find((product) => product.id === data.id);
+    const current = getDemoProducts().find((product) => product.id === normalizedData.id);
     if (!current) {
       throw new Error("Product not found");
     }
 
-    const product = updateDemoProduct(data.id, toDemoProduct(data, current));
+    const product = updateDemoProduct(normalizedData.id, toDemoProduct(normalizedData, current));
     revalidateCatalogPaths();
     return product;
   }
 
   const product = await prisma.product.update({
-    where: { id: data.id },
+    where: { id: normalizedData.id },
     data: {
-      name: data.name,
-      slug: slugify(data.slug || data.name),
-      description: data.description,
-      category: data.category,
-      subcategory: data.subcategory,
-      categoryId: data.categoryId ?? null,
-      gender: data.gender,
-      tags: data.tags,
-      basePrice: data.basePrice,
-      images: data.images,
-      isFeatured: data.isFeatured,
-      isNew: data.isNew,
+      name: normalizedData.name,
+      slug: normalizedData.slug,
+      description: normalizedData.description,
+      category: normalizedData.category,
+      subcategory: normalizedData.subcategory,
+      categoryId: normalizedData.categoryId ?? null,
+      gender: normalizedData.gender,
+      tags: normalizedData.tags,
+      basePrice: normalizedData.basePrice,
+      images: normalizedData.images,
+      isFeatured: normalizedData.isFeatured,
+      isNew: normalizedData.isNew,
       variants: {
         deleteMany: {},
-        create: data.variants.map((variant) => ({
+        create: normalizedData.variants.map((variant) => ({
           color: variant.color,
           colorHex: variant.colorHex,
           size: variant.size,
@@ -183,6 +228,23 @@ export async function updateAdminProductAction(input: AdminProductInput) {
 
   revalidateCatalogPaths();
   return product as Product;
+}
+
+export async function deleteInvalidAdminProductsAction() {
+  await ensureAdmin();
+
+  if (shouldUseMockData()) {
+    return { deletedCount: 0 };
+  }
+
+  const result = await prisma.product.deleteMany({
+    where: buildInvalidCatalogProductWhere(LEGACY_SEEDED_PRODUCT_IDS),
+  });
+
+  revalidateCatalogPaths();
+  return {
+    deletedCount: result.count,
+  };
 }
 
 export async function deleteAdminProductsAction(productIds: string[]) {

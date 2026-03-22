@@ -12,6 +12,7 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 import {
+  AlertTriangle,
   Download,
   Loader2,
   Pencil,
@@ -19,7 +20,10 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { deleteAdminProductsAction } from "@/app/admin/products/actions";
+import {
+  deleteAdminProductsAction,
+  deleteInvalidAdminProductsAction,
+} from "@/app/admin/products/actions";
 import { ProductFormDialog } from "@/app/admin/products/product-form-dialog";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
@@ -28,6 +32,7 @@ import type { Product, Category } from "@/types";
 type ProductsManagerProps = {
   initialProducts: Product[];
   categories: Category[];
+  invalidProductCount: number;
 };
 
 function getTotalStock(product: Product) {
@@ -53,9 +58,14 @@ function downloadCsv(filename: string, rows: string[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ProductsManager({ initialProducts, categories }: ProductsManagerProps) {
+export function ProductsManager({
+  initialProducts,
+  categories,
+  invalidProductCount,
+}: ProductsManagerProps) {
   const { toast } = useToast();
   const [products, setProducts] = useState(initialProducts);
+  const [legacyProductCount, setLegacyProductCount] = useState(invalidProductCount);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | "all">("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -95,6 +105,46 @@ export function ProductsManager({ initialProducts, categories }: ProductsManager
   useEffect(() => {
     setPagination((current) => ({ ...current, pageIndex: 0 }));
   }, [selectedCategoryId, deferredSearch]);
+
+  const handleDeleteInvalidProducts = async () => {
+    if (legacyProductCount <= 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${legacyProductCount} invalid seeded product${
+        legacyProductCount === 1 ? "" : "s"
+      } from the database?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          const result = await deleteInvalidAdminProductsAction();
+          setLegacyProductCount(0);
+          toast({
+            title: result.deletedCount === 0 ? "No legacy products found" : "Legacy products removed",
+            description:
+              result.deletedCount === 0
+                ? "The catalog is already clean."
+                : `${result.deletedCount} invalid seeded product${
+                    result.deletedCount === 1 ? "" : "s"
+                  } removed from the database.`,
+          });
+        } catch (error) {
+          toast({
+            title: "Cleanup failed",
+            description: error instanceof Error ? error.message : "Please try again.",
+            variant: "destructive",
+          });
+        }
+      })();
+    });
+  };
 
   const handleSavedProduct = (product: Product) => {
     startTransition(() => {
@@ -358,6 +408,30 @@ export function ProductsManager({ initialProducts, categories }: ProductsManager
           </button>
         </div>
       </div>
+
+      {legacyProductCount > 0 ? (
+        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-amber-500/30 bg-amber-500/10 p-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-amber-300">
+              <AlertTriangle className="h-4 w-4" />
+              Legacy catalog cleanup required
+            </p>
+            <p className="mt-2 text-sm text-amber-50">
+              {legacyProductCount} invalid seeded product{legacyProductCount === 1 ? "" : "s"} still exist in
+              the database and can leak into old landing-page queries if left behind.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => void handleDeleteInvalidProducts()}
+            className="inline-flex items-center gap-2 self-start rounded-full border border-amber-300/40 bg-amber-400/15 px-5 py-3 text-sm font-semibold text-amber-50 transition-colors hover:border-amber-200 hover:bg-amber-400/25 disabled:opacity-40"
+          >
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Remove invalid seeded products
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-900 p-5">

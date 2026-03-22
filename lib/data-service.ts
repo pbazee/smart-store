@@ -3,6 +3,7 @@ import { shouldUseMockData } from "@/lib/live-data-mode";
 import { getAdminStats, mockOrders } from "@/lib/mock-data";
 import { releaseExpiredReservations } from "@/lib/order-reservations";
 import { prisma } from "@/lib/prisma";
+import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import { getDemoProductBySlug, getDemoProducts } from "@/lib/demo-catalog";
 import type { Order, Product } from "@/types";
 
@@ -110,7 +111,7 @@ function buildProductWhere(filters?: ProductQueryFilters): Prisma.ProductWhereIn
     ];
   }
 
-  return where;
+  return buildValidCatalogProductWhere(where);
 }
 
 function filterDemoProducts(products: Product[], filters?: ProductQueryFilters) {
@@ -411,8 +412,8 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   return withLiveData(
     "getProductBySlug",
     async () => {
-      const product = await prisma.product.findUnique({
-        where: { slug },
+      const product = await prisma.product.findFirst({
+        where: buildValidCatalogProductWhere({ slug }),
         include: { variants: true },
       });
 
@@ -431,9 +432,9 @@ export async function getProductByIdentifier(identifier: string): Promise<Produc
     "getProductByIdentifier",
     async () => {
       const product = await prisma.product.findFirst({
-        where: {
+        where: buildValidCatalogProductWhere({
           OR: [{ slug: identifier }, { id: identifier }],
-        },
+        }),
         include: { variants: true },
       });
 
@@ -532,9 +533,11 @@ export async function getAdminDashboardStats() {
             orderBy: { createdAt: "asc" },
           }),
         prisma.order.count(),
-        prisma.product.count(),
+        prisma.product.count({
+          where: buildValidCatalogProductWhere(),
+        }),
         prisma.product.findMany({
-          where: {
+          where: buildValidCatalogProductWhere({
             variants: {
               some: {
                 stock: {
@@ -543,7 +546,7 @@ export async function getAdminDashboardStats() {
                 },
               },
             },
-          },
+          }),
             include: { variants: true },
             take: 6,
           }),
@@ -605,14 +608,14 @@ export async function getRelatedProducts(
     "getRelatedProducts",
     async () => {
       const relatedProducts = await prisma.product.findMany({
-        where: {
+        where: buildValidCatalogProductWhere({
           AND: [
             { id: { not: product.id } },
             {
               OR: [{ category: product.category }, { gender: product.gender }],
             },
           ],
-        },
+        }),
         include: { variants: true },
         take: limit,
       });

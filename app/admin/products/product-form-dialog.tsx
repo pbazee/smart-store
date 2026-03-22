@@ -126,7 +126,7 @@ function toPayload(form: ProductFormState): AdminProductInput {
     description: form.description.trim(),
     category: form.category.trim(),
     subcategory: form.subcategory.trim(),
-    categoryId: form.parentId || null,
+    categoryId: form.parentId || form.categoryId || null,
     gender: form.gender,
     basePrice,
     images: form.images.filter(Boolean),
@@ -362,6 +362,7 @@ export function ProductFormDialog({
             <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Category</span>
               <select
+                required
                 value={form.parentId ?? ""}
                 onChange={(event) => {
                   const parentId = event.target.value ? event.target.value : null;

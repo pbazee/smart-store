@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:integration": "node --experimental-strip-types scripts/run-integration-tests.mjs",
+    "cleanup:invalid-products": "node --import tsx scripts/cleanup-invalid-products.ts",
     "cleanup:reservations": "node --import tsx scripts/cleanup-expired-reservations.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node --import tsx prisma/seed.ts",

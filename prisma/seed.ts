@@ -1,3 +1,4 @@
+import { loadEnvConfig } from "@next/env";
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS } from "../lib/default-announcements";
 import { DEFAULT_BLOG_POST_SEEDS } from "../lib/default-blog-posts";
@@ -9,9 +10,12 @@ import { DEFAULT_WHATSAPP_SETTINGS } from "../lib/default-whatsapp-settings";
 import { DEFAULT_STORE_SETTINGS } from "../lib/default-store-settings";
 import { DEFAULT_SHIPPING_RULES } from "../lib/default-shipping-rules";
 import { mockProducts } from "../lib/mock-data";
+import { buildInvalidCatalogProductWhere } from "../lib/product-integrity";
 import { hashPassword } from "../lib/password";
 
-function resolveDatabaseUrl(rawUrl = process.env.DATABASE_URL) {
+loadEnvConfig(process.cwd());
+
+function resolveDatabaseUrl(rawUrl = process.env.DIRECT_URL || process.env.DATABASE_URL) {
   if (!rawUrl) {
     return rawUrl;
   }
@@ -317,80 +321,15 @@ async function main() {
       console.log(`Seeded shipping rule: ${rule.name}`);
     }
 
-    console.log("Seeding products...");
-    let createdCount = 0;
-    for (const product of mockProducts) {
-      const createdProduct = await prisma.product.upsert({
-        where: { id: product.id },
-        update: {
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          category: product.category,
-          subcategory: product.subcategory,
-          gender: product.gender,
-          tags: product.tags,
-          basePrice: product.basePrice,
-          images: product.images,
-          rating: product.rating || 0,
-          reviewCount: product.reviewCount || 0,
-          isFeatured: product.isFeatured || false,
-          isNew: product.isNew || false,
-        },
-        create: {
-          id: product.id,
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          category: product.category,
-          subcategory: product.subcategory,
-          gender: product.gender,
-          tags: product.tags,
-          basePrice: product.basePrice,
-          images: product.images,
-          rating: product.rating || 0,
-          reviewCount: product.reviewCount || 0,
-          isFeatured: product.isFeatured || false,
-          isNew: product.isNew || false,
-        },
-      });
-
-      await prisma.variant.deleteMany({
-        where: {
-          productId: createdProduct.id,
-          id: { notIn: product.variants.map((variant) => variant.id) },
-        },
-      });
-
-      for (const variant of product.variants) {
-        await prisma.variant.upsert({
-          where: { id: variant.id },
-          update: {
-            color: variant.color,
-            colorHex: variant.colorHex,
-            size: variant.size,
-            stock: variant.stock,
-            price: variant.price,
-            productId: createdProduct.id,
-          },
-          create: {
-            id: variant.id,
-            color: variant.color,
-            colorHex: variant.colorHex,
-            size: variant.size,
-            stock: variant.stock,
-            price: variant.price,
-            productId: createdProduct.id,
-          },
-        });
-      }
-
-      createdCount++;
-      console.log(`Seeded product: ${product.name}`);
-    }
+    const legacyCleanup = await prisma.product.deleteMany({
+      where: buildInvalidCatalogProductWhere(mockProducts.map((product) => product.id)),
+    });
+    console.log(`Removed ${legacyCleanup.count} legacy seeded product(s).`);
+    console.log(
+      "Skipping legacy mock product seeding. Create products through the admin panel so category mappings stay valid."
+    );
 
     console.log("Seed completed successfully.");
-    console.log(`Seeded ${createdCount} products with variants.`);
   } catch (error) {
     console.error("Seed failed:", error);
     throw error;

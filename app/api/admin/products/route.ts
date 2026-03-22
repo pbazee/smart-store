@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
 import { releaseExpiredReservations } from "@/lib/order-reservations";
+import {
+  buildValidCatalogProductWhere,
+  resolveAdminProductCatalogAssignment,
+} from "@/lib/product-integrity";
+import { slugify } from "@/lib/utils";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
@@ -12,7 +17,8 @@ const createProductSchema = z.object({
   name: z.string().min(2, "Name required"),
   slug: z.string().min(2, "Slug required"),
   description: z.string().min(1, "Description required"),
-  category: z.enum(["shoes", "clothes", "accessories"]),
+  category: z.string().optional(),
+  categoryId: z.string().min(1, "Category required"),
   subcategory: z.string().min(1, "Subcategory required"),
   gender: genderSchema,
   basePrice: z.number().int().positive("Price must be positive"),
@@ -43,9 +49,9 @@ export async function GET(req: NextRequest) {
     await releaseExpiredReservations();
 
     const products = await prisma.product.findMany({
+      where: buildValidCatalogProductWhere(),
       include: { variants: true },
       orderBy: { createdAt: "desc" },
-      take: 100,
     });
 
     return NextResponse.json({ success: true, data: products });
@@ -64,9 +70,17 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = createProductSchema.parse(body);
+    const catalogAssignment = await resolveAdminProductCatalogAssignment({
+      categoryId: validatedData.categoryId,
+      subcategory: validatedData.subcategory,
+    });
 
     const product = await prisma.product.create({
-      data: buildAdminProductCreateData(validatedData),
+      data: buildAdminProductCreateData({
+        ...validatedData,
+        slug: slugify(validatedData.slug || validatedData.name),
+        ...catalogAssignment,
+      }),
       include: { variants: true },
     });
 

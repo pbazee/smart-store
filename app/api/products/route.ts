@@ -1,7 +1,9 @@
+import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { mockProducts } from "@/lib/mock-data";
 import { releaseExpiredReservations } from "@/lib/order-reservations";
 import { prisma } from "@/lib/prisma";
+import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import { smartSearchProducts } from "@/lib/smart-search";
 
 const USE_MOCK_DATA = process.env.USE_MOCK_DATA === "true";
@@ -23,10 +25,7 @@ export async function GET(request: Request) {
 
     await releaseExpiredReservations();
 
-    const where: {
-      category?: string;
-      name?: { contains: string; mode: "insensitive" };
-    } = {};
+    const where: Prisma.ProductWhereInput = {};
 
     if (category) {
       where.category = category;
@@ -37,7 +36,7 @@ export async function GET(request: Request) {
     }
 
     let products = await prisma.product.findMany({
-      where,
+      where: buildValidCatalogProductWhere(where),
       include: { variants: true },
     });
 
