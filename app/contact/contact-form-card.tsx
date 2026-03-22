@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
 const SUBJECT_OPTIONS = [
@@ -34,6 +34,12 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
   const { toast } = useToast();
   const [form, setForm] = useState<ContactFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const updateField = <K extends keyof ContactFormState>(key: K, value: ContactFormState[K]) => {
+    setSuccessMessage(null);
+    setForm((current) => ({ ...current, [key]: value }));
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,6 +77,9 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
       }
 
       setForm(initialFormState);
+      setSuccessMessage(
+        "Message sent successfully. Our support team has received it and will reply shortly."
+      );
       toast({
         title: "Message sent",
         description: "Your message is in the support inbox. The team will get back to you shortly.",
@@ -95,6 +104,16 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
         <span className="font-semibold text-zinc-950 dark:text-zinc-100">{supportEmail}</span>.
       </p>
 
+      {successMessage ? (
+        <div className="mt-6 flex items-start gap-3 rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Message sent</p>
+            <p className="mt-1">{successMessage}</p>
+          </div>
+        </div>
+      ) : null}
+
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -104,9 +123,7 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
             <input
               type="text"
               value={form.firstName}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, firstName: event.target.value }))
-              }
+              onChange={(event) => updateField("firstName", event.target.value)}
               className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-border dark:bg-background dark:text-zinc-100"
               placeholder="John"
             />
@@ -118,9 +135,7 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
             <input
               type="text"
               value={form.lastName}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, lastName: event.target.value }))
-              }
+              onChange={(event) => updateField("lastName", event.target.value)}
               className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-border dark:bg-background dark:text-zinc-100"
               placeholder="Doe"
             />
@@ -135,9 +150,7 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
             type="email"
             required
             value={form.email}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, email: event.target.value }))
-            }
+            onChange={(event) => updateField("email", event.target.value)}
             className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-border dark:bg-background dark:text-zinc-100"
             placeholder="john@email.com"
           />
@@ -149,9 +162,7 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
           </label>
           <select
             value={form.subject}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, subject: event.target.value }))
-            }
+            onChange={(event) => updateField("subject", event.target.value)}
             className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-border dark:bg-background dark:text-zinc-100"
           >
             {SUBJECT_OPTIONS.map((option) => (
@@ -170,9 +181,7 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
             rows={6}
             required
             value={form.message}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, message: event.target.value }))
-            }
+            onChange={(event) => updateField("message", event.target.value)}
             className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-border dark:bg-background dark:text-zinc-100"
             placeholder="How can we help you?"
           />

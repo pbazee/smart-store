@@ -10,6 +10,7 @@ interface Props {
   onChange: (f: FilterState) => void;
   categories: Category[];
   lockedCategory?: string;
+  variant?: "sidebar" | "modal";
 }
 
 const genders = [
@@ -50,11 +51,26 @@ const sizes = [
   "34",
 ];
 
-function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterSection({
+  title,
+  children,
+  variant = "sidebar",
+}: {
+  title: string;
+  children: React.ReactNode;
+  variant?: "sidebar" | "modal";
+}) {
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="mb-4 rounded-[1.5rem] border border-zinc-200/80 bg-white/70 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:border-zinc-800 dark:bg-zinc-900/70 dark:shadow-none">
+    <div
+      className={cn(
+        "mb-4 rounded-[1.5rem] p-4",
+        variant === "modal"
+          ? "border border-zinc-300 bg-white shadow-[0_12px_28px_rgba(15,23,42,0.08)] dark:border-zinc-700 dark:bg-zinc-900"
+          : "border border-zinc-200/80 bg-white/70 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:border-zinc-800 dark:bg-zinc-900/70 dark:shadow-none"
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
@@ -72,7 +88,13 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-export function ShopFilters({ filters, onChange, categories, lockedCategory }: Props) {
+export function ShopFilters({
+  filters,
+  onChange,
+  categories,
+  lockedCategory,
+  variant = "sidebar",
+}: Props) {
   const byParent = useMemo(() => {
     const map = new Map<string | null, Category[]>();
     categories
@@ -97,6 +119,7 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
   }, [categories]);
 
   const topLevelCategories = byParent.get(null) || [];
+  const isModal = variant === "modal";
 
   const toggle = (key: "category" | "gender" | "colors" | "sizes", value: string) => {
     const current = filters[key] as string[];
@@ -107,7 +130,14 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
   };
 
   return (
-    <div className="rounded-[2rem] border border-zinc-200 bg-white/85 p-4 text-zinc-900 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/75 dark:text-zinc-100 dark:shadow-none">
+    <div
+      className={cn(
+        "rounded-[2rem] p-4 text-zinc-900 dark:text-zinc-100",
+        isModal
+          ? "border border-zinc-300 bg-zinc-50 shadow-[0_18px_40px_rgba(15,23,42,0.10)] dark:border-zinc-700 dark:bg-zinc-950"
+          : "border border-zinc-200 bg-white/85 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/75 dark:shadow-none"
+      )}
+    >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-zinc-800 dark:text-zinc-100">
           Filters
@@ -142,7 +172,7 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
       </div>
 
       {!lockedCategory && (
-        <FilterSection title="Category">
+        <FilterSection title="Category" variant={variant}>
           <div className="space-y-3">
             {topLevelCategories.map((category) => {
               const children = byParent.get(category.id) || [];
@@ -150,7 +180,12 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
               return (
                 <div
                   key={category.id}
-                  className="rounded-[1.25rem] border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950"
+                  className={cn(
+                    "rounded-[1.25rem] p-3",
+                    isModal
+                      ? "border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950"
+                      : "border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+                  )}
                 >
                   <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     <input
@@ -186,7 +221,7 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
         </FilterSection>
       )}
 
-      <FilterSection title="Gender">
+        <FilterSection title="Gender" variant={variant}>
         <div className="flex flex-wrap gap-2">
           {genders.map((gender) => (
             <button
@@ -206,7 +241,7 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
         </div>
       </FilterSection>
 
-      <FilterSection title="Colors">
+      <FilterSection title="Colors" variant={variant}>
         <div className="flex flex-wrap gap-2">
           {colors.map((color) => (
             <button
@@ -226,7 +261,7 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
         </div>
       </FilterSection>
 
-      <FilterSection title="Size">
+      <FilterSection title="Size" variant={variant}>
         <div className="flex flex-wrap gap-1.5">
           {sizes.map((size) => (
             <button
@@ -246,7 +281,7 @@ export function ShopFilters({ filters, onChange, categories, lockedCategory }: P
         </div>
       </FilterSection>
 
-      <FilterSection title="Price (KES)">
+      <FilterSection title="Price (KES)" variant={variant}>
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
             <span>KSh {filters.priceRange[0].toLocaleString()}</span>
