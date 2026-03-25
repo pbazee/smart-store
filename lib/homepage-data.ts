@@ -32,6 +32,11 @@ export const HOMEPAGE_CACHE_TAG = "homepage";
 
 const HOMEPAGE_REVALIDATE_SECONDS = 3600;
 const HOMEPAGE_PRODUCT_LIMIT = 8;
+const HOMEPAGE_CACHE_VERSION =
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.VERCEL_DEPLOYMENT_ID ||
+  process.env.GITHUB_SHA ||
+  "local";
 
 export type HomepageShellData = {
   announcements: AnnouncementMessage[];
@@ -276,29 +281,41 @@ const getHomepageProductSectionsDataForDev = resolveHomepageProductSectionsData;
 const getHomepagePageDataForDev = resolveHomepagePageData;
 const getHomepageDataForDev = resolveHomepageData;
 
-const getHomepageShellDataForProd = unstable_cache(resolveHomepageShellData, ["homepage-shell"], {
+const getHomepageShellDataForProd = unstable_cache(
+  resolveHomepageShellData,
+  ["homepage-shell", HOMEPAGE_CACHE_VERSION],
+  {
   revalidate: HOMEPAGE_REVALIDATE_SECONDS,
   tags: [HOMEPAGE_CACHE_TAG],
-});
+  }
+);
 
 const getHomepageProductSectionsDataForProd = unstable_cache(
   resolveHomepageProductSectionsData,
-  ["homepage-product-sections"],
+  ["homepage-product-sections", HOMEPAGE_CACHE_VERSION],
   {
     revalidate: HOMEPAGE_REVALIDATE_SECONDS,
     tags: [HOMEPAGE_CACHE_TAG],
   }
 );
 
-const getHomepagePageDataForProd = unstable_cache(resolveHomepagePageData, ["homepage-page"], {
+const getHomepagePageDataForProd = unstable_cache(
+  resolveHomepagePageData,
+  ["homepage-page", HOMEPAGE_CACHE_VERSION],
+  {
   revalidate: HOMEPAGE_REVALIDATE_SECONDS,
   tags: [HOMEPAGE_CACHE_TAG],
-});
+  }
+);
 
-const getHomepageDataForProd = unstable_cache(resolveHomepageData, ["homepage-data"], {
+const getHomepageDataForProd = unstable_cache(
+  resolveHomepageData,
+  ["homepage-data", HOMEPAGE_CACHE_VERSION],
+  {
   revalidate: HOMEPAGE_REVALIDATE_SECONDS,
   tags: [HOMEPAGE_CACHE_TAG],
-});
+  }
+);
 
 function getCachedHomepageShellData() {
   return shouldUseProductionCache() ? getHomepageShellDataForProd() : getHomepageShellDataForDev();
