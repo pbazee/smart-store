@@ -9,15 +9,15 @@ Kenya's smartest fashion ecommerce platform. Built with Next.js 15, featuring M-
 cd smartest-store-ke
 
 # 2. Install dependencies
-npm install
-
+npm install   
+  
 # 3. Start dev server (uses mock data by default — no DB needed!)
 npm run dev
 
 # 4. Open http://localhost:3000
 ```
 
-That's it! The store runs fully on mock data (20 Kenyan-style products).
+That's it! The store runs fully on mock data (20 Kenyan-style products). But make sure to remove all mock data after you finish everything. 
 
 ---
 
