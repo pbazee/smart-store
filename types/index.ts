@@ -27,6 +27,8 @@ export interface Product {
   isPopular: boolean;
   isTrending: boolean;
   isRecommended: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export type LandingSection = "popular" | "trending" | "new_arrivals" | "recommended";
