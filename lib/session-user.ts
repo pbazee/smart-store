@@ -1,45 +1,21 @@
-import { cookies } from "next/headers";
 import type { SessionUser } from "@/types";
+import { resolveAuthenticatedRole } from "@/lib/admin-identity";
 import { getLocalAuthSession } from "@/lib/local-auth";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import {
-  DEMO_AUTH_COOKIE,
-  normalizeUserRole,
-  parseDemoAuthCookie,
-} from "@/lib/user-role";
-import { shouldUseMockData } from "@/lib/live-data-mode";
+import { normalizeUserRole } from "@/lib/user-role";
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const useMockData = shouldUseMockData();
-  const cookieStore = await cookies();
-  const demoAuth = useMockData
-    ? parseDemoAuthCookie(cookieStore.get(DEMO_AUTH_COOKIE)?.value)
-    : null;
-
-  if (demoAuth) {
-    return {
-      id: `demo-${demoAuth.role}`,
-      firstName: "Demo",
-      lastName: demoAuth.role === "admin" ? "Admin" : "Customer",
-      fullName: demoAuth.label,
-      email:
-        demoAuth.role === "admin"
-          ? "admin@demo.smartest.ke"
-          : "customer@demo.smartest.ke",
-      role: demoAuth.role,
-      isDemo: true,
-      authProvider: "demo",
-    };
-  }
-
   const localAuthSession = await getLocalAuthSession();
   if (localAuthSession) {
     return {
       id: localAuthSession.userId,
       fullName: localAuthSession.name,
       email: localAuthSession.email,
-      role: localAuthSession.role,
+      role: resolveAuthenticatedRole({
+        email: localAuthSession.email,
+        role: localAuthSession.role,
+      }),
       isDemo: false,
       authProvider: "local",
     };
@@ -84,10 +60,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     }
   }
 
-  // Hardcoded admin email check
-  if (role !== "admin" && userEmail === "peterkinuthia726@gmail.com") {
-    role = "admin";
-  }
+  role = resolveAuthenticatedRole({
+    email: userEmail,
+    role,
+  });
 
   return {
     id: user.id,

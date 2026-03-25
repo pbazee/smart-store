@@ -70,11 +70,11 @@ export async function Footer({
             <h4 className="mb-4 font-semibold text-white">Shop</h4>
             <ul className="space-y-2 text-sm">
               {[
-                { label: "All Products", href: "/products" },
-                { label: "Sneakers", href: "/category/shoes" },
-                { label: "Streetwear", href: "/category/tshirts" },
-                { label: "New Arrivals", href: "/products?filter=new" },
-                { label: "Trending", href: "/products?filter=trending" },
+                { label: "All Products", href: "/shop" },
+                { label: "Sneakers", href: "/shop?category=shoes" },
+                { label: "Streetwear", href: "/shop?subcategory=t-shirts" },
+                { label: "New Arrivals", href: "/shop?collection=new-arrivals" },
+                { label: "Trending", href: "/shop?collection=trending" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} className="transition-colors hover:text-white">

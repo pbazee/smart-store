@@ -3,7 +3,9 @@
     "allow": [
       "Bash(xargs grep:*)",
       "Bash(grep -rn \"take: \\\\|limit: \" /c/Projects/smartest-store-ke/lib/*.ts)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find /c/Projects/smartest-store-ke -name schema.prisma -o -name *.prisma)",
+      "Bash(node -e \"const p = require\\(''/c/Projects/smartest-store-ke/package.json''\\); console.log\\(''next:'', p.dependencies.next\\)\")"
     ]
   }
 }

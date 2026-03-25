@@ -9,7 +9,6 @@ import { DEFAULT_SOCIAL_LINK_SEEDS } from "../lib/default-social-links";
 import { DEFAULT_WHATSAPP_SETTINGS } from "../lib/default-whatsapp-settings";
 import { DEFAULT_STORE_SETTINGS } from "../lib/default-store-settings";
 import { DEFAULT_SHIPPING_RULES } from "../lib/default-shipping-rules";
-import { mockProducts } from "../lib/mock-data";
 import { buildInvalidCatalogProductWhere } from "../lib/product-integrity";
 import { hashPassword } from "../lib/password";
 
@@ -322,7 +321,7 @@ async function main() {
     }
 
     const legacyCleanup = await prisma.product.deleteMany({
-      where: buildInvalidCatalogProductWhere(mockProducts.map((product) => product.id)),
+      where: buildInvalidCatalogProductWhere([]),
     });
     console.log(`Removed ${legacyCleanup.count} legacy seeded product(s).`);
     console.log(

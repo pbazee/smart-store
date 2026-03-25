@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getUserDetailAdmin, updateUserRoleAdmin, deleteUserAdmin } from "@/lib/admin-user-service";
+import {
+    getUserDetailAdmin,
+    updateUserRoleAdmin,
+    deleteUserAdmin,
+    PROTECTED_ADMIN_USER_ERROR,
+} from "@/lib/admin-user-service";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { UserRole } from "@prisma/client";
 
@@ -46,6 +51,9 @@ export async function PATCH(
         const updatedUser = await updateUserRoleAdmin(id, role as UserRole);
         return NextResponse.json(updatedUser);
     } catch (error) {
+        if (error instanceof Error && error.message === PROTECTED_ADMIN_USER_ERROR) {
+            return new NextResponse(error.message, { status: 400 });
+        }
         console.error("Failed to update user:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
@@ -65,6 +73,9 @@ export async function DELETE(
         await deleteUserAdmin(id);
         return new NextResponse(null, { status: 204 });
     } catch (error) {
+        if (error instanceof Error && error.message === PROTECTED_ADMIN_USER_ERROR) {
+            return new NextResponse(error.message, { status: 400 });
+        }
         console.error("Failed to delete user:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }

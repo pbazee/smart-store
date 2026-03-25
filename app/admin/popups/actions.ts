@@ -4,13 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import {
-  createDemoPopup,
-  deleteDemoPopup,
-  getPopups,
-  updateDemoPopup,
-} from "@/lib/popup-service";
-import { shouldUseMockData } from "@/lib/live-data-mode";
+import { getPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
 import { deletePopupImage, uploadPopupImage } from "@/lib/supabase-storage";
 import type { Popup } from "@/types";
@@ -22,20 +16,9 @@ const optionalImageUrlSchema = z
   .or(z.literal(""))
   .refine(
     (value) => {
-      if (!value) {
-        return true;
-      }
-
-      if (value.startsWith("data:image/") || value.startsWith("/")) {
-        return true;
-      }
-
-      try {
-        new URL(value);
-        return true;
-      } catch {
-        return false;
-      }
+      if (!value) return true;
+      if (value.startsWith("data:image/") || value.startsWith("/")) return true;
+      try { new URL(value); return true; } catch { return false; }
     },
     { message: "Image must be a valid URL or uploaded image." }
   );
@@ -46,16 +29,8 @@ const popupLinkSchema = z
   .min(1, "CTA link is required")
   .refine(
     (value) => {
-      if (value.startsWith("/")) {
-        return true;
-      }
-
-      try {
-        new URL(value);
-        return true;
-      } catch {
-        return false;
-      }
+      if (value.startsWith("/")) return true;
+      try { new URL(value); return true; } catch { return false; }
     },
     { message: "CTA link must be a valid URL or start with /" }
   );
@@ -77,28 +52,19 @@ export type AdminPopupInput = z.infer<typeof adminPopupSchema>;
 
 async function ensureAdmin() {
   const isAdmin = await requireAdminAuth();
-  if (!isAdmin) {
-    throw new Error("Unauthorized");
-  }
+  if (!isAdmin) throw new Error("Unauthorized");
 }
 
 function parseOptionalDate(value?: string) {
   const normalized = value?.trim();
-  if (!normalized) {
-    return null;
-  }
-
+  if (!normalized) return null;
   const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error("Use a valid expiry date.");
-  }
-
+  if (Number.isNaN(date.getTime())) throw new Error("Use a valid expiry date.");
   return date;
 }
 
 function normalizePopupInput(input: AdminPopupInput) {
   const data = adminPopupSchema.parse(input);
-
   return {
     id: data.id,
     title: data.title.trim(),
@@ -128,16 +94,9 @@ export async function fetchAdminPopups() {
 
 export async function uploadPopupImageAction(formData: FormData) {
   await ensureAdmin();
-
   const file = formData.get("file");
-  if (!(file instanceof File)) {
-    throw new Error("Please choose an image to upload.");
-  }
-
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Only image uploads are supported.");
-  }
-
+  if (!(file instanceof File)) throw new Error("Please choose an image to upload.");
+  if (!file.type.startsWith("image/")) throw new Error("Only image uploads are supported.");
   const imageUrl = await uploadPopupImage(file);
   return { imageUrl };
 }
@@ -145,7 +104,6 @@ export async function uploadPopupImageAction(formData: FormData) {
 export async function cleanupPopupImageAction(imageUrl: string) {
   await ensureAdmin();
   const normalizedImageUrl = z.string().trim().min(1).parse(imageUrl);
-
   await deletePopupImage(normalizedImageUrl);
   return { cleaned: true };
 }
@@ -153,23 +111,6 @@ export async function cleanupPopupImageAction(imageUrl: string) {
 export async function createAdminPopupAction(input: AdminPopupInput) {
   await ensureAdmin();
   const data = normalizePopupInput(input);
-
-  if (shouldUseMockData()) {
-    const popup = createDemoPopup({
-      id: crypto.randomUUID(),
-      title: data.title,
-      message: data.message,
-      imageUrl: data.imageUrl,
-      ctaText: data.ctaText,
-      ctaLink: data.ctaLink,
-      showOn: data.showOn,
-      delaySeconds: data.delaySeconds,
-      isActive: data.isActive,
-      expiresAt: data.expiresAt,
-    });
-    revalidatePopupPaths();
-    return popup;
-  }
 
   const popup = await prisma.popup.create({
     data: {
@@ -194,33 +135,8 @@ export async function updateAdminPopupAction(input: AdminPopupInput) {
   const id = z.string().min(1).parse(input.id);
   const normalized = normalizePopupInput({ ...input, id });
 
-  if (shouldUseMockData()) {
-    const currentPopup = (await getPopups()).find((popup) => popup.id === id);
-    const popup = updateDemoPopup(id, {
-      id,
-      title: normalized.title,
-      message: normalized.message,
-      imageUrl: normalized.imageUrl,
-      ctaText: normalized.ctaText,
-      ctaLink: normalized.ctaLink,
-      showOn: normalized.showOn,
-      delaySeconds: normalized.delaySeconds,
-      isActive: normalized.isActive,
-      expiresAt: normalized.expiresAt,
-    });
-    if (currentPopup?.imageUrl && currentPopup.imageUrl !== normalized.imageUrl) {
-      await deletePopupImage(currentPopup.imageUrl);
-    }
-    revalidatePopupPaths();
-    return popup;
-  }
-
-  const existingPopup = await prisma.popup.findUnique({
-    where: { id },
-  });
-  if (!existingPopup) {
-    throw new Error("Popup not found.");
-  }
+  const existingPopup = await prisma.popup.findUnique({ where: { id } });
+  if (!existingPopup) throw new Error("Popup not found.");
 
   const popup = await prisma.popup.update({
     where: { id },
@@ -249,23 +165,9 @@ export async function deleteAdminPopupAction(popupId: string) {
   await ensureAdmin();
   const id = z.string().min(1).parse(popupId);
 
-  if (shouldUseMockData()) {
-    const existingPopup = (await getPopups()).find((popup) => popup.id === id);
-    deleteDemoPopup(id);
-    if (existingPopup?.imageUrl) {
-      await deletePopupImage(existingPopup.imageUrl);
-    }
-    revalidatePopupPaths();
-    return { deletedId: id };
-  }
+  const existingPopup = await prisma.popup.findUnique({ where: { id } });
 
-  const existingPopup = await prisma.popup.findUnique({
-    where: { id },
-  });
-
-  await prisma.popup.delete({
-    where: { id },
-  });
+  await prisma.popup.delete({ where: { id } });
 
   if (existingPopup?.imageUrl) {
     await deletePopupImage(existingPopup.imageUrl);

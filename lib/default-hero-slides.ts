@@ -11,7 +11,7 @@ export const DEFAULT_HERO_SLIDE_SEEDS: HeroSlideSeed[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1800&q=80",
     ctaText: "Explore New Arrivals",
-    ctaLink: "/products?filter=new",
+    ctaLink: "/shop?collection=new-arrivals",
     moodTags: ["Golden hour", "Street utility", "City heat"],
     locationBadge: "CBD rooftops and Westlands side streets",
     order: 0,
@@ -25,7 +25,7 @@ export const DEFAULT_HERO_SLIDE_SEEDS: HeroSlideSeed[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1800&q=80",
     ctaText: "Shop Trending Fits",
-    ctaLink: "/products?filter=trending",
+    ctaLink: "/shop?collection=trending",
     moodTags: ["Cargo focus", "Color pop", "After-hours"],
     locationBadge: "Kilimani corners and city cafe stops",
     order: 1,
@@ -39,7 +39,7 @@ export const DEFAULT_HERO_SLIDE_SEEDS: HeroSlideSeed[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1800&q=80",
     ctaText: "Discover Womenswear",
-    ctaLink: "/category/women",
+    ctaLink: "/shop?gender=women",
     moodTags: ["Editorial", "Breathable layers", "Weekend plans"],
     locationBadge: "Karen drives and Upper Hill golden hour",
     order: 2,
@@ -53,7 +53,7 @@ export const DEFAULT_HERO_SLIDE_SEEDS: HeroSlideSeed[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=1800&q=80",
     ctaText: "Shop Menswear",
-    ctaLink: "/category/men",
+    ctaLink: "/shop?gender=men",
     moodTags: ["Daily uniform", "Layered comfort", "Street polish"],
     locationBadge: "Ngong Road traffic, then the after-plan",
     order: 3,
@@ -68,4 +68,8 @@ export function createHeroSlideSeed(seed: HeroSlideSeed, date = new Date()): Her
     createdAt: date,
     updatedAt: date,
   };
+}
+
+export function getDefaultHeroSlides(): HeroSlide[] {
+  return DEFAULT_HERO_SLIDE_SEEDS.map((seed) => createHeroSlideSeed(seed));
 }

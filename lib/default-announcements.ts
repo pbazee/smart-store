@@ -27,7 +27,7 @@ export const DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS: AnnouncementSeed[] = [
     id: "seed-announcement-sale",
     text: "This week only: Up to 30% off new summer streetwear",
     icon: "\u{1F525}",
-    link: "/products?filter=new",
+    link: "/shop?collection=new-arrivals",
     bgColor: "#2A120B",
     textColor: "#FFEDD5",
     isActive: true,

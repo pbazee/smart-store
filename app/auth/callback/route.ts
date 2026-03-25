@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { resolveAuthenticatedRole, resolveDatabaseUserRole } from "@/lib/admin-identity";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
       const nameParts = displayName.split(" ");
       const firstName = nameParts[0] || "User";
       const lastName = nameParts.slice(1).join(" ") || "";
+      const role = resolveDatabaseUserRole({ email: normalizedEmail });
 
       user = await prisma.user.create({
         data: {
@@ -61,29 +63,42 @@ export async function GET(request: NextRequest) {
           firstName,
           lastName,
           fullName: displayName,
-          role: "CUSTOMER",
+          role,
           // No password for OAuth users
         },
       });
-    } else if (!user.fullName || !user.firstName) {
+    } else {
       const displayName = supabaseUser.user_metadata?.name || user.email || normalizedEmail;
       const nameParts = displayName.split(" ");
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          firstName: user.firstName || nameParts[0] || "User",
-          lastName: user.lastName || nameParts.slice(1).join(" ") || "",
-          fullName: user.fullName || displayName,
-        },
+      const nextRole = resolveDatabaseUserRole({
+        email: normalizedEmail,
+        role: user.role,
       });
+
+      if (!user.fullName || !user.firstName || user.role !== nextRole) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            firstName: user.firstName || nameParts[0] || "User",
+            lastName: user.lastName || nameParts.slice(1).join(" ") || "",
+            fullName: user.fullName || displayName,
+            role: nextRole,
+          },
+        });
+      }
     }
+
+    const sessionRole = resolveAuthenticatedRole({
+      email: user.email ?? normalizedEmail,
+      role: user.role,
+    });
 
     // Create our local auth token
     const token = await createLocalAuthToken({
       userId: user.id,
       email: user.email ?? normalizedEmail,
-      name: user.fullName ?? "Customer",
-      role: "customer",
+      name: user.fullName ?? (sessionRole === "admin" ? "Store Admin" : "Customer"),
+      role: sessionRole,
     });
 
     // Set cookie

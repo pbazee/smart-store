@@ -2,11 +2,9 @@ import {
   DEFAULT_WHATSAPP_SETTINGS,
   createDefaultWhatsAppSettings,
 } from "@/lib/default-whatsapp-settings";
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { WhatsAppPosition, WhatsAppSettings } from "@/types";
 
-let demoWhatsAppSettingsState: WhatsAppSettings = createDefaultWhatsAppSettings();
 const WHATSAPP_SETTINGS_META_PREFIX = "__smartest_store_whatsapp__";
 
 type PersistedWhatsAppSettingsRecord = {
@@ -82,22 +80,6 @@ function hydrateWhatsAppSettings(
   };
 }
 
-function cloneWhatsAppSettings(settings: WhatsAppSettings): WhatsAppSettings {
-  const hydrated = hydrateWhatsAppSettings(settings);
-
-  return {
-    ...hydrated,
-    createdAt:
-      hydrated.createdAt instanceof Date
-        ? new Date(hydrated.createdAt)
-        : hydrated.createdAt,
-    updatedAt:
-      hydrated.updatedAt instanceof Date
-        ? new Date(hydrated.updatedAt)
-        : hydrated.updatedAt,
-  };
-}
-
 export function normalizeWhatsAppPhoneNumber(phoneNumber: string) {
   return phoneNumber.trim();
 }
@@ -106,27 +88,6 @@ export function buildWhatsAppHref(phoneNumber: string, defaultMessage: string) {
   const normalizedPhone = phoneNumber.replace(/[^\d]/g, "");
   const message = encodeURIComponent(defaultMessage);
   return `https://wa.me/${normalizedPhone}?text=${message}`;
-}
-
-export function getDemoWhatsAppSettings() {
-  return cloneWhatsAppSettings(demoWhatsAppSettingsState);
-}
-
-export function updateDemoWhatsAppSettings(
-  input: Omit<WhatsAppSettings, "createdAt" | "updatedAt">
-) {
-  const decoded = decodePersistedWhatsAppMessage(input.defaultMessage);
-
-  demoWhatsAppSettingsState = {
-    ...demoWhatsAppSettingsState,
-    ...input,
-    defaultMessage: decoded.defaultMessage,
-    position: normalizeWhatsAppPosition(input.position ?? decoded.position),
-    createdAt: demoWhatsAppSettingsState.createdAt,
-    updatedAt: new Date(),
-  };
-
-  return cloneWhatsAppSettings(demoWhatsAppSettingsState);
 }
 
 async function ensureWhatsAppSettingsSeeded() {
@@ -154,11 +115,6 @@ async function ensureWhatsAppSettingsSeeded() {
 
 export async function getWhatsAppSettings(options: { seedIfEmpty?: boolean } = {}) {
   const { seedIfEmpty = false } = options;
-
-  if (shouldUseMockData()) {
-    console.log("[WhatsAppSettings] Using mock data");
-    return getDemoWhatsAppSettings();
-  }
 
   try {
     if (seedIfEmpty) {

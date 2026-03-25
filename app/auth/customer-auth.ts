@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { resolveAuthenticatedRole } from "@/lib/admin-identity";
 import { subscribeToNewsletter } from "@/lib/newsletter-service";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
@@ -174,13 +175,17 @@ export async function signInCustomerAction(
     if (!passwordMatches) {
       return { error: "Invalid email or password", success: false };
     }
+    const sessionRole = resolveAuthenticatedRole({
+      email: user.email ?? payload.email.toLowerCase(),
+      role: user.role,
+    });
 
     // Create authentication token
     const token = await createLocalAuthToken({
       userId: user.id,
       email: user.email ?? payload.email.toLowerCase(),
-      name: user.fullName ?? "Customer",
-      role: "customer",
+      name: user.fullName ?? (sessionRole === "admin" ? "Store Admin" : "Customer"),
+      role: sessionRole,
     });
 
     // Set session cookie

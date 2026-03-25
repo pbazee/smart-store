@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { resolveAuthenticatedRole } from "@/lib/admin-identity";
 import { createMiddlewareSupabaseClient } from "@/lib/supabase-server";
 import { getAuthRedirectPath } from "@/lib/auth-routing";
 import { LOCAL_AUTH_COOKIE, verifyLocalAuthToken } from "@/lib/local-auth";
 import { shouldUseMockData } from "@/lib/live-data-mode";
-import { DEMO_AUTH_COOKIE, normalizeUserRole, parseDemoAuthCookie } from "@/lib/user-role";
+import { DEMO_AUTH_COOKIE, parseDemoAuthCookie } from "@/lib/user-role";
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -38,20 +39,15 @@ export async function middleware(request: NextRequest) {
   if (demoAuth) {
     effectiveRole = demoAuth.role;
   } else if (localAuth) {
-    effectiveRole = localAuth.role;
+    effectiveRole = resolveAuthenticatedRole({
+      email: localAuth.email,
+      role: localAuth.role,
+    });
   } else if (user) {
-    // Check user metadata for role
-    const metadataRole = user.user_metadata?.role;
-    if (metadataRole === "admin" || metadataRole === "customer") {
-      effectiveRole = metadataRole;
-    } else {
-      effectiveRole = "customer";
-    }
-
-    // Check for hardcoded admin email
-    if (effectiveRole !== "admin" && user.email === "peterkinuthia726@gmail.com") {
-      effectiveRole = "admin";
-    }
+    effectiveRole = resolveAuthenticatedRole({
+      email: user.email,
+      role: user.user_metadata?.role,
+    });
   }
 
   // Check auth redirect path

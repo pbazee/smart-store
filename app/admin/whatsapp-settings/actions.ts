@@ -4,13 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
-import {
-  getWhatsAppSettings,
-  serializeWhatsAppSettings,
-  updateDemoWhatsAppSettings,
-} from "@/lib/whatsapp-service";
+import { getWhatsAppSettings, serializeWhatsAppSettings } from "@/lib/whatsapp-service";
 import { DEFAULT_WHATSAPP_SETTINGS } from "@/lib/default-whatsapp-settings";
 import type { WhatsAppSettings } from "@/types";
 
@@ -61,8 +56,8 @@ export async function updateAdminWhatsAppSettingsAction(
     let validatedInput: AdminWhatsAppSettingsInput;
     try {
       validatedInput = whatsappSettingsSchema.parse(input);
-    } catch (err: any) {
-      const firstIssue = err?.errors?.[0];
+    } catch (err: unknown) {
+      const firstIssue = (err as { errors?: { message?: string }[] })?.errors?.[0];
       return {
         success: false,
         error: firstIssue?.message || "Invalid input. Check all fields and try again.",
@@ -70,18 +65,6 @@ export async function updateAdminWhatsAppSettingsAction(
     }
 
     const data = serializeWhatsAppSettings(validatedInput);
-
-    if (shouldUseMockData()) {
-      const settings = updateDemoWhatsAppSettings({
-        id: DEFAULT_WHATSAPP_SETTINGS.id,
-        phoneNumber: data.phoneNumber,
-        defaultMessage: validatedInput.defaultMessage.trim(),
-        isActive: data.isActive,
-        position: validatedInput.position,
-      });
-      revalidateWhatsAppPaths();
-      return { success: true, data: settings as WhatsAppSettings };
-    }
 
     const settings = await prisma.whatsAppSettings.upsert({
       where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
@@ -107,11 +90,9 @@ export async function updateAdminWhatsAppSettingsAction(
         position: validatedInput.position,
       } as WhatsAppSettings,
     };
-  } catch (err: any) {
-    console.error("[WhatsApp Settings] updateAdminWhatsAppSettingsAction failed:", err?.message ?? err);
-    return {
-      success: false,
-      error: err?.message || "Failed to save WhatsApp settings. Please try again.",
-    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to save WhatsApp settings. Please try again.";
+    console.error("[WhatsApp Settings] updateAdminWhatsAppSettingsAction failed:", message);
+    return { success: false, error: message };
   }
 }

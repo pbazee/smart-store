@@ -11,7 +11,7 @@ const promos = [
     title: "Men's Collection",
     subtitle: "Street-ready fits for every vibe",
     cta: "Shop Men's",
-    href: "/category/men",
+    href: "/shop?gender=men",
     image:
       "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1400&q=80",
     alt: "Men's streetwear editorial with hoodie, jeans, and sneakers in an urban setting",
@@ -25,7 +25,7 @@ const promos = [
     title: "Women's Collection",
     subtitle: "Elegant & bold styles for every occasion",
     cta: "Shop Women's",
-    href: "/category/women",
+    href: "/shop?gender=women",
     image:
       "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1400&q=80",
     alt: "Women's fashion editorial featuring a stylish summer look with premium styling",

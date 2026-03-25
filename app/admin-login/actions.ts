@@ -8,6 +8,7 @@ import {
   getLocalAuthCookieMaxAge,
   LOCAL_AUTH_COOKIE,
 } from "@/lib/local-auth";
+import { isProtectedAdminEmail } from "@/lib/admin-identity";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { resolveAdminRedirectPath } from "@/lib/auth-routing";
@@ -34,19 +35,30 @@ export async function submitAdminLoginAction(
       redirectUrl: formData.get("redirectUrl"),
     });
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: {
         email: payload.email.toLowerCase(),
       },
     });
 
-    if (!user || normalizeUserRole(user.role) !== "admin" || !user.passwordHash) {
+    if (
+      !user ||
+      (!isProtectedAdminEmail(user.email ?? payload.email) && normalizeUserRole(user.role) !== "admin") ||
+      !user.passwordHash
+    ) {
       return { error: "Invalid credentials" };
     }
 
     const passwordMatches = await verifyPassword(payload.password, user.passwordHash);
     if (!passwordMatches) {
       return { error: "Invalid credentials" };
+    }
+
+    if (isProtectedAdminEmail(user.email) && normalizeUserRole(user.role) !== "admin") {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: "ADMIN" },
+      });
     }
 
     const token = await createLocalAuthToken({

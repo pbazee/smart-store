@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseClientClient } from "@/lib/supabase-client";
 import type { SessionUser } from "@/types";
-import { useDemoAuthStore } from "@/lib/demo-auth";
 import type { User } from "@supabase/supabase-js";
 
 function getRoleFromSupabaseUser(user: User): "admin" | "customer" | "guest" {
@@ -23,8 +22,6 @@ export function useSessionUser() {
   const [supabase] = useState(() => createSupabaseClientClient());
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const demoUser = useDemoAuthStore((state) => state.user);
-  const demoSignOut = useDemoAuthStore((state) => state.signOut);
   const [serverUser, setServerUser] = useState<SessionUser | null>(null);
   const [hasLoadedServerSession, setHasLoadedServerSession] = useState(false);
 
@@ -76,7 +73,7 @@ export function useSessionUser() {
     return () => {
       isActive = false;
     };
-  }, [demoUser, user?.id]);
+  }, [user?.id]);
 
   const supabaseSessionUser = useMemo<SessionUser | null>(() => {
     if (!user) {
@@ -99,10 +96,6 @@ export function useSessionUser() {
   }, [user]);
 
   const sessionUser = useMemo<SessionUser | null>(() => {
-    if (demoUser?.isDemo) {
-      return demoUser;
-    }
-
     if (serverUser?.authProvider === "local") {
       return serverUser;
     }
@@ -116,7 +109,7 @@ export function useSessionUser() {
     }
 
     return serverUser;
-  }, [supabaseSessionUser, demoUser, isLoading, user, serverUser]);
+  }, [supabaseSessionUser, isLoading, user, serverUser]);
 
   return {
     isLoaded: hasLoadedServerSession && !isLoading,
@@ -125,12 +118,6 @@ export function useSessionUser() {
     isSignedIn: !!sessionUser,
     sessionUser,
     signOut: async () => {
-      if (sessionUser?.isDemo) {
-        demoSignOut();
-        setServerUser(null);
-        return;
-      }
-
       if (sessionUser?.authProvider === "local") {
         await fetch("/api/auth/logout", {
           method: "POST",

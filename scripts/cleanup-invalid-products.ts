@@ -1,6 +1,5 @@
 import { loadEnvConfig } from "@next/env";
 import { PrismaClient } from "@prisma/client";
-import { mockProducts } from "../lib/mock-data";
 import { buildInvalidCatalogProductWhere } from "../lib/product-integrity";
 
 loadEnvConfig(process.cwd());
@@ -52,8 +51,9 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const seededProductIds = mockProducts.map((product) => product.id);
-  const invalidWhere = buildInvalidCatalogProductWhere(seededProductIds);
+  // Find all products that are missing categoryId, category, or subcategory
+  // (these are the old seeded products created before the category system was introduced)
+  const invalidWhere = buildInvalidCatalogProductWhere([]);
   const invalidProducts = await prisma.product.findMany({
     where: invalidWhere,
     select: {

@@ -3,16 +3,8 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
-import {
-  createDemoProduct,
-  deleteDemoProducts,
-  getDemoProducts,
-  updateDemoProduct,
-} from "@/lib/demo-catalog";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { shouldUseMockData } from "@/lib/live-data-mode";
-import { mockProducts } from "@/lib/mock-data";
 import { prisma } from "@/lib/prisma";
 import {
   buildInvalidCatalogProductWhere,
@@ -46,11 +38,13 @@ const adminProductSchema = z.object({
   tags: z.array(z.string()).default([]),
   isFeatured: z.boolean().default(false),
   isNew: z.boolean().default(true),
+  isPopular: z.boolean().default(false),
+  isTrending: z.boolean().default(false),
+  isRecommended: z.boolean().default(false),
   variants: z.array(adminVariantSchema).min(1, "Add at least one variant"),
 });
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
-const LEGACY_SEEDED_PRODUCT_IDS = mockProducts.map((product) => product.id);
 
 async function ensureAdmin() {
   const isAdmin = await requireAdminAuth();
@@ -92,40 +86,8 @@ async function normalizeAdminProductUpdateInput(
   };
 }
 
-function toDemoProduct(input: AdminProductInput, current?: Product | null): Product {
-  return {
-    id: current?.id ?? crypto.randomUUID(),
-    name: input.name,
-    slug: slugify(input.slug || input.name),
-    description: input.description,
-    category: input.category,
-    subcategory: input.subcategory,
-    categoryId: input.categoryId ?? null,
-    gender: input.gender,
-    tags: input.tags,
-    basePrice: input.basePrice,
-    images: input.images,
-    rating: current?.rating ?? 0,
-    reviewCount: current?.reviewCount ?? 0,
-    isFeatured: input.isFeatured,
-    isNew: input.isNew,
-    variants: input.variants.map((variant) => ({
-      id: variant.id ?? crypto.randomUUID(),
-      color: variant.color,
-      colorHex: variant.colorHex,
-      size: variant.size,
-      stock: variant.stock,
-      price: variant.price,
-    })),
-  };
-}
-
 export async function fetchAdminProducts() {
   await ensureAdmin();
-
-  if (shouldUseMockData()) {
-    return getDemoProducts();
-  }
 
   return (await prisma.product.findMany({
     where: buildValidCatalogProductWhere(),
@@ -137,12 +99,8 @@ export async function fetchAdminProducts() {
 export async function fetchInvalidAdminProductCount() {
   await ensureAdmin();
 
-  if (shouldUseMockData()) {
-    return 0;
-  }
-
   return prisma.product.count({
-    where: buildInvalidCatalogProductWhere(LEGACY_SEEDED_PRODUCT_IDS),
+    where: buildInvalidCatalogProductWhere([]),
   });
 }
 
@@ -163,12 +121,6 @@ export async function createAdminProductAction(input: AdminProductInput) {
   const data = adminProductSchema.parse(input);
   const normalizedData = await normalizeAdminProductInput(data);
 
-  if (shouldUseMockData()) {
-    const product = createDemoProduct(toDemoProduct(normalizedData));
-    revalidateCatalogPaths();
-    return product;
-  }
-
   const product = await prisma.product.create({
     data: buildAdminProductCreateData({
       ...normalizedData,
@@ -186,17 +138,6 @@ export async function updateAdminProductAction(input: AdminProductInput) {
   const data = adminProductSchema.extend({ id: z.string().min(1) }).parse(input);
   const normalizedData = await normalizeAdminProductUpdateInput(data);
 
-  if (shouldUseMockData()) {
-    const current = getDemoProducts().find((product) => product.id === normalizedData.id);
-    if (!current) {
-      throw new Error("Product not found");
-    }
-
-    const product = updateDemoProduct(normalizedData.id, toDemoProduct(normalizedData, current));
-    revalidateCatalogPaths();
-    return product;
-  }
-
   const product = await prisma.product.update({
     where: { id: normalizedData.id },
     data: {
@@ -212,6 +153,9 @@ export async function updateAdminProductAction(input: AdminProductInput) {
       images: normalizedData.images,
       isFeatured: normalizedData.isFeatured,
       isNew: normalizedData.isNew,
+      isPopular: normalizedData.isPopular,
+      isTrending: normalizedData.isTrending,
+      isRecommended: normalizedData.isRecommended,
       variants: {
         deleteMany: {},
         create: normalizedData.variants.map((variant) => ({
@@ -233,12 +177,8 @@ export async function updateAdminProductAction(input: AdminProductInput) {
 export async function deleteInvalidAdminProductsAction() {
   await ensureAdmin();
 
-  if (shouldUseMockData()) {
-    return { deletedCount: 0 };
-  }
-
   const result = await prisma.product.deleteMany({
-    where: buildInvalidCatalogProductWhere(LEGACY_SEEDED_PRODUCT_IDS),
+    where: buildInvalidCatalogProductWhere([]),
   });
 
   revalidateCatalogPaths();
@@ -250,12 +190,6 @@ export async function deleteInvalidAdminProductsAction() {
 export async function deleteAdminProductsAction(productIds: string[]) {
   await ensureAdmin();
   const ids = z.array(z.string().min(1)).min(1).parse(productIds);
-
-  if (shouldUseMockData()) {
-    deleteDemoProducts(ids);
-    revalidateCatalogPaths();
-    return { deletedIds: ids };
-  }
 
   await prisma.product.deleteMany({
     where: {

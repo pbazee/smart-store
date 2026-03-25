@@ -1,10 +1,7 @@
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { ensureStoreSettingsStorage } from "@/lib/runtime-schema-repair";
 import type { StoreSettings } from "@/types";
-
-let demoStoreSettings: StoreSettings = { ...DEFAULT_STORE_SETTINGS };
 
 type StoreSettingsInput = Pick<
   StoreSettings,
@@ -20,10 +17,6 @@ function normalizeOptionalText(value?: string | null) {
 }
 
 export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) {
-  if (shouldUseMockData()) {
-    return demoStoreSettings;
-  }
-
   try {
     await ensureStoreSettingsStorage();
 
@@ -73,15 +66,6 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
 }
 
 export async function upsertStoreSettings(input: StoreSettingsInput) {
-  if (shouldUseMockData()) {
-    demoStoreSettings = {
-      ...demoStoreSettings,
-      ...input,
-      updatedAt: new Date(),
-    };
-    return demoStoreSettings;
-  }
-
   await ensureStoreSettingsStorage();
 
   const data = {
@@ -111,13 +95,4 @@ export async function upsertStoreSettings(input: StoreSettingsInput) {
       });
 
   return settings as StoreSettings;
-}
-
-export function updateDemoStoreSettings(input: StoreSettingsInput) {
-  demoStoreSettings = {
-    ...demoStoreSettings,
-    ...input,
-    updatedAt: new Date(),
-  };
-  return demoStoreSettings;
 }

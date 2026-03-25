@@ -9,6 +9,7 @@ interface Props {
   filters: FilterState;
   onChange: (f: FilterState) => void;
   categories: Category[];
+  priceBounds: [number, number];
   lockedCategory?: string;
   variant?: "sidebar" | "modal";
 }
@@ -92,6 +93,7 @@ export function ShopFilters({
   filters,
   onChange,
   categories,
+  priceBounds,
   lockedCategory,
   variant = "sidebar",
 }: Props) {
@@ -120,6 +122,9 @@ export function ShopFilters({
 
   const topLevelCategories = byParent.get(null) || [];
   const isModal = variant === "modal";
+  const sliderMin = priceBounds[0];
+  const sliderMax = priceBounds[1] > priceBounds[0] ? priceBounds[1] : priceBounds[0] + 1;
+  const sliderStep = Math.max(1, Math.round((sliderMax - sliderMin) / 20));
 
   const toggle = (key: "category" | "gender" | "colors" | "sizes", value: string) => {
     const current = filters[key] as string[];
@@ -150,7 +155,7 @@ export function ShopFilters({
               gender: [],
               colors: [],
               sizes: [],
-              priceRange: [1000, 20000],
+              priceRange: priceBounds,
               search: "",
               sortBy: filters.sortBy,
             })
@@ -221,7 +226,7 @@ export function ShopFilters({
         </FilterSection>
       )}
 
-        <FilterSection title="Gender" variant={variant}>
+      <FilterSection title="Gender" variant={variant}>
         <div className="flex flex-wrap gap-2">
           {genders.map((gender) => (
             <button
@@ -289,9 +294,9 @@ export function ShopFilters({
           </div>
           <input
             type="range"
-            min={1000}
-            max={20000}
-            step={500}
+            min={sliderMin}
+            max={sliderMax}
+            step={sliderStep}
             value={filters.priceRange[1]}
             onChange={(event) =>
               onChange({

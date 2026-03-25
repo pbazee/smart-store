@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -22,46 +21,49 @@ model User {
 }
 
 model Product {
-  id          String                   @id @default(cuid())
-  name        String
-  slug        String                   @unique
-  description String
-  category    String
-  subcategory String
-  gender      String
-  tags        String[]
-  basePrice   Int
-  images      String[]
-  rating      Float                    @default(0)
-  reviewCount Int                      @default(0)
-  isFeatured  Boolean                  @default(false)
-  isNew       Boolean                  @default(false)
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  categoryId  String?
-  overrides   LandingSectionOverride[]
-  categoryRef Category?                @relation(fields: [categoryId], references: [id])
-  reviews     Review[]
-  variants    Variant[]
-  wishlists   WishlistItem[]
+  id            String                   @id @default(cuid())
+  name          String
+  slug          String                   @unique
+  description   String
+  category      String
+  subcategory   String
+  gender        String
+  tags          String[]
+  basePrice     Int
+  images        String[]
+  rating        Float                    @default(0)
+  reviewCount   Int                      @default(0)
+  isFeatured    Boolean                  @default(false)
+  isNew         Boolean                  @default(false)
+  isPopular     Boolean                  @default(false)
+  isTrending    Boolean                  @default(false)
+  isRecommended Boolean                  @default(false)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  categoryId    String?
+  overrides     LandingSectionOverride[]
+  categoryRef   Category?                @relation(fields: [categoryId], references: [id])
+  reviews       Review[]
+  variants      Variant[]
+  wishlists     WishlistItem[]
 
   @@index([categoryId])
 }
 
 model Category {
-  id          String     @id @default(cuid())
-  name        String
-  slug        String     @unique
-  description String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  order       Int        @default(0)
-  isActive    Boolean    @default(true)
-  parentId    String?
-  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryHierarchy")
+  id                 String     @id @default(cuid())
+  name               String
+  slug               String     @unique
+  description        String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  order              Int        @default(0)
+  isActive           Boolean    @default(true)
+  parentId           String?
+  parent             Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children           Category[] @relation("CategoryHierarchy")
   homepageCategories HomepageCategory[] @relation("HomepageCategoryParent")
-  products    Product[]
+  products           Product[]
 }
 
 model AnnouncementMessage {

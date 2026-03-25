@@ -24,7 +24,7 @@ export async function HomeProductSections({
         description="A fast-moving mix of compatible silhouettes, matching price bands, and category logic that feels personal without slowing down the storefront."
         products={alsoBought}
         viewAllLabel="Explore Recommended"
-        viewAllHref="/products?filter=recommended"
+        viewAllHref="/shop?collection=recommended"
       />
       <TrendingSection products={trending} />
       <NewArrivalsSection products={newArrivals} />
@@ -33,8 +33,8 @@ export async function HomeProductSections({
         title="Built for Nairobi streets and late golden-hour plans"
         description="Smart picks shaped by what the city responds to: versatile layers, confident color, and easy daily wear."
         products={cityInspired}
-        viewAllLabel="Explore Recommended"
-        viewAllHref="/products?filter=recommended"
+        viewAllLabel="Explore City Picks"
+        viewAllHref="/shop?collection=city-inspired"
       />
     </>
   );

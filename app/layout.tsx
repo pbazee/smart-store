@@ -13,6 +13,7 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseProvider } from "@/components/supabase-provider";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getAppUrl } from "@/lib/app-url";
 import { getHomepageShellData } from "@/lib/homepage-data";
@@ -55,10 +56,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const homepageShellData = await getHomepageShellData();
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const session = shouldSkipLiveDataDuringBuild()
+    ? null
+    : (
+      await (await createSupabaseServerClient()).auth.getSession()
+    ).data.session;
 
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>

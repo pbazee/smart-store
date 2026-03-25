@@ -38,7 +38,7 @@ function createEmptyFormState(): HeroSlideFormState {
     subtitle: "",
     imageUrl: "",
     ctaText: "Shop the Edit",
-    ctaLink: "/products?filter=new",
+    ctaLink: "/shop?collection=new-arrivals",
     moodTags: [],
     locationBadge: "",
     isActive: true,
@@ -261,7 +261,7 @@ export function HeroFormDialog({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, ctaLink: event.target.value }))
                 }
-                placeholder="/products?filter=new"
+                placeholder="/shop?collection=new-arrivals"
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
             </label>

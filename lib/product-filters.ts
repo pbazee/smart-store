@@ -1,23 +1,24 @@
 import type { Category, FilterState, Product } from "@/types";
-import { getProductListFilterConfig } from "@/lib/catalog-config";
 import { smartSearchProducts } from "@/lib/smart-search";
 
 type ProductFilterOptions = {
   filters: FilterState;
   categories?: Category[];
   tag?: string | null;
-  filterKey?: string | null;
   lockedCategory?: string;
 };
+
+function normalizeCatalogValue(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
+}
 
 export function filterProductCatalog(
   products: Product[],
   options: ProductFilterOptions
 ): Product[] {
-  const { filters, tag, filterKey, lockedCategory, categories } = options;
+  const { filters, tag, lockedCategory, categories } = options;
   const selectedCategories = lockedCategory ? [lockedCategory] : filters.category;
-  const selectedGenders = filters.gender;
-  const filterConfig = getProductListFilterConfig(filterKey);
+  const selectedGenders = filters.gender.map((gender) => normalizeCatalogValue(gender)).filter(Boolean);
   let results = [...products];
   const categoryMap = new Map<string, Category>();
 
@@ -25,10 +26,11 @@ export function filterProductCatalog(
     categoryMap.set(cat.id, cat);
   });
 
-  if (filterConfig) {
-    results = results.filter(filterConfig.predicate);
-  } else if (tag) {
-    results = results.filter((product) => product.tags.includes(tag));
+  if (tag) {
+    const normalizedTag = normalizeCatalogValue(tag);
+    results = results.filter((product) =>
+      product.tags.some((productTag) => normalizeCatalogValue(productTag) === normalizedTag)
+    );
   }
 
   if (filters.search) {
@@ -38,19 +40,35 @@ export function filterProductCatalog(
   if (selectedCategories.length > 0) {
     results = results.filter((product) =>
       selectedCategories.some((category) => {
+        const selectedCategory = categoryMap.get(category);
         const productCategoryId = (product as any).categoryId as string | undefined;
         const productCategory = productCategoryId ? categoryMap.get(productCategoryId) : null;
         const parentId = productCategory?.parentId ?? null;
         const parent = parentId ? categoryMap.get(parentId) : null;
+        const productValues = [
+          productCategoryId,
+          productCategory?.id,
+          productCategory?.slug,
+          productCategory?.name,
+          parentId,
+          parent?.id,
+          parent?.slug,
+          parent?.name,
+          product.category,
+          product.subcategory,
+        ]
+          .map((value) => normalizeCatalogValue(value))
+          .filter(Boolean);
+        const selectedValues = [
+          category,
+          selectedCategory?.id,
+          selectedCategory?.slug,
+          selectedCategory?.name,
+        ]
+          .map((value) => normalizeCatalogValue(value))
+          .filter(Boolean);
 
-        return (
-          (productCategoryId && category === productCategoryId) ||
-          (productCategory && category === productCategory.slug) ||
-          (parentId && category === parentId) ||
-          (parent && category === parent.slug) ||
-          product.category === category ||
-          product.subcategory === category
-        );
+        return selectedValues.some((value) => productValues.includes(value));
       })
     );
   }
@@ -58,7 +76,9 @@ export function filterProductCatalog(
   if (selectedGenders.length > 0) {
     results = results.filter((product) =>
       selectedGenders.some(
-        (gender) => product.gender === gender || product.gender === "unisex"
+        (gender) =>
+          normalizeCatalogValue(product.gender) === gender ||
+          normalizeCatalogValue(product.gender) === "unisex"
       )
     );
   }
@@ -98,11 +118,11 @@ export function filterProductCatalog(
   }
 
   if (filters.sortBy === "new") {
-    results = results.filter((product) => product.isNew);
+    results = [...results].sort((a, b) => Number(b.isNew) - Number(a.isNew) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   if (filters.sortBy === "featured") {
-    results = [...results].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured));
+    results = [...results].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   return results;

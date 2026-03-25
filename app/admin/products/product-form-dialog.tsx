@@ -39,6 +39,9 @@ type ProductFormState = {
   tags: string;
   isFeatured: boolean;
   isNew: boolean;
+  isPopular: boolean;
+  isTrending: boolean;
+  isRecommended: boolean;
   variants: VariantFormState[];
 };
 
@@ -66,6 +69,9 @@ function createEmptyFormState(): ProductFormState {
     tags: "trending, nairobi",
     isFeatured: false,
     isNew: true,
+    isPopular: true,
+    isTrending: true,
+    isRecommended: true,
     variants: [{ ...defaultVariant }],
   };
 }
@@ -91,6 +97,9 @@ function createFormState(product?: Product | null): ProductFormState {
     tags: product.tags.join(", "),
     isFeatured: product.isFeatured,
     isNew: product.isNew,
+    isPopular: product.isPopular,
+    isTrending: product.isTrending,
+    isRecommended: product.isRecommended,
     variants: product.variants.map((variant) => ({
       id: variant.id,
       color: variant.color,
@@ -136,6 +145,9 @@ function toPayload(form: ProductFormState): AdminProductInput {
       .filter(Boolean),
     isFeatured: form.isFeatured,
     isNew: form.isNew,
+    isPopular: form.isPopular,
+    isTrending: form.isTrending,
+    isRecommended: form.isRecommended,
     variants: form.variants.map((variant) => ({
       id: variant.id,
       color: variant.color.trim(),
@@ -487,6 +499,36 @@ export function ProductFormDialog({
                 }
               />
               Mark as new arrival
+            </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
+              <input
+                type="checkbox"
+                checked={form.isPopular}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, isPopular: event.target.checked }))
+                }
+              />
+              Popular product
+            </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
+              <input
+                type="checkbox"
+                checked={form.isTrending}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, isTrending: event.target.checked }))
+                }
+              />
+              Trending
+            </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={form.isRecommended}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, isRecommended: event.target.checked }))
+                }
+              />
+              Recommended for you
             </label>
           </div>
 

@@ -7,6 +7,10 @@ import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
 export function FeaturedGrid({ products }: { products: Product[] }) {
+  if (products.length === 0) {
+    return null;
+  }
+
   return (
     <section id="home-shop" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <motion.div
@@ -27,7 +31,7 @@ export function FeaturedGrid({ products }: { products: Product[] }) {
           </p>
         </div>
         <Link
-          href="/products?filter=popular"
+          href="/shop?collection=popular"
           className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold transition-colors hover:border-brand-300 hover:text-brand-600"
         >
           View Popular Products

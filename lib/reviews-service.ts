@@ -1,84 +1,51 @@
 import { prisma } from "@/lib/prisma";
-import { shouldUseMockData } from "@/lib/live-data-mode";
-import { addDemoReview, getDemoReviews } from "@/lib/demo-catalog";
 import { ensureReviewStorage } from "@/lib/runtime-schema-repair";
 import type { ProductReview } from "@/types";
 
 export async function getProductReviews(productId: string) {
-  if (shouldUseMockData()) {
-    return getDemoReviews(productId);
-  }
+  await ensureReviewStorage();
 
-  try {
-    await ensureReviewStorage();
-
-    return await prisma.review.findMany({
-      where: { productId, isApproved: true },
-      orderBy: { createdAt: "desc" },
-    });
-  } catch (error) {
-    console.error("Falling back to mock reviews:", error);
-    return getDemoReviews(productId);
-  }
+  return await prisma.review.findMany({
+    where: { productId, isApproved: true },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function getLatestApprovedReviews(limit: number = 6) {
-  if (shouldUseMockData()) {
-    return [];
-  }
+  await ensureReviewStorage();
 
-  try {
-    await ensureReviewStorage();
-
-    return await prisma.review.findMany({
-      where: { isApproved: true },
-      take: limit,
-      orderBy: { createdAt: "desc" },
-      include: {
-        product: {
-          select: {
-            name: true,
-            slug: true,
-          },
+  return await prisma.review.findMany({
+    where: { isApproved: true },
+    take: limit,
+    orderBy: { createdAt: "desc" },
+    include: {
+      product: {
+        select: {
+          name: true,
+          slug: true,
         },
       },
-    });
-  } catch (error) {
-    console.error("Failed to fetch latest reviews:", error);
-    return [];
-  }
+    },
+  });
 }
 
 export async function getAllReviewsAdmin() {
-  if (shouldUseMockData()) {
-    return [];
-  }
+  await ensureReviewStorage();
 
-  try {
-    await ensureReviewStorage();
-
-    return await prisma.review.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        product: {
-          select: {
-            name: true,
-            slug: true,
-          },
+  return await prisma.review.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      product: {
+        select: {
+          name: true,
+          slug: true,
         },
       },
-    });
-  } catch (error) {
-    console.error("Failed to fetch admin reviews:", error);
-    return [];
-  }
+    },
+  });
 }
 
 export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: boolean, rating: number, title: string, content: string }>) {
-  if (shouldUseMockData()) {
-    return null;
-  }
-
   await ensureReviewStorage();
 
   return await prisma.review.update({
@@ -88,10 +55,6 @@ export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: 
 }
 
 export async function deleteReviewAdmin(id: string) {
-  if (shouldUseMockData()) {
-    return null;
-  }
-
   await ensureReviewStorage();
 
   return await prisma.review.delete({
@@ -109,18 +72,6 @@ export async function createProductReview(input: {
   content: string;
   verifiedPurchase?: boolean;
 }) {
-  if (shouldUseMockData()) {
-    return addDemoReview(input.productId, {
-      userId: input.userId ?? null,
-      authorName: input.authorName,
-      authorCity: input.authorCity ?? null,
-      rating: input.rating,
-      title: input.title ?? null,
-      content: input.content,
-      verifiedPurchase: input.verifiedPurchase ?? false,
-    });
-  }
-
   await ensureReviewStorage();
 
   const review = await prisma.$transaction(async (tx) => {

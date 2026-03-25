@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isProtectedAdminEmail } from "@/lib/admin-identity";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
@@ -14,19 +15,30 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password } = loginSchema.parse(body);
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: {
         email: email.toLowerCase(),
       },
     });
 
-    if (!user || normalizeUserRole(user.role) !== "admin" || !user.passwordHash) {
+    if (
+      !user ||
+      (!isProtectedAdminEmail(user.email ?? email) && normalizeUserRole(user.role) !== "admin") ||
+      !user.passwordHash
+    ) {
       return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
     }
 
     const passwordMatches = await verifyPassword(password, user.passwordHash);
     if (!passwordMatches) {
       return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
+    }
+
+    if (isProtectedAdminEmail(user.email) && normalizeUserRole(user.role) !== "admin") {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: "ADMIN" },
+      });
     }
 
     const token = await createLocalAuthToken({

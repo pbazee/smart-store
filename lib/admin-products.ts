@@ -23,6 +23,9 @@ export function buildAdminProductCreateData(input: {
   tags?: string[];
   isFeatured?: boolean;
   isNew?: boolean;
+  isPopular?: boolean;
+  isTrending?: boolean;
+  isRecommended?: boolean;
   variants: Array<{
     color: string;
     colorHex: string;
@@ -44,6 +47,9 @@ export function buildAdminProductCreateData(input: {
     tags: input.tags || [],
     isFeatured: input.isFeatured || false,
     isNew: input.isNew || false,
+    isPopular: input.isPopular || false,
+    isTrending: input.isTrending || false,
+    isRecommended: input.isRecommended || false,
     rating: 0,
     reviewCount: 0,
     variants: {

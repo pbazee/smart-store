@@ -9,7 +9,7 @@ export const DEFAULT_HOMEPAGE_CATEGORY_SEEDS: HomepageCategorySeed[] = [
     subtitle: "Street-ready sneakers and statement pairs",
     imageUrl:
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80",
-    link: "/category/shoes",
+    link: "/shop?category=shoes",
     order: 0,
     isActive: true,
   },
@@ -19,7 +19,7 @@ export const DEFAULT_HOMEPAGE_CATEGORY_SEEDS: HomepageCategorySeed[] = [
     subtitle: "Flowing silhouettes built for warm city days",
     imageUrl:
       "https://images.pexels.com/photos/31965807/pexels-photo-31965807.jpeg?auto=compress&cs=tinysrgb&w=900",
-    link: "/category/dresses",
+    link: "/shop?subcategory=dresses",
     order: 1,
     isActive: true,
   },
@@ -29,7 +29,7 @@ export const DEFAULT_HOMEPAGE_CATEGORY_SEEDS: HomepageCategorySeed[] = [
     subtitle: "Premium denim with a polished everyday edge",
     imageUrl:
       "https://images.pexels.com/photos/936001/pexels-photo-936001.jpeg?auto=compress&cs=tinysrgb&w=900",
-    link: "/category/jeans",
+    link: "/shop?subcategory=jeans",
     order: 2,
     isActive: true,
   },
@@ -39,7 +39,7 @@ export const DEFAULT_HOMEPAGE_CATEGORY_SEEDS: HomepageCategorySeed[] = [
     subtitle: "Layering heroes for Nairobi nights",
     imageUrl:
       "https://images.pexels.com/photos/19824497/pexels-photo-19824497.jpeg?auto=compress&cs=tinysrgb&w=900",
-    link: "/category/jackets",
+    link: "/shop?subcategory=jackets",
     order: 3,
     isActive: true,
   },

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { shouldUseMockData } from "@/lib/live-data-mode";
+import { isProtectedAdminEmail } from "@/lib/admin-identity";
 import { UserRole } from "@prisma/client";
 
 export type AdminUserSummary = {
@@ -11,6 +12,8 @@ export type AdminUserSummary = {
     totalOrders: number;
     totalSpent: number;
 };
+
+export const PROTECTED_ADMIN_USER_ERROR = "The protected admin account cannot be demoted or deleted.";
 
 export async function getAllUsersAdmin(): Promise<AdminUserSummary[]> {
     if (shouldUseMockData()) {
@@ -67,6 +70,19 @@ export async function updateUserRoleAdmin(userId: string, role: UserRole) {
         return null;
     }
 
+    const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+    });
+
+    if (!existingUser) {
+        return null;
+    }
+
+    if (isProtectedAdminEmail(existingUser.email) && role !== UserRole.ADMIN) {
+        throw new Error(PROTECTED_ADMIN_USER_ERROR);
+    }
+
     return prisma.user.update({
         where: { id: userId },
         data: { role },
@@ -76,6 +92,19 @@ export async function updateUserRoleAdmin(userId: string, role: UserRole) {
 export async function deleteUserAdmin(userId: string) {
     if (shouldUseMockData()) {
         return null;
+    }
+
+    const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+    });
+
+    if (!existingUser) {
+        return null;
+    }
+
+    if (isProtectedAdminEmail(existingUser.email)) {
+        throw new Error(PROTECTED_ADMIN_USER_ERROR);
     }
 
     // Handle cascading or related records if necessary, but Prisma schema might have onDelete: Cascade

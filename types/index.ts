@@ -24,6 +24,9 @@ export interface Product {
   reviewCount: number;
   isFeatured: boolean;
   isNew: boolean;
+  isPopular: boolean;
+  isTrending: boolean;
+  isRecommended: boolean;
 }
 
 export type LandingSection = "popular" | "trending" | "new_arrivals" | "recommended";

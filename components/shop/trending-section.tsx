@@ -7,6 +7,10 @@ import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
 export function TrendingSection({ products }: { products: Product[] }) {
+  if (products.length === 0) {
+    return null;
+  }
+
   return (
     <section className="bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.12),_transparent_28%),linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)] py-16 text-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -32,7 +36,7 @@ export function TrendingSection({ products }: { products: Product[] }) {
             </p>
           </div>
           <Link
-            href="/products?filter=trending"
+            href="/shop?collection=trending"
             className="overlay-readable-text inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold transition-colors hover:border-brand-300"
           >
             View Trending

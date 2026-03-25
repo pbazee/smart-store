@@ -4,29 +4,29 @@ export type NavigationLink = {
 };
 
 export const primaryCategoryLinks: NavigationLink[] = [
-  { href: "/category/men", label: "Men" },
-  { href: "/category/women", label: "Women" },
-  { href: "/category/children", label: "Children" },
+  { href: "/shop?gender=men", label: "Men" },
+  { href: "/shop?gender=women", label: "Women" },
+  { href: "/shop?gender=children", label: "Children" },
 ];
 
 export const drawerMenuLinks: NavigationLink[] = [
   { href: "/", label: "Home" },
-  { href: "/products", label: "Shop All" },
-  { href: "/category/men", label: "Men" },
-  { href: "/category/women", label: "Women" },
-  { href: "/category/children", label: "Children" },
-  { href: "/products?filter=new", label: "New Arrivals" },
-  { href: "/products?filter=trending", label: "Trending" },
+  { href: "/shop", label: "Shop All" },
+  { href: "/shop?gender=men", label: "Men" },
+  { href: "/shop?gender=women", label: "Women" },
+  { href: "/shop?gender=children", label: "Children" },
+  { href: "/shop?collection=new-arrivals", label: "New Arrivals" },
+  { href: "/shop?collection=trending", label: "Trending" },
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact Us" },
 ];
 
 export const drawerCategoryLinks: NavigationLink[] = [
-  { href: "/category/shoes", label: "Shoes" },
-  { href: "/category/bags", label: "Bags" },
-  { href: "/category/tshirts", label: "T-Shirts" },
-  { href: "/category/accessories", label: "Accessories" },
+  { href: "/shop?category=shoes", label: "Shoes" },
+  { href: "/shop?subcategory=bags", label: "Bags" },
+  { href: "/shop?subcategory=t-shirts", label: "T-Shirts" },
+  { href: "/shop?category=accessories", label: "Accessories" },
 ];
 
 export function isNavigationLinkActive(

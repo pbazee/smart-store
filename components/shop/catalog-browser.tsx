@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, Check, SlidersHorizontal, X } from "lucide-react";
 import { ProductCard } from "@/components/shop/product-card";
 import { ShopFilters } from "@/components/shop/shop-filters";
-import { getProductListFilterConfig } from "@/lib/catalog-config";
+import { resolveCatalogFilterSelections } from "@/lib/catalog-routing";
 import { filterProductCatalog } from "@/lib/product-filters";
 import { cn } from "@/lib/utils";
 import type { Category, FilterState, Product } from "@/types";
@@ -17,7 +18,6 @@ type CatalogBrowserProps = {
   lockedCategory?: string;
 };
 
-const defaultPriceRange: [number, number] = [1000, 20000];
 const sortOptions = [
   { value: "featured", label: "Featured" },
   { value: "new", label: "New Arrivals" },
@@ -26,21 +26,48 @@ const sortOptions = [
   { value: "rating", label: "Top Rated" },
 ];
 
+function getProductPriceBounds(products: Product[]): [number, number] {
+  if (products.length === 0) {
+    return [0, 0];
+  }
+
+  return products.reduce<[number, number]>(
+    (bounds, product) => [
+      Math.min(bounds[0], product.basePrice),
+      Math.max(bounds[1], product.basePrice),
+    ],
+    [products[0].basePrice, products[0].basePrice]
+  );
+}
+
 function buildFilterState(
-  searchParams: Pick<URLSearchParams, "get">,
+  queryState: {
+    category: string | null;
+    subcategory: string | null;
+    gender: string | null;
+    search: string;
+  },
+  categories: Category[],
+  priceBounds: [number, number],
   lockedCategory?: string
 ): FilterState {
+  const selections = resolveCatalogFilterSelections(
+    {
+      category: queryState.category,
+      subcategory: queryState.subcategory,
+      gender: queryState.gender,
+    },
+    categories,
+    lockedCategory
+  );
+
   return {
-    category: lockedCategory
-      ? [lockedCategory]
-      : searchParams.get("category")
-        ? [searchParams.get("category")!]
-        : [],
-    gender: searchParams.get("gender") ? [searchParams.get("gender")!] : [],
+    category: selections.category,
+    gender: selections.gender,
     colors: [],
     sizes: [],
-    priceRange: defaultPriceRange,
-    search: searchParams.get("search") ?? "",
+    priceRange: priceBounds,
+    search: queryState.search,
     sortBy: "featured",
   };
 }
@@ -52,26 +79,34 @@ export function CatalogBrowser({
   lockedCategory,
 }: CatalogBrowserProps) {
   const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
-  const [filters, setFilters] = useState<FilterState>(() =>
-    buildFilterState(searchParams, lockedCategory)
+  const priceBounds = useMemo(() => getProductPriceBounds(products), [products]);
+  const queryState = useMemo(
+    () => ({
+      category: searchParams.get("category"),
+      subcategory: searchParams.get("subcategory"),
+      gender: searchParams.get("gender"),
+      search: searchParams.get("search") ?? "",
+      tag: searchParams.get("tag"),
+      tags: searchParams.get("tags"),
+    }),
+    [searchParamsKey]
   );
-  const tag = searchParams.get("tags");
-  const filterKey = searchParams.get("filter");
-  const filterConfig = getProductListFilterConfig(filterKey);
+  const filterStateFromUrl = useMemo(
+    () => buildFilterState(queryState, categories, priceBounds, lockedCategory),
+    [categories, lockedCategory, priceBounds, queryState]
+  );
+  const [filters, setFilters] = useState<FilterState>(() =>
+    buildFilterState(queryState, categories, priceBounds, lockedCategory)
+  );
+  const tag = queryState.tag ?? queryState.tags;
 
   useEffect(() => {
-    setFilters((current) => ({
-      ...current,
-      ...buildFilterState(searchParams, lockedCategory),
-      colors: current.colors,
-      sizes: current.sizes,
-      priceRange: current.priceRange,
-      sortBy: current.sortBy,
-    }));
-  }, [lockedCategory, searchParams]);
+    setFilters(filterStateFromUrl);
+  }, [filterStateFromUrl]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -101,19 +136,18 @@ export function CatalogBrowser({
         filters,
         categories,
         tag,
-        filterKey,
         lockedCategory,
       }),
-    [categories, filterKey, filters, lockedCategory, products, tag]
+    [categories, filters, lockedCategory, products, tag]
   );
 
-  const displayHeading = heading === "All Products" && filterConfig ? filterConfig.heading : heading;
   const selectedSortLabel =
     sortOptions.find((option) => option.value === filters.sortBy)?.label || "Featured";
+  const hasCatalogProducts = products.length > 0;
 
   const resetFilters = () =>
     setFilters({
-      ...buildFilterState(searchParams, lockedCategory),
+      ...buildFilterState(queryState, categories, priceBounds, lockedCategory),
       sortBy: "featured",
     });
 
@@ -121,7 +155,7 @@ export function CatalogBrowser({
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-zinc-950 dark:text-zinc-50">{displayHeading}</h1>
+          <h1 className="text-2xl font-black text-zinc-950 dark:text-zinc-50">{heading}</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{filteredProducts.length} items</p>
         </div>
 
@@ -193,6 +227,7 @@ export function CatalogBrowser({
             filters={filters}
             onChange={setFilters}
             categories={categories}
+            priceBounds={priceBounds}
             lockedCategory={lockedCategory}
           />
         </div>
@@ -203,7 +238,7 @@ export function CatalogBrowser({
               className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
               onClick={() => setMobileFiltersOpen(false)}
             />
-            <div className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto border-l border-zinc-300 bg-[#fffaf5] p-5 text-zinc-950 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+            <div className="absolute right-0 top-0 h-full w-3/4 max-w-sm overflow-y-auto border-l border-zinc-300 bg-[#fffaf5] p-5 text-zinc-950 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold">Filters</h3>
@@ -224,6 +259,7 @@ export function CatalogBrowser({
                 filters={filters}
                 onChange={setFilters}
                 categories={categories}
+                priceBounds={priceBounds}
                 lockedCategory={lockedCategory}
                 variant="modal"
               />
@@ -252,15 +288,27 @@ export function CatalogBrowser({
           {filteredProducts.length === 0 ? (
             <div className="rounded-[2rem] border border-zinc-200 bg-white/80 py-20 text-center shadow-[0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-950/60">
               <p className="mb-2 text-xl font-bold text-zinc-950 dark:text-zinc-100">
-                No products found
+                {hasCatalogProducts ? "No products match these filters" : "No products found"}
               </p>
-              <p className="text-zinc-600 dark:text-zinc-400">Try adjusting your filters</p>
-              <button
-                onClick={resetFilters}
-                className="mt-4 rounded-full bg-brand-500 px-6 py-2.5 font-semibold text-white"
-              >
-                Clear Filters
-              </button>
+              <p className="mx-auto max-w-md text-zinc-600 dark:text-zinc-400">
+                {hasCatalogProducts
+                  ? "Try adjusting or clearing your current filters to bring products back into view."
+                  : "This filter combination has no products yet. You can reset the current filters or browse the full catalog."}
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={resetFilters}
+                  className="rounded-full bg-brand-500 px-6 py-2.5 font-semibold text-white"
+                >
+                  Clear Filters
+                </button>
+                <Link
+                  href="/shop"
+                  className="rounded-full border border-zinc-300 px-6 py-2.5 font-semibold text-zinc-900 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                >
+                  Browse All Products
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3">

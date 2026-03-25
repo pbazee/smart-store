@@ -1,10 +1,2 @@
-export {
-  mockProducts,
-  mockOrders,
-  getProductBySlug,
-  getFeaturedProducts,
-  getTrendingProducts,
-  getNewArrivals,
-  getRelatedProducts,
-  getAdminStats,
-} from "@/lib/mock-data";
+// Data exports now use database only - mock data has been removed
+export {};

@@ -26,27 +26,27 @@ const CATEGORY_CONFIGS: Record<string, CatalogCategoryConfig> = {
   bags: {
     slug: "bags",
     heading: "Bags",
-    filters: { subcategory: "bag" },
+    filters: { category: "accessories", subcategory: "bags" },
   },
   tshirts: {
     slug: "tshirts",
     heading: "T-Shirts",
-    filters: { subcategory: "tshirt" },
+    filters: { category: "clothes", subcategory: "t-shirts" },
   },
   dresses: {
     slug: "dresses",
     heading: "Dresses",
-    filters: { subcategory: "dresses" },
+    filters: { category: "clothes", subcategory: "dresses" },
   },
   jeans: {
     slug: "jeans",
     heading: "Jeans",
-    filters: { subcategory: "jeans" },
+    filters: { category: "clothes", subcategory: "jeans" },
   },
   jackets: {
     slug: "jackets",
     heading: "Jackets",
-    filters: { subcategory: "jackets" },
+    filters: { category: "clothes", subcategory: "jackets" },
   },
   accessories: {
     slug: "accessories",
@@ -80,23 +80,49 @@ const CATEGORY_CONFIGS: Record<string, CatalogCategoryConfig> = {
 const PRODUCT_LIST_FILTERS: Record<string, ProductListFilterConfig> = {
   trending: {
     heading: "Trending Products",
-    predicate: (product) => product.tags.includes("trending"),
+    predicate: (product) => product.isTrending,
   },
   new: {
     heading: "New Arrivals",
-    predicate: (product) => product.isNew || product.tags.includes("new-arrival"),
+    predicate: (product) => product.isNew,
   },
   popular: {
     heading: "Popular Products",
-    predicate: (product) => product.isFeatured,
+    predicate: (product) => product.isPopular,
   },
   recommended: {
     heading: "Recommended For You",
-    predicate: (product) =>
-      product.isFeatured || product.isNew || product.tags.includes("trending"),
+    predicate: (product) => product.isRecommended,
   },
 };
 
+export const KNOWN_SUBCATEGORY_PARENT_SLUGS: Record<string, string> = {
+  shoes: "shoes",
+  sneaker: "shoes",
+  sneakers: "shoes",
+  boots: "shoes",
+  sandals: "shoes",
+  heels: "shoes",
+  loafers: "shoes",
+  dresses: "clothes",
+  dress: "clothes",
+  jeans: "clothes",
+  jackets: "clothes",
+  jacket: "clothes",
+  tshirts: "clothes",
+  "t-shirts": "clothes",
+  tops: "clothes",
+  shorts: "clothes",
+  suits: "clothes",
+  skirts: "clothes",
+  bags: "accessories",
+  bag: "accessories",
+  belts: "accessories",
+  watches: "accessories",
+  caps: "accessories",
+  jewellery: "accessories",
+  jewelry: "accessories",
+};
 function humanizeSlug(slug: string) {
   return slug
     .split("-")
@@ -107,6 +133,20 @@ function humanizeSlug(slug: string) {
 
 export function resolveCategoryConfig(slug: string): CatalogCategoryConfig {
   const normalizedSlug = slug.trim().toLowerCase();
+  const parentSlug = KNOWN_SUBCATEGORY_PARENT_SLUGS[normalizedSlug];
+
+  if (parentSlug && parentSlug !== normalizedSlug) {
+    return (
+      CATEGORY_CONFIGS[normalizedSlug] ?? {
+        slug: normalizedSlug,
+        heading: humanizeSlug(normalizedSlug),
+        filters: {
+          category: parentSlug,
+          subcategory: normalizedSlug,
+        },
+      }
+    );
+  }
 
   return (
     CATEGORY_CONFIGS[normalizedSlug] ?? {

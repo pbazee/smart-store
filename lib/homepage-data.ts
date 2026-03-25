@@ -1,19 +1,19 @@
 import { unstable_cache } from "next/cache";
-import { getDemoAnnouncementMessages } from "@/lib/announcement-service";
-import { getDemoBlogPosts } from "@/lib/blog-service";
 import { getProducts } from "@/lib/data-service";
+import { createHomepageCategorySeed, DEFAULT_HOMEPAGE_CATEGORY_SEEDS } from "@/lib/default-homepage-categories";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
-import { getActiveHeroSlides, getDemoHeroSlides } from "@/lib/hero-slide-service";
+import { getDefaultHeroSlides } from "@/lib/default-hero-slides";
+import { createSocialLinkSeed, DEFAULT_SOCIAL_LINK_SEEDS } from "@/lib/default-social-links";
+import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
+import { getActiveHeroSlides } from "@/lib/hero-slide-service";
 import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { getLatestApprovedReviews } from "@/lib/reviews-service";
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { getActiveLandingOverrides, mergeOverridesWithAuto } from "@/lib/landing-section-overrides";
-import { getDemoPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
 import { getCityInspiredProducts, getCustomersAlsoBought } from "@/lib/recommendations";
-import { getDemoSocialLinks } from "@/lib/social-link-service";
 import { createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
-import { getDemoWhatsAppSettings, getWhatsAppSettings } from "@/lib/whatsapp-service";
+import { getWhatsAppSettings } from "@/lib/whatsapp-service";
 import { getStoreSettings } from "@/lib/store-settings";
 import type {
   AnnouncementMessage,
@@ -59,6 +59,10 @@ export type HomepagePageData = {
 
 export type HomepageData = HomepageShellData & HomepagePageData;
 
+function shouldUseBuildFallbackData() {
+  return shouldSkipLiveDataDuringBuild();
+}
+
 function shouldUseProductionCache() {
   return process.env.NODE_ENV === "production";
 }
@@ -86,14 +90,32 @@ function isPopupActive(popup: Popup, now = new Date()) {
   return new Date(popup.expiresAt).getTime() >= now.getTime();
 }
 
+function getEmptyHomepageProductSectionsData(): HomepageProductSectionsData {
+  return {
+    featured: [],
+    trending: [],
+    newArrivals: [],
+    alsoBought: [],
+    cityInspired: [],
+  };
+}
+
+function getFallbackHomepageCategories(): HomepageCategory[] {
+  return DEFAULT_HOMEPAGE_CATEGORY_SEEDS.map((seed) => createHomepageCategorySeed(seed));
+}
+
+function getFallbackSocialLinks(): SocialLink[] {
+  return DEFAULT_SOCIAL_LINK_SEEDS.map((seed) => createSocialLinkSeed(seed));
+}
+
 async function resolveHomepageShellData(): Promise<HomepageShellData> {
-  if (shouldUseMockData()) {
+  if (shouldUseBuildFallbackData()) {
     return {
-      announcements: getDemoAnnouncementMessages({ activeOnly: true }),
-      popups: getDemoPopups().filter((popup) => isPopupActive(popup)),
-      socialLinks: getDemoSocialLinks(),
-      whatsAppSettings: getDemoWhatsAppSettings(),
-      storeSettings: await getStoreSettings({ seedIfEmpty: true }),
+      announcements: [createFallbackAnnouncementMessage()],
+      popups: [],
+      socialLinks: getFallbackSocialLinks(),
+      whatsAppSettings: createDefaultWhatsAppSettings(),
+      storeSettings: DEFAULT_STORE_SETTINGS,
     };
   }
 
@@ -121,7 +143,7 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
         async () => (await prisma.socialLink.findMany({
           orderBy: { createdAt: "asc" },
         })) as SocialLink[],
-        () => getDemoSocialLinks()
+        () => []
       ),
       safeQuery(
         async () => (await getWhatsAppSettings({ seedIfEmpty: true })) ?? createDefaultWhatsAppSettings(),
@@ -129,7 +151,7 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
       ),
       safeQuery(
         async () => (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null,
-        () => getStoreSettings({ seedIfEmpty: true })
+        () => null
       ),
     ]);
 
@@ -143,6 +165,10 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
 }
 
 async function resolveHomepageProductSectionsData(): Promise<HomepageProductSectionsData> {
+  if (shouldUseBuildFallbackData()) {
+    return getEmptyHomepageProductSectionsData();
+  }
+
   const [allProducts, popularOverrides, trendingOverrides, newArrivalOverrides, recommendedOverrides] =
     await Promise.all([
       getProducts(undefined, {
@@ -186,24 +212,42 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
 }
 
 async function resolveHomepagePageData(): Promise<HomepagePageData> {
+  if (shouldUseBuildFallbackData()) {
+    return {
+      heroSlides: getDefaultHeroSlides(),
+      categories: getFallbackHomepageCategories(),
+      blogPosts: [],
+      productSections: getEmptyHomepageProductSectionsData(),
+      latestReviews: [],
+    };
+  }
+
   const [heroSlides, categories, blogPosts, productSections, latestReviews] = await Promise.all([
-    shouldUseMockData()
-      ? Promise.resolve(getDemoHeroSlides({ activeOnly: true }))
-      : getActiveHeroSlides(),
-    getActiveHomepageCategories(),
-    shouldUseMockData()
-      ? Promise.resolve(getDemoBlogPosts({ publishedOnly: true, take: 4 }))
-      : safeQuery(
-        async () =>
-          (await prisma.blog.findMany({
-            where: { isPublished: true },
-            orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-            take: 4,
-          })) as BlogPost[],
-        () => getDemoBlogPosts({ publishedOnly: true, take: 4 })
-      ),
-    getCachedHomepageProductSectionsData(),
-    getLatestApprovedReviews(6),
+    safeQuery(
+      async () => await getActiveHeroSlides(),
+      () => getDefaultHeroSlides()
+    ),
+    safeQuery(
+      async () => await getActiveHomepageCategories(),
+      () => getFallbackHomepageCategories()
+    ),
+    safeQuery(
+      async () =>
+        (await prisma.blog.findMany({
+          where: { isPublished: true },
+          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+          take: 4,
+        })) as BlogPost[],
+      () => []
+    ),
+    safeQuery(
+      async () => await getCachedHomepageProductSectionsData(),
+      () => getEmptyHomepageProductSectionsData()
+    ),
+    safeQuery(
+      async () => await getLatestApprovedReviews(6),
+      () => []
+    ),
   ]);
 
   return {

@@ -1,4 +1,3 @@
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { Category } from "@/types";
 
@@ -31,11 +30,6 @@ const FALLBACK_CATEGORIES: Category[] = [
 ];
 
 export async function getActiveCategories(): Promise<Category[]> {
-  if (shouldUseMockData()) {
-    console.log("[Categories] Using fallback categories (mock mode)");
-    return FALLBACK_CATEGORIES;
-  }
-
   try {
     const categories = await prisma.category.findMany({
       where: { isActive: true },
