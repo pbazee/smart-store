@@ -318,16 +318,28 @@ const getHomepageDataForProd = unstable_cache(
 );
 
 function getCachedHomepageShellData() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageShellDataForDev();
+  }
+
   return shouldUseProductionCache() ? getHomepageShellDataForProd() : getHomepageShellDataForDev();
 }
 
 function getCachedHomepageProductSectionsData() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageProductSectionsDataForDev();
+  }
+
   return shouldUseProductionCache()
     ? getHomepageProductSectionsDataForProd()
     : getHomepageProductSectionsDataForDev();
 }
 
 function getCachedHomepagePageData() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepagePageDataForDev();
+  }
+
   return shouldUseProductionCache() ? getHomepagePageDataForProd() : getHomepagePageDataForDev();
 }
 
@@ -344,5 +356,9 @@ export async function getHomepagePageData() {
 }
 
 export async function getHomepageData() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageDataForDev();
+  }
+
   return shouldUseProductionCache() ? getHomepageDataForProd() : getHomepageDataForDev();
 }
