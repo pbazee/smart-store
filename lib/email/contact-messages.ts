@@ -1,6 +1,5 @@
 import { Resend } from "resend";
-import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
-import { getStoreSettings } from "@/lib/store-settings";
+import { getSupportContactInfo } from "@/lib/support-contact";
 import type { ContactMessage } from "@/types";
 
 type SendEmailOptions = {
@@ -39,19 +38,11 @@ function getFromEmail() {
 }
 
 async function getSupportIdentity() {
-  const settings = await getStoreSettings({ seedIfEmpty: true });
+  const supportInfo = await getSupportContactInfo();
 
   return {
-    supportEmail:
-      settings?.supportEmail ||
-      DEFAULT_STORE_SETTINGS.supportEmail ||
-      "support@smarteststore.ke",
-    adminEmail:
-      settings?.adminNotificationEmail ||
-      settings?.supportEmail ||
-      DEFAULT_STORE_SETTINGS.adminNotificationEmail ||
-      DEFAULT_STORE_SETTINGS.supportEmail ||
-      "support@smarteststore.ke",
+    supportEmail: supportInfo.supportEmail,
+    adminEmail: supportInfo.adminNotificationEmail || supportInfo.supportEmail,
   };
 }
 

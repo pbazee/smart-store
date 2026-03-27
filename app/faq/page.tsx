@@ -1,18 +1,17 @@
 import Link from "next/link";
 import { MessageCircleMore, NotebookText, Phone } from "lucide-react";
-import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { getFAQs } from "@/lib/faq-service";
-import { getStoreSettings } from "@/lib/store-settings";
+import { getSupportContactInfo } from "@/lib/support-contact";
 import { buildWhatsAppHref, getWhatsAppSettings } from "@/lib/whatsapp-service";
 
 export default async function FAQPage() {
-  const [faqs, storeSettings, whatsAppSettings] = await Promise.all([
+  const [faqs, supportInfo, whatsAppSettings] = await Promise.all([
     getFAQs({ onlyActive: true }),
-    getStoreSettings({ seedIfEmpty: true }),
-    getWhatsAppSettings({ seedIfEmpty: true }),
+    getSupportContactInfo(),
+    getWhatsAppSettings({ seedIfEmpty: true, fallbackOnError: true }),
   ]);
 
-  const supportPhone = storeSettings?.supportPhone || DEFAULT_STORE_SETTINGS.supportPhone;
+  const { supportPhone, supportTel } = supportInfo;
   const whatsappHref =
     whatsAppSettings?.isActive && whatsAppSettings.phoneNumber.trim()
       ? buildWhatsAppHref(whatsAppSettings.phoneNumber, whatsAppSettings.defaultMessage)
@@ -66,7 +65,7 @@ export default async function FAQPage() {
             Contact Us
           </Link>
           <a
-            href={`tel:${supportPhone?.replace(/\s+/g, "")}`}
+            href={`tel:${supportTel}`}
             className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-6 py-3 font-semibold text-foreground transition hover:bg-muted"
           >
             <Phone className="h-4 w-4" />

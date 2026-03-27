@@ -93,7 +93,7 @@ export function HomepageCategoryGrid({
           href="/shop"
           className="inline-flex items-center gap-3 rounded-full border border-border bg-background px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-foreground transition-all hover:border-orange-500/50 hover:bg-orange-500/5 hover:text-orange-600"
         >
-          View More Categories
+          View More Products
           <ArrowRight className="h-4 w-4" />
         </Link>
       </motion.div>

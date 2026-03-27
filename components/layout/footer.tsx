@@ -5,6 +5,7 @@ import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form
 import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
 import { getSocialLinks } from "@/lib/social-link-service";
 import { getStoreSettings } from "@/lib/store-settings";
+import { resolveSupportContactInfo } from "@/lib/support-contact";
 import type { SocialLink, StoreSettings } from "@/types";
 
 export async function Footer({
@@ -38,14 +39,8 @@ export async function Footer({
     }
   }
 
-  const supportEmail = resolvedStoreSettings?.supportEmail || "support@smarteststore.ke";
-  const supportPhone = resolvedStoreSettings?.supportPhone || "+254 700 123 456";
-  const footerContactPhone =
-    resolvedStoreSettings?.footerContactPhone ||
-    resolvedStoreSettings?.contactPhone ||
-    supportPhone;
-
-  const normalizedTel = footerContactPhone.replace(/[^+\d]/g, "");
+  const { supportEmail, footerContactPhone, footerTel } =
+    resolveSupportContactInfo(resolvedStoreSettings);
 
   return (
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
@@ -160,7 +155,7 @@ export async function Footer({
                 Support: {supportEmail}
               </a>
               <a
-                href={`tel:${normalizedTel}`}
+                href={`tel:${footerTel}`}
                 className="transition-colors hover:text-white"
               >
                 Call: {footerContactPhone}

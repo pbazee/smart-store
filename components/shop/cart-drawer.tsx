@@ -39,7 +39,7 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-zinc-200 bg-white/95 text-zinc-950 shadow-[0_32px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-border dark:bg-background dark:text-foreground dark:shadow-2xl"
+            className="fixed right-0 top-0 z-50 flex h-full w-[78vw] max-w-[22rem] flex-col border-l border-zinc-200 bg-white/95 text-zinc-950 shadow-[0_32px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl sm:w-full sm:max-w-md dark:border-border dark:bg-background dark:text-foreground dark:shadow-2xl"
           >
             <div className="flex items-center justify-between border-b border-zinc-200/80 p-5 dark:border-border">
               <div className="flex items-center gap-2">

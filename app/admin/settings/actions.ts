@@ -33,6 +33,10 @@ function revalidateStorefront() {
   revalidatePath("/");
   revalidatePath("/contact");
   revalidatePath("/faq");
+  revalidatePath("/privacy-policy");
+  revalidatePath("/returns");
+  revalidatePath("/track-order");
+  revalidatePath("/checkout/complete");
   revalidatePath("/admin");
   revalidatePath("/admin/settings");
 }
@@ -67,7 +71,9 @@ export async function updateAdminStoreSettingsAction(
       supportEmail: data.supportEmail,
       supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
       adminNotificationEmail: data.adminNotificationEmail,
-      contactPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
+      contactPhone:
+        normalizeOptionalPhone(data.contactPhone) ||
+        normalizeCheckoutPhoneNumber(data.supportPhone),
       footerContactPhone: normalizeOptionalPhone(data.footerContactPhone),
     });
 

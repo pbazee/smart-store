@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -173,28 +173,6 @@ export function AccountMenu() {
   const router = useRouter();
   const { isLoaded, sessionUser, signOut } = useSessionUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const previousResolvedUserId = useRef<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    if (!isLoaded) {
-      return;
-    }
-
-    const resolvedUserId = sessionUser?.id ?? null;
-
-    if (previousResolvedUserId.current === undefined) {
-      previousResolvedUserId.current = resolvedUserId;
-      return;
-    }
-
-    if (previousResolvedUserId.current !== resolvedUserId) {
-      previousResolvedUserId.current = resolvedUserId;
-      router.refresh();
-      return;
-    }
-
-    previousResolvedUserId.current = resolvedUserId;
-  }, [sessionUser?.id, isLoaded, router]);
 
   const handleSignOut = async () => {
     if (!sessionUser || isSigningOut) {

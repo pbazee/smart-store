@@ -1,8 +1,8 @@
 import { Resend } from "resend";
-import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { formatKES } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { getStoreSettings } from "@/lib/store-settings";
+import { resolveSupportContactInfo } from "@/lib/support-contact";
 import type { StoreSettings } from "@/types";
 
 type OrderEmailItem = {
@@ -71,7 +71,7 @@ async function buildOrderEmailDetails(orderId: string): Promise<OrderEmailDetail
     ),
   }));
 
-  const storeSettings = await getStoreSettings({ seedIfEmpty: true });
+  const storeSettings = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: true });
 
   return {
     order: {
@@ -119,19 +119,8 @@ function renderItemsTable(items: OrderEmailItem[]) {
 }
 
 function renderCustomerEmail(details: OrderEmailDetails, baseUrl: string) {
-  const supportEmail = String(
-    details.storeSettings?.supportEmail ??
-      DEFAULT_STORE_SETTINGS.supportEmail ??
-      "support@smarteststore.ke"
-  );
-  const supportPhoneRaw =
-    details.storeSettings?.supportPhone ??
-    DEFAULT_STORE_SETTINGS.supportPhone ??
-    "+254 700 123 456";
-  const supportPhone =
-    supportPhoneRaw && supportPhoneRaw.trim().length > 0
-      ? supportPhoneRaw
-      : "+254 700 123 456";
+  const { supportEmail, supportPhone, supportTel } =
+    resolveSupportContactInfo(details.storeSettings);
 
   return `
   <html>
@@ -254,7 +243,7 @@ function renderCustomerEmail(details: OrderEmailDetails, baseUrl: string) {
               <tr>
                 <td colspan="2" style="text-align:center;color:#94a3b8;font-size:12px;">
                   Need help? <a href="mailto:${supportEmail}" style="color:#f97316;text-decoration:none;">${supportEmail}</a> ·
-                  <a href="tel:${supportPhone.replace(/[^+\d]/g, "")}" style="color:#f97316;text-decoration:none;">${supportPhone}</a>
+                  <a href="tel:${supportTel}" style="color:#f97316;text-decoration:none;">${supportPhone}</a>
                 </td>
               </tr>
             </table>
@@ -374,14 +363,12 @@ export async function sendOrderEmailsAfterPayment(options: { orderId: string; or
     }
 
     // Admin alert
-    const adminEmail =
-      details.storeSettings?.adminNotificationEmail ??
-      DEFAULT_STORE_SETTINGS.adminNotificationEmail;
+    const { adminNotificationEmail } = resolveSupportContactInfo(details.storeSettings);
 
-    if (adminEmail) {
+    if (adminNotificationEmail) {
       try {
         await sendEmail({
-          to: adminEmail,
+          to: adminNotificationEmail,
           subject: `New Order Received! #${details.order.orderNumber} - ${formatKES(details.order.total)}`,
           html: renderAdminEmail(details, baseUrl),
         });

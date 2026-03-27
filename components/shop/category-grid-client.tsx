@@ -130,7 +130,7 @@ export function CategoryGridClient({
           href="/shop"
           className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.03] hover:bg-brand-600 hover:brightness-105 hover:shadow-[0_18px_36px_rgba(249,115,22,0.34)]"
         >
-          View More Categories
+          View More Products
           <ArrowRight className="h-4 w-4" />
         </Link>
       </motion.div>

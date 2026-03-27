@@ -113,8 +113,11 @@ async function ensureWhatsAppSettingsSeeded() {
   console.log("[WhatsAppSettings] Seeded successfully");
 }
 
-export async function getWhatsAppSettings(options: { seedIfEmpty?: boolean } = {}) {
-  const { seedIfEmpty = false } = options;
+export async function getWhatsAppSettings(options: {
+  seedIfEmpty?: boolean;
+  fallbackOnError?: boolean;
+} = {}) {
+  const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;
 
   try {
     if (seedIfEmpty) {
@@ -143,13 +146,14 @@ export async function getWhatsAppSettings(options: { seedIfEmpty?: boolean } = {
     console.error("[WhatsAppSettings] Query failed:", errorMsg, {
       dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
       seedIfEmpty,
+      fallbackOnError,
     });
 
-    if (seedIfEmpty) {
+    if (fallbackOnError) {
       return createDefaultWhatsAppSettings();
     }
 
-    return null;
+    throw error;
   }
 }
 

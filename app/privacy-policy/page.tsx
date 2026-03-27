@@ -1,4 +1,8 @@
-export default function PrivacyPolicyPage() {
+import { getSupportContactInfo } from "@/lib/support-contact";
+
+export default async function PrivacyPolicyPage() {
+  const { supportEmail, supportPhone } = await getSupportContactInfo();
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-12">
@@ -118,8 +122,8 @@ export default function PrivacyPolicyPage() {
             If you have any questions about this Privacy Policy or our data practices, please contact us:
           </p>
           <div className="bg-muted/50 rounded-lg p-4">
-            <p><strong>Email:</strong> privacy@smarteststore.ke</p>
-            <p><strong>Phone:</strong> +254 700 123 456</p>
+            <p><strong>Email:</strong> {supportEmail}</p>
+            <p><strong>Phone:</strong> {supportPhone}</p>
             <p><strong>Address:</strong> Westlands Shopping Centre, Nairobi, Kenya</p>
           </div>
         </section>

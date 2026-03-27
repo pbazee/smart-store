@@ -1,27 +1,15 @@
 import { Clock3, Mail, MapPin, MessageCircleMore, Phone } from "lucide-react";
-import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
-import { getStoreSettings } from "@/lib/store-settings";
+import { getSupportContactInfo } from "@/lib/support-contact";
 import { buildWhatsAppHref, getWhatsAppSettings } from "@/lib/whatsapp-service";
 import { ContactFormCard } from "./contact-form-card";
 
 export default async function ContactPage() {
-  const [storeSettings, whatsAppSettings] = await Promise.all([
-    getStoreSettings({ seedIfEmpty: true }),
-    getWhatsAppSettings({ seedIfEmpty: true }),
+  const [supportInfo, whatsAppSettings] = await Promise.all([
+    getSupportContactInfo(),
+    getWhatsAppSettings({ seedIfEmpty: true, fallbackOnError: true }),
   ]);
 
-  const supportEmail =
-    storeSettings?.supportEmail ||
-    DEFAULT_STORE_SETTINGS.supportEmail ||
-    "support@smarteststore.ke";
-  const supportPhone =
-    storeSettings?.supportPhone ||
-    DEFAULT_STORE_SETTINGS.supportPhone ||
-    "+254 700 123 456";
-  const contactPhone =
-    storeSettings?.contactPhone ||
-    storeSettings?.footerContactPhone ||
-    supportPhone;
+  const { supportEmail, contactPhone, contactTel } = supportInfo;
   const whatsappHref =
     whatsAppSettings?.isActive && whatsAppSettings.phoneNumber.trim()
       ? buildWhatsAppHref(whatsAppSettings.phoneNumber, whatsAppSettings.defaultMessage)
@@ -87,7 +75,7 @@ export default async function ContactPage() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <a
-                href={`tel:${contactPhone?.replace(/\s+/g, "")}`}
+                href={`tel:${contactTel}`}
                 className="inline-flex items-center justify-center rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-600"
               >
                 Call Support

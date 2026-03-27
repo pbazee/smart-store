@@ -12,11 +12,18 @@ type StoreSettingsInput = Pick<
   | "footerContactPhone"
 >;
 
+type GetStoreSettingsOptions = {
+  seedIfEmpty?: boolean;
+  fallbackOnError?: boolean;
+};
+
 function normalizeOptionalText(value?: string | null) {
   return (value ?? "").trim();
 }
 
-export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) {
+export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
+  const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;
+
   try {
     await ensureStoreSettingsStorage();
 
@@ -24,7 +31,7 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
       orderBy: { id: "asc" },
     });
 
-    if (!settings && options.seedIfEmpty) {
+    if (!settings && seedIfEmpty) {
       console.log("[StoreSettings] No settings found in database, seeding with defaults...");
       const seeded = await prisma.storeSettings.create({
         data: {
@@ -54,10 +61,11 @@ export async function getStoreSettings(options: { seedIfEmpty?: boolean } = {}) 
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("[StoreSettings] Query failed:", errorMsg, {
       dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
-      seedIfEmpty: options.seedIfEmpty,
+      seedIfEmpty,
+      fallbackOnError,
     });
-    
-    if (options.seedIfEmpty) {
+
+    if (fallbackOnError) {
       console.warn("[StoreSettings] Falling back to default settings");
       return DEFAULT_STORE_SETTINGS;
     }

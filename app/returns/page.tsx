@@ -1,4 +1,8 @@
-export default function ReturnsPage() {
+import { getSupportContactInfo } from "@/lib/support-contact";
+
+export default async function ReturnsPage() {
+  const { supportEmail, supportPhone, supportTel } = await getSupportContactInfo();
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-12">
@@ -64,7 +68,7 @@ export default function ReturnsPage() {
               <div>
                 <h3 className="font-semibold">Contact Us</h3>
                 <p className="text-muted-foreground text-sm">
-                  Email support@smarteststore.ke or call +254 700 123 456 with your order number.
+                  Email {supportEmail} or call {supportPhone} with your order number.
                 </p>
               </div>
             </div>
@@ -151,10 +155,10 @@ export default function ReturnsPage() {
               Contact Us
             </a>
             <a
-              href="tel:+254700123456"
+              href={`tel:${supportTel}`}
               className="inline-block border border-border hover:bg-muted text-foreground font-semibold py-3 px-6 rounded-lg transition-colors"
             >
-              Call +254 700 123 456
+              Call {supportPhone}
             </a>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { getActiveLandingOverrides, mergeOverridesWithAuto } from "@/lib/landing
 import { prisma } from "@/lib/prisma";
 import { getCityInspiredProducts, getCustomersAlsoBought } from "@/lib/recommendations";
 import { createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
+import { getSocialLinks } from "@/lib/social-link-service";
 import { getWhatsAppSettings } from "@/lib/whatsapp-service";
 import { getStoreSettings } from "@/lib/store-settings";
 import type {
@@ -113,7 +114,26 @@ function getFallbackSocialLinks(): SocialLink[] {
   return DEFAULT_SOCIAL_LINK_SEEDS.map((seed) => createSocialLinkSeed(seed));
 }
 
-async function resolveHomepageShellData(): Promise<HomepageShellData> {
+function compactHomepageProduct(product: Product): Product {
+  return {
+    ...product,
+    description:
+      product.description.length > 240
+        ? `${product.description.slice(0, 237)}...`
+        : product.description,
+    images: product.images.slice(0, 1),
+  };
+}
+
+function compactHomepageProducts(products: Product[]) {
+  return products.map((product) => compactHomepageProduct(product));
+}
+
+async function resolveHomepageShellData(options: {
+  allowRuntimeFallbacks?: boolean;
+} = {}): Promise<HomepageShellData> {
+  const { allowRuntimeFallbacks = true } = options;
+
   if (shouldUseBuildFallbackData()) {
     return {
       announcements: [createFallbackAnnouncementMessage()],
@@ -144,20 +164,38 @@ async function resolveHomepageShellData(): Promise<HomepageShellData> {
         })) as Popup[],
         () => []
       ),
-      safeQuery(
-        async () => (await prisma.socialLink.findMany({
-          orderBy: { createdAt: "asc" },
-        })) as SocialLink[],
-        () => []
-      ),
-      safeQuery(
-        async () => (await getWhatsAppSettings({ seedIfEmpty: true })) ?? createDefaultWhatsAppSettings(),
-        () => createDefaultWhatsAppSettings()
-      ),
-      safeQuery(
-        async () => (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null,
-        () => null
-      ),
+      allowRuntimeFallbacks
+        ? safeQuery(
+            async () => await getSocialLinks({ seedIfEmpty: true }),
+            () => getFallbackSocialLinks()
+          )
+        : getSocialLinks({ seedIfEmpty: true }),
+      allowRuntimeFallbacks
+        ? safeQuery(
+            async () =>
+              (await getWhatsAppSettings({
+                seedIfEmpty: true,
+                fallbackOnError: false,
+              })) ?? createDefaultWhatsAppSettings(),
+            () => createDefaultWhatsAppSettings()
+          )
+        : getWhatsAppSettings({
+            seedIfEmpty: true,
+            fallbackOnError: false,
+          }),
+      allowRuntimeFallbacks
+        ? safeQuery(
+            async () =>
+              (await getStoreSettings({
+                seedIfEmpty: true,
+                fallbackOnError: false,
+              })) as StoreSettings | null,
+            () => DEFAULT_STORE_SETTINGS
+          )
+        : getStoreSettings({
+            seedIfEmpty: true,
+            fallbackOnError: false,
+          }) as Promise<StoreSettings | null>,
     ]);
 
   return {
@@ -208,11 +246,13 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
   );
 
   return {
-    featured,
-    trending,
-    newArrivals,
-    alsoBought,
-    cityInspired: getCityInspiredProducts(allProducts, "Nairobi", HOMEPAGE_PRODUCT_LIMIT),
+    featured: compactHomepageProducts(featured),
+    trending: compactHomepageProducts(trending),
+    newArrivals: compactHomepageProducts(newArrivals),
+    alsoBought: compactHomepageProducts(alsoBought),
+    cityInspired: compactHomepageProducts(
+      getCityInspiredProducts(allProducts, "Nairobi", HOMEPAGE_PRODUCT_LIMIT)
+    ),
   };
 }
 
@@ -276,13 +316,13 @@ async function resolveHomepageData(): Promise<HomepageData> {
   };
 }
 
-const getHomepageShellDataForDev = resolveHomepageShellData;
+const getHomepageShellDataForDev = () => resolveHomepageShellData({ allowRuntimeFallbacks: true });
 const getHomepageProductSectionsDataForDev = resolveHomepageProductSectionsData;
 const getHomepagePageDataForDev = resolveHomepagePageData;
 const getHomepageDataForDev = resolveHomepageData;
 
 const getHomepageShellDataForProd = unstable_cache(
-  resolveHomepageShellData,
+  () => resolveHomepageShellData({ allowRuntimeFallbacks: false }),
   ["homepage-shell", HOMEPAGE_CACHE_VERSION],
   {
   revalidate: HOMEPAGE_REVALIDATE_SECONDS,
@@ -344,7 +384,12 @@ function getCachedHomepagePageData() {
 }
 
 export async function getHomepageShellData() {
-  return getCachedHomepageShellData();
+  try {
+    return await getCachedHomepageShellData();
+  } catch (error) {
+    console.error("[Homepage] Failed to resolve cached shell data, retrying uncached:", error);
+    return resolveHomepageShellData({ allowRuntimeFallbacks: true });
+  }
 }
 
 export async function getHomepageProductSectionsData() {

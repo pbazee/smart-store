@@ -13,8 +13,6 @@ import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseProvider } from "@/components/supabase-provider";
-import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getAppUrl } from "@/lib/app-url";
 import { getHomepageShellData } from "@/lib/homepage-data";
 import { cn } from "@/lib/utils";
@@ -56,16 +54,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const homepageShellData = await getHomepageShellData();
-  const session = shouldSkipLiveDataDuringBuild()
-    ? null
-    : (
-      await (await createSupabaseServerClient()).auth.getSession()
-    ).data.session;
 
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
-        <SupabaseProvider initialSession={session}>
+        <SupabaseProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <RootLayoutShell
               storefrontChrome={
