@@ -7,7 +7,7 @@ export const DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS: AnnouncementSeed[] = [
     id: "seed-announcement-delivery",
     text: "Free same-day delivery in Nairobi for orders over KSh 2,000",
     icon: "\u{1F680}",
-    link: "/products",
+    link: "/shop",
     bgColor: "#120804",
     textColor: "#FFF7ED",
     isActive: true,

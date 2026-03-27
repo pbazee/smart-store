@@ -17,8 +17,22 @@ type GetStoreSettingsOptions = {
   fallbackOnError?: boolean;
 };
 
+let lastKnownStoreSettings: StoreSettings | null = null;
+
 function normalizeOptionalText(value?: string | null) {
   return (value ?? "").trim();
+}
+
+function rememberStoreSettings(settings: StoreSettings | null) {
+  if (settings) {
+    lastKnownStoreSettings = settings;
+  }
+
+  return settings;
+}
+
+export function getStoreSettingsFallback() {
+  return lastKnownStoreSettings ?? DEFAULT_STORE_SETTINGS;
 }
 
 export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
@@ -43,7 +57,7 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
         },
       });
       console.log("[StoreSettings] Seeded successfully");
-      return seeded;
+      return rememberStoreSettings(seeded as StoreSettings);
     }
 
     if (settings) {
@@ -56,7 +70,7 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
       console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
     }
 
-    return settings as StoreSettings | null;
+    return rememberStoreSettings(settings as StoreSettings | null);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("[StoreSettings] Query failed:", errorMsg, {
@@ -66,8 +80,8 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
     });
 
     if (fallbackOnError) {
-      console.warn("[StoreSettings] Falling back to default settings");
-      return DEFAULT_STORE_SETTINGS;
+      console.warn("[StoreSettings] Falling back to last known storefront settings");
+      return getStoreSettingsFallback();
     }
     throw error;
   }
@@ -102,5 +116,5 @@ export async function upsertStoreSettings(input: StoreSettingsInput) {
         },
       });
 
-  return settings as StoreSettings;
+  return rememberStoreSettings(settings as StoreSettings) as StoreSettings;
 }

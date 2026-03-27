@@ -37,7 +37,10 @@ export async function fetchAdminWhatsAppSettings() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) return null;
   try {
-    return await getWhatsAppSettings({ seedIfEmpty: true });
+    return await getWhatsAppSettings({
+      seedIfEmpty: true,
+      fallbackOnError: false,
+    });
   } catch (err) {
     console.error("[WhatsApp] fetchAdminWhatsAppSettings failed:", err);
     return null;

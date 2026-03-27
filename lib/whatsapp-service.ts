@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import type { WhatsAppPosition, WhatsAppSettings } from "@/types";
 
 const WHATSAPP_SETTINGS_META_PREFIX = "__smartest_store_whatsapp__";
+let lastKnownWhatsAppSettings: WhatsAppSettings | null = null;
 
 type PersistedWhatsAppSettingsRecord = {
   id: string;
@@ -80,6 +81,18 @@ function hydrateWhatsAppSettings(
   };
 }
 
+function rememberWhatsAppSettings(settings: WhatsAppSettings | null) {
+  if (settings) {
+    lastKnownWhatsAppSettings = settings;
+  }
+
+  return settings;
+}
+
+export function getWhatsAppSettingsFallback() {
+  return lastKnownWhatsAppSettings ?? createDefaultWhatsAppSettings();
+}
+
 export function normalizeWhatsAppPhoneNumber(phoneNumber: string) {
   return phoneNumber.trim();
 }
@@ -135,11 +148,13 @@ export async function getWhatsAppSettings(options: {
     }
 
     if (!settings && seedIfEmpty) {
-      return createDefaultWhatsAppSettings();
+      return rememberWhatsAppSettings(createDefaultWhatsAppSettings());
     }
 
     return settings
-      ? hydrateWhatsAppSettings(settings as PersistedWhatsAppSettingsRecord)
+      ? rememberWhatsAppSettings(
+          hydrateWhatsAppSettings(settings as PersistedWhatsAppSettingsRecord)
+        )
       : null;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -150,7 +165,7 @@ export async function getWhatsAppSettings(options: {
     });
 
     if (fallbackOnError) {
-      return createDefaultWhatsAppSettings();
+      return getWhatsAppSettingsFallback();
     }
 
     throw error;

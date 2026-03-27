@@ -8,6 +8,7 @@ import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { SiteMenuDrawer } from "@/components/layout/site-menu-drawer";
+import { useSessionUser } from "@/hooks/use-session-user";
 import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -124,9 +125,12 @@ export function Navbar() {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
+  const { isLoaded, sessionUser } = useSessionUser();
   const { hasHydrated, itemCount, toggleCart, closeCart } = useCartStore();
   const count = hasHydrated ? itemCount() : 0;
   const searchValue = searchParams.get("search") ?? "";
+  const wishlistHref =
+    isLoaded && !sessionUser ? "/sign-in?redirect_url=%2Fwishlist" : "/wishlist";
 
   const handleCartClick = () => {
     if (count === 0) {
@@ -144,7 +148,7 @@ export function Navbar() {
       return;
     }
 
-    router.push(`/products?search=${encodeURIComponent(q.trim())}`);
+    router.push(`/shop?search=${encodeURIComponent(q.trim())}`);
     setMenuOpen(false);
   };
 
@@ -183,7 +187,7 @@ export function Navbar() {
             </nav>
 
             <HeaderIconLink
-              href="/wishlist"
+              href={wishlistHref}
               active={pathname === "/wishlist"}
               aria-label="Open wishlist"
               onClick={closeCart}

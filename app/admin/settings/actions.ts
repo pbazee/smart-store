@@ -44,7 +44,10 @@ function revalidateStorefront() {
 export async function fetchAdminStoreSettings() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) return null;
-  return (await getStoreSettings({ seedIfEmpty: true })) as StoreSettings | null;
+  return (await getStoreSettings({
+    seedIfEmpty: true,
+    fallbackOnError: false,
+  })) as StoreSettings | null;
 }
 
 export async function updateAdminStoreSettingsAction(

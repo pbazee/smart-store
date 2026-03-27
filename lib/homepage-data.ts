@@ -14,8 +14,8 @@ import { prisma } from "@/lib/prisma";
 import { getCityInspiredProducts, getCustomersAlsoBought } from "@/lib/recommendations";
 import { createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
 import { getSocialLinks } from "@/lib/social-link-service";
-import { getWhatsAppSettings } from "@/lib/whatsapp-service";
-import { getStoreSettings } from "@/lib/store-settings";
+import { getWhatsAppSettings, getWhatsAppSettingsFallback } from "@/lib/whatsapp-service";
+import { getStoreSettings, getStoreSettingsFallback } from "@/lib/store-settings";
 import type {
   AnnouncementMessage,
   BlogPost,
@@ -175,9 +175,9 @@ async function resolveHomepageShellData(options: {
             async () =>
               (await getWhatsAppSettings({
                 seedIfEmpty: true,
-                fallbackOnError: false,
-              })) ?? createDefaultWhatsAppSettings(),
-            () => createDefaultWhatsAppSettings()
+                fallbackOnError: true,
+              })) ?? getWhatsAppSettingsFallback(),
+            () => getWhatsAppSettingsFallback()
           )
         : getWhatsAppSettings({
             seedIfEmpty: true,
@@ -188,9 +188,9 @@ async function resolveHomepageShellData(options: {
             async () =>
               (await getStoreSettings({
                 seedIfEmpty: true,
-                fallbackOnError: false,
+                fallbackOnError: true,
               })) as StoreSettings | null,
-            () => DEFAULT_STORE_SETTINGS
+            () => getStoreSettingsFallback()
           )
         : getStoreSettings({
             seedIfEmpty: true,
