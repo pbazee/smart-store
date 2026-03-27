@@ -7,7 +7,7 @@ import { TrustBar } from "@/components/shop/trust-bar";
 import { LatestReviews } from "@/components/shop/latest-reviews";
 import { getHomepagePageData } from "@/lib/homepage-data";
 
-export const revalidate = 300;
+export const revalidate = 0;
 
 export default async function HomePage() {
   const homepageData = await getHomepagePageData();

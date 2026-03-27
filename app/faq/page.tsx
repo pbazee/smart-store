@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { MessageCircleMore, NotebookText, Phone } from "lucide-react";
 import { getFAQs } from "@/lib/faq-service";
-import { getSupportContactInfo } from "@/lib/support-contact";
-import { buildWhatsAppHref, getWhatsAppSettings } from "@/lib/whatsapp-service";
+import { getHomepageShellData } from "@/lib/homepage-data";
+import { resolveSupportContactInfo } from "@/lib/support-contact";
+import { buildWhatsAppHref } from "@/lib/whatsapp-service";
 
 export default async function FAQPage() {
-  const [faqs, supportInfo, whatsAppSettings] = await Promise.all([
+  const [faqs, homepageShellData] = await Promise.all([
     getFAQs({ onlyActive: true }),
-    getSupportContactInfo(),
-    getWhatsAppSettings({ seedIfEmpty: true, fallbackOnError: true }),
+    getHomepageShellData(),
   ]);
+  const supportInfo = resolveSupportContactInfo(homepageShellData.storeSettings);
+  const whatsAppSettings = homepageShellData.whatsAppSettings;
 
   const { supportPhone, supportTel } = supportInfo;
   const whatsappHref =

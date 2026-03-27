@@ -1,7 +1,5 @@
-import { unstable_cache } from "next/cache";
 import { getActiveCategories } from "@/lib/category-service";
 import {
-  buildCatalogHref,
   buildCatalogHeading,
   normalizeCatalogCollectionKey,
   normalizeCatalogGender,
@@ -18,8 +16,6 @@ export type CatalogPageData = {
   products: Product[];
   categories: Category[];
 };
-
-const CATALOG_CACHE_REVALIDATE_SECONDS = 300;
 
 const COLLECTION_PRODUCT_KEYS: Record<
   CatalogCollectionKey,
@@ -76,24 +72,7 @@ function buildServerFilters(query: CatalogQueryInput, categories: Category[]): P
   return filters;
 }
 
-function buildCatalogCacheKey(query: CatalogQueryInput = {}) {
-  return buildCatalogHref(query, "/shop");
-}
-
-function parseCatalogCacheKey(cacheKey: string): CatalogQueryInput {
-  const url = new URL(cacheKey, "https://smartest-store-ke.local");
-
-  return {
-    collection: url.searchParams.get("collection"),
-    category: url.searchParams.get("category"),
-    subcategory: url.searchParams.get("subcategory"),
-    gender: url.searchParams.get("gender"),
-    search: url.searchParams.get("search"),
-    tag: url.searchParams.get("tag"),
-  };
-}
-
-async function resolveCatalogPageData(query: CatalogQueryInput = {}): Promise<CatalogPageData> {
+export async function getCatalogPageData(query: CatalogQueryInput = {}): Promise<CatalogPageData> {
   const categories = await getActiveCategories();
   const serverFilters = buildServerFilters(query, categories);
   const products = await getProducts(serverFilters);
@@ -104,16 +83,4 @@ async function resolveCatalogPageData(query: CatalogQueryInput = {}): Promise<Ca
     products,
     categories,
   };
-}
-
-const getCachedCatalogPageData = unstable_cache(
-  async (cacheKey: string) => resolveCatalogPageData(parseCatalogCacheKey(cacheKey)),
-  ["catalog-page-data"],
-  {
-    revalidate: CATALOG_CACHE_REVALIDATE_SECONDS,
-  }
-);
-
-export async function getCatalogPageData(query: CatalogQueryInput = {}): Promise<CatalogPageData> {
-  return getCachedCatalogPageData(buildCatalogCacheKey(query));
 }
