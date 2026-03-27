@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, TrendingUp } from "lucide-react";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
 export function TrendingSection({ products }: { products: Product[] }) {
+  useRoutePrefetch(["/shop?collection=trending"]);
+
   if (products.length === 0) {
     return null;
   }

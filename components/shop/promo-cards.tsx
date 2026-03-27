@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { createBlurDataURL } from "@/lib/utils";
 
 const promos = [
@@ -38,6 +39,8 @@ const promos = [
 ];
 
 export function PromoCards() {
+  useRoutePrefetch(promos.map((promo) => promo.href));
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="grid gap-6 md:grid-cols-2">

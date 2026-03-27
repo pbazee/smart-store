@@ -30,6 +30,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { cn } from "@/lib/utils";
 
@@ -207,6 +208,8 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
   const sessionLabel = sessionUser?.fullName || sessionUser?.email || "Admin session";
   const sessionEmail = sessionUser?.email || "Manage the storefront";
   const sessionInitials = getInitials(sessionLabel);
+
+  useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about"]);
 
   const handleSignOut = () => {
     void signOut().then(() => {

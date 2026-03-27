@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
 import { getDefaultHeroSlides } from "@/lib/default-hero-slides";
 import { createBlurDataURL } from "@/lib/utils";
@@ -23,6 +24,10 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
     const nextSlides = slides.length ? slides : getDefaultHeroSlides();
     return [...nextSlides].sort((left, right) => left.order - right.order);
   }, [slides]);
+  const ctaHrefs = useMemo(
+    () => resolvedSlides.map((slide) => resolveCatalogListingHref(slide.ctaLink)),
+    [resolvedSlides]
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
@@ -51,12 +56,14 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
     };
   }, [emblaApi]);
 
+  useRoutePrefetch(ctaHrefs);
+
   return (
     <section className="relative isolate overflow-hidden bg-neutral-950">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
           {resolvedSlides.map((slide, index) => {
-            const ctaHref = resolveCatalogListingHref(slide.ctaLink);
+            const ctaHref = ctaHrefs[index];
 
             return (
               <div key={slide.id} className="min-w-0 flex-[0_0_100%]">

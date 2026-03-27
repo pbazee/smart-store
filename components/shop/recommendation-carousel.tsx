@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
@@ -24,6 +25,8 @@ export function RecommendationCarousel({
   viewAllLabel,
   viewAllHref,
 }: RecommendationCarouselProps) {
+  useRoutePrefetch(viewAllHref ? [viewAllHref] : []);
+
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     dragFree: true,

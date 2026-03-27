@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
 import type { HomepageCategory } from "@/types";
 
@@ -12,6 +14,13 @@ export function HomepageCategoryGrid({
 }: {
   categories: HomepageCategory[];
 }) {
+  const categoryHrefs = useMemo(
+    () => categories.map((category) => resolveCatalogListingHref(category.link)),
+    [categories]
+  );
+
+  useRoutePrefetch([...categoryHrefs, "/shop"]);
+
   if (categories.length === 0) {
     return null;
   }
@@ -34,7 +43,7 @@ export function HomepageCategoryGrid({
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category, index) => {
-          const href = resolveCatalogListingHref(category.link);
+          const href = categoryHrefs[index];
 
           return (
             <motion.article

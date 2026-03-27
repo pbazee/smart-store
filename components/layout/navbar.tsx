@@ -8,6 +8,7 @@ import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { SiteMenuDrawer } from "@/components/layout/site-menu-drawer";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
@@ -131,6 +132,9 @@ export function Navbar() {
   const searchValue = searchParams.get("search") ?? "";
   const wishlistHref =
     isLoaded && !sessionUser ? "/sign-in?redirect_url=%2Fwishlist" : "/wishlist";
+  const accountHref = isLoaded && !sessionUser ? "/sign-in" : "/account";
+
+  useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about", wishlistHref, accountHref]);
 
   const handleCartClick = () => {
     if (count === 0) {
