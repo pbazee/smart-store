@@ -69,14 +69,10 @@ export const useCartStore = create<CartStore>()(
       },
       removeItem: (variantId) => {
         const remainingItems = get().items.filter((i) => i.variant.id !== variantId);
-        const isEmpty = remainingItems.length === 0;
 
-        set({
-          items: remainingItems,
-          isOpen: isEmpty ? false : get().isOpen,
-        });
+        set({ items: remainingItems });
 
-        if (isEmpty) {
+        if (remainingItems.length === 0) {
           clearPersistedCart();
         }
       },
@@ -106,10 +102,9 @@ export const useCartStore = create<CartStore>()(
         set({ items: [], isOpen: false });
         clearPersistedCart();
       },
-      openCart: () => set({ isOpen: get().items.length > 0 }),
+      openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
-      toggleCart: () =>
-        set({ isOpen: get().items.length > 0 ? !get().isOpen : false }),
+      toggleCart: () => set({ isOpen: !get().isOpen }),
       total: () =>
         get().items.reduce(
           (sum, item) => sum + item.variant.price * item.quantity,

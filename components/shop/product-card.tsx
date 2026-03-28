@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,30 +13,29 @@ import { useToast } from "@/lib/use-toast";
 import { cn, createBlurDataURL, formatKES } from "@/lib/utils";
 import type { Product } from "@/types";
 
+// Computed once at module load — same gradient for every card, never re-computed
+const CARD_BLUR_DATA_URL = createBlurDataURL({
+  from: "#f5f5f5",
+  to: "#e5e5e5",
+  accent: "#f97316",
+});
+
 interface ProductCardProps {
   product: Product;
   index?: number;
 }
 
-export function ProductCard({ product, index = 0 }: ProductCardProps) {
+function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [hovered, setHovered] = useState(false);
   const wishlist = useWishlist();
-  const { addItem } = useCartStore();
+  // Selector instead of full store subscription — addItem is a stable reference,
+  // so this component no longer re-renders on every cart state change
+  const addItem = useCartStore((state) => state.addItem);
   const { toast } = useToast();
 
   const firstVariant =
     product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
-  const blurDataUrl = useMemo(
-    () =>
-      createBlurDataURL({
-        from: "#f5f5f5",
-        to: "#e5e5e5",
-        accent: "#f97316",
-      }),
-    []
-  );
 
   const handleQuickAdd = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -107,12 +106,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.35 }}
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+      transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.3 }}
       className="group relative"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <Link href={buildProductHref(product)} className="block">
         {/* Card container */}
@@ -124,12 +122,9 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               alt={product.name}
               fill
               placeholder="blur"
-              quality={100}
-              blurDataURL={blurDataUrl}
-              className={cn(
-                "object-cover transition-transform duration-500",
-                hovered ? "scale-110" : "scale-100"
-              )}
+              quality={80}
+              blurDataURL={CARD_BLUR_DATA_URL}
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             />
 
@@ -162,17 +157,16 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               />
             </button>
 
-            {/* Quick add button — desktop hover only */}
+            {/* Quick add — pure CSS slide-up, no JS state or Framer Motion */}
             {firstVariant && (
-              <motion.button
-                initial={{ y: 16, opacity: 0 }}
-                animate={hovered ? { y: 0, opacity: 1 } : { y: 16, opacity: 0 }}
+              <button
+                type="button"
                 onClick={handleQuickAdd}
-                className="absolute bottom-3 left-3 right-3 hidden items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-600 md:flex"
+                className="absolute bottom-3 left-3 right-3 hidden translate-y-4 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white opacity-0 shadow-lg transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-orange-600 md:flex"
               >
                 <ShoppingCart className="h-4 w-4" />
                 Add to cart
-              </motion.button>
+              </button>
             )}
           </div>
 
@@ -228,3 +222,5 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     </motion.div>
   );
 }
+
+export const ProductCard = memo(ProductCardComponent);

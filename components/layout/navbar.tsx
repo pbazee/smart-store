@@ -137,11 +137,6 @@ export function Navbar() {
   useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about", wishlistHref, accountHref]);
 
   const handleCartClick = () => {
-    if (count === 0) {
-      closeCart();
-      return;
-    }
-
     toggleCart();
   };
 

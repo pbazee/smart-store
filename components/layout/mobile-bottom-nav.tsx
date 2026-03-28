@@ -38,11 +38,6 @@ export function MobileBottomNav() {
   }, [prefetchTargets, router]);
 
   const handleCartClick = () => {
-    if (cartCount === 0) {
-      closeCart();
-      return;
-    }
-
     toggleCart();
   };
 

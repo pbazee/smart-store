@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Category, FilterState } from "@/types";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -97,6 +97,45 @@ export function ShopFilters({
   lockedCategory,
   variant = "sidebar",
 }: Props) {
+  // Local state so the UI responds instantly while the expensive filter
+  // computation is deferred via a short debounce
+  const [localSearch, setLocalSearch] = useState(filters.search);
+  const [localPriceMax, setLocalPriceMax] = useState(filters.priceRange[1]);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local values when filters are reset externally (e.g. URL navigation)
+  useEffect(() => { setLocalSearch(filters.search); }, [filters.search]);
+  useEffect(() => { setLocalPriceMax(filters.priceRange[1]); }, [filters.priceRange[1]]);
+
+  // Clean up pending timers on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
+    };
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalSearch(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      onChange({ ...filtersRef.current, search: value });
+    }, 300);
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    setLocalPriceMax(value);
+    if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
+    priceTimerRef.current = setTimeout(() => {
+      onChange({ ...filtersRef.current, priceRange: [filtersRef.current.priceRange[0], value] });
+    }, 150);
+  };
+
   const byParent = useMemo(() => {
     const map = new Map<string | null, Category[]>();
     categories
@@ -170,8 +209,8 @@ export function ShopFilters({
         <input
           type="text"
           placeholder="Search products..."
-          value={filters.search}
-          onChange={(event) => onChange({ ...filters, search: event.target.value })}
+          value={localSearch}
+          onChange={handleSearchChange}
           className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
         />
       </div>
@@ -290,20 +329,15 @@ export function ShopFilters({
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
             <span>KSh {filters.priceRange[0].toLocaleString()}</span>
-            <span>KSh {filters.priceRange[1].toLocaleString()}</span>
+            <span>KSh {localPriceMax.toLocaleString()}</span>
           </div>
           <input
             type="range"
             min={sliderMin}
             max={sliderMax}
             step={sliderStep}
-            value={filters.priceRange[1]}
-            onChange={(event) =>
-              onChange({
-                ...filters,
-                priceRange: [filters.priceRange[0], parseInt(event.target.value, 10)],
-              })
-            }
+            value={localPriceMax}
+            onChange={handlePriceChange}
             className="w-full accent-brand-500"
           />
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { useEffect } from "react";
 import { useSessionUser } from "@/hooks/use-session-user";
 
@@ -34,12 +35,20 @@ const useWishlistState = create<WishlistState>((set) => ({
 
 export function useWishlist() {
   const { isSignedIn, sessionUser, isLoaded } = useSessionUser();
-  const productIds = useWishlistState((state) => state.productIds);
-  const loadedForUserId = useWishlistState((state) => state.loadedForUserId);
-  const loadingForUserId = useWishlistState((state) => state.loadingForUserId);
-  const setWishlist = useWishlistState((state) => state.setWishlist);
-  const setLoadingForUserId = useWishlistState((state) => state.setLoadingForUserId);
-  const reset = useWishlistState((state) => state.reset);
+
+  // Single subscription with shallow equality — was 6 separate subscriptions,
+  // meaning each ProductCard previously re-rendered 6x on every wishlist change
+  const { productIds, loadedForUserId, loadingForUserId, setWishlist, setLoadingForUserId, reset } =
+    useWishlistState(
+      useShallow((state) => ({
+        productIds: state.productIds,
+        loadedForUserId: state.loadedForUserId,
+        loadingForUserId: state.loadingForUserId,
+        setWishlist: state.setWishlist,
+        setLoadingForUserId: state.setLoadingForUserId,
+        reset: state.reset,
+      }))
+    );
 
   useEffect(() => {
     if (!isLoaded) {
