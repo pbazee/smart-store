@@ -33,6 +33,11 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
     {
       loop: resolvedSlides.length > 1,
       align: "start",
+      watchDrag: (_api, evt) => {
+        const target = evt.target as Element;
+        if (target.closest("a, button")) return false;
+        return true;
+      },
     },
     [Autoplay({ delay: 6500, stopOnInteraction: false })]
   );
