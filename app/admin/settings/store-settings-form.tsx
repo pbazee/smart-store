@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Mail, Phone, ShieldCheck, Save, Bell } from "lucide-react";
 import {
   type AdminStoreSettingsInput,
@@ -17,6 +18,7 @@ export function StoreSettingsForm({
   showHeading?: boolean;
 }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<AdminStoreSettingsInput>({
     supportEmail: initialSettings?.supportEmail || "",
@@ -34,6 +36,14 @@ export function StoreSettingsForm({
       void (async () => {
         const result = await updateAdminStoreSettingsAction(form);
         if (result.success) {
+          setForm({
+            supportEmail: result.data.supportEmail || "",
+            supportPhone: result.data.supportPhone || "",
+            adminNotificationEmail: result.data.adminNotificationEmail || "",
+            contactPhone: result.data.contactPhone || "",
+            footerContactPhone: result.data.footerContactPhone || "",
+          });
+          router.refresh();
           toast({
             title: "Store settings saved",
             description: "Support contacts and admin notifications updated across the storefront.",

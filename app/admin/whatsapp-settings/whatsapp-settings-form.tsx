@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, MessageCircleMore, Save } from "lucide-react";
 import {
   updateAdminWhatsAppSettingsAction,
@@ -17,6 +18,7 @@ export function WhatsAppSettingsForm({
   showHeading?: boolean;
 }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<AdminWhatsAppSettingsInput>({
     phoneNumber: initialSettings?.phoneNumber || "",
@@ -32,6 +34,13 @@ export function WhatsAppSettingsForm({
       void (async () => {
         const result = await updateAdminWhatsAppSettingsAction(form);
         if (result.success) {
+          setForm({
+            phoneNumber: result.data.phoneNumber || "",
+            defaultMessage: result.data.defaultMessage || "",
+            isActive: result.data.isActive ?? true,
+            position: result.data.position ?? "right",
+          });
+          router.refresh();
           toast({
             title: "WhatsApp settings saved",
             description: "The floating chat button is now updated across the storefront.",
