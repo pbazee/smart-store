@@ -1,10 +1,8 @@
-import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { CreditCard, MapPin, Shield, Smartphone } from "lucide-react";
 import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form";
 import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
-import { getSocialLinks } from "@/lib/social-link-service";
-import { getStoreSettings } from "@/lib/store-settings";
+import { getHomepageShellData } from "@/lib/homepage-data";
 import { resolveSupportContactInfo } from "@/lib/support-contact";
 import type { SocialLink, StoreSettings } from "@/types";
 
@@ -19,19 +17,10 @@ export async function Footer({
   let resolvedStoreSettings = storeSettings;
 
   if (!socialLinks || typeof resolvedStoreSettings === "undefined") {
-    noStore();
     try {
-      const [resolvedSocialLinks, fetchedStoreSettings] = await Promise.all([
-        socialLinks
-          ? Promise.resolve(socialLinks)
-          : getSocialLinks({ seedIfEmpty: true }),
-        typeof resolvedStoreSettings === "undefined"
-          ? getStoreSettings({ seedIfEmpty: true })
-          : Promise.resolve(resolvedStoreSettings),
-      ]);
-
-      socialLinks = resolvedSocialLinks;
-      resolvedStoreSettings = fetchedStoreSettings;
+      const homepageShellData = await getHomepageShellData();
+      socialLinks = socialLinks ?? homepageShellData.socialLinks;
+      resolvedStoreSettings = resolvedStoreSettings ?? homepageShellData.storeSettings;
     } catch (error) {
       console.error("[Footer] Failed to load footer data:", error);
       socialLinks = socialLinks ?? [];

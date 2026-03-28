@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,12 +54,16 @@ function SignedInAccountMenu({
         >
           {sessionUser.imageUrl ? (
             <span className="flex h-8 w-8 overflow-hidden rounded-full ring-2 ring-orange-500/15">
-              <img
-                src={sessionUser.imageUrl}
-                alt=""
-                className="h-full w-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+              <span className="relative block h-full w-full">
+                <Image
+                  src={sessionUser.imageUrl}
+                  alt=""
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </span>
             </span>
           ) : (
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.24)]">

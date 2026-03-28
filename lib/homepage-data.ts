@@ -33,6 +33,8 @@ export const HOMEPAGE_CACHE_TAG = "homepage";
 
 const HOMEPAGE_REVALIDATE_SECONDS = 3600;
 const HOMEPAGE_PRODUCT_LIMIT = 8;
+const HOMEPAGE_BLOG_POST_LIMIT = 4;
+const HOMEPAGE_REVIEW_LIMIT = 6;
 const HOMEPAGE_CACHE_VERSION =
   process.env.VERCEL_GIT_COMMIT_SHA ||
   process.env.VERCEL_DEPLOYMENT_ID ||
@@ -207,6 +209,55 @@ async function resolveHomepageShellData(options: {
   };
 }
 
+async function resolveHomepageHeroSlides(): Promise<HeroSlide[]> {
+  if (shouldUseBuildFallbackData()) {
+    return getDefaultHeroSlides();
+  }
+
+  return safeQuery(
+    async () => await getActiveHeroSlides(),
+    () => getDefaultHeroSlides()
+  );
+}
+
+async function resolveHomepageCategories(): Promise<HomepageCategory[]> {
+  if (shouldUseBuildFallbackData()) {
+    return getFallbackHomepageCategories();
+  }
+
+  return safeQuery(
+    async () => await getActiveHomepageCategories(),
+    () => getFallbackHomepageCategories()
+  );
+}
+
+async function resolveHomepageBlogPosts(): Promise<BlogPost[]> {
+  if (shouldUseBuildFallbackData()) {
+    return [];
+  }
+
+  return safeQuery(
+    async () =>
+      (await prisma.blog.findMany({
+        where: { isPublished: true },
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        take: HOMEPAGE_BLOG_POST_LIMIT,
+      })) as BlogPost[],
+    () => []
+  );
+}
+
+async function resolveHomepageLatestReviews() {
+  if (shouldUseBuildFallbackData()) {
+    return [];
+  }
+
+  return safeQuery(
+    async () => await getLatestApprovedReviews(HOMEPAGE_REVIEW_LIMIT),
+    () => []
+  );
+}
+
 async function resolveHomepageProductSectionsData(): Promise<HomepageProductSectionsData> {
   if (shouldUseBuildFallbackData()) {
     return getEmptyHomepageProductSectionsData();
@@ -259,8 +310,8 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
 async function resolveHomepagePageData(): Promise<HomepagePageData> {
   if (shouldUseBuildFallbackData()) {
     return {
-      heroSlides: getDefaultHeroSlides(),
-      categories: getFallbackHomepageCategories(),
+      heroSlides: await resolveHomepageHeroSlides(),
+      categories: await resolveHomepageCategories(),
       blogPosts: [],
       productSections: getEmptyHomepageProductSectionsData(),
       latestReviews: [],
@@ -268,31 +319,11 @@ async function resolveHomepagePageData(): Promise<HomepagePageData> {
   }
 
   const [heroSlides, categories, blogPosts, productSections, latestReviews] = await Promise.all([
-    safeQuery(
-      async () => await getActiveHeroSlides(),
-      () => getDefaultHeroSlides()
-    ),
-    safeQuery(
-      async () => await getActiveHomepageCategories(),
-      () => getFallbackHomepageCategories()
-    ),
-    safeQuery(
-      async () =>
-        (await prisma.blog.findMany({
-          where: { isPublished: true },
-          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-          take: 4,
-        })) as BlogPost[],
-      () => []
-    ),
-    safeQuery(
-      async () => await getCachedHomepageProductSectionsData(),
-      () => getEmptyHomepageProductSectionsData()
-    ),
-    safeQuery(
-      async () => await getLatestApprovedReviews(6),
-      () => []
-    ),
+    getCachedHomepageHeroSlides(),
+    getCachedHomepageCategories(),
+    getCachedHomepageBlogPosts(),
+    getCachedHomepageProductSectionsData(),
+    getCachedHomepageLatestReviews(),
   ]);
 
   return {
@@ -317,7 +348,11 @@ async function resolveHomepageData(): Promise<HomepageData> {
 }
 
 const getHomepageShellDataForDev = () => resolveHomepageShellData({ allowRuntimeFallbacks: true });
+const getHomepageHeroSlidesForDev = resolveHomepageHeroSlides;
+const getHomepageCategoriesForDev = resolveHomepageCategories;
+const getHomepageBlogPostsForDev = resolveHomepageBlogPosts;
 const getHomepageProductSectionsDataForDev = resolveHomepageProductSectionsData;
+const getHomepageLatestReviewsForDev = resolveHomepageLatestReviews;
 const getHomepagePageDataForDev = resolveHomepagePageData;
 const getHomepageDataForDev = resolveHomepageData;
 
@@ -333,6 +368,42 @@ const getHomepageShellDataForProd = unstable_cache(
 const getHomepageProductSectionsDataForProd = unstable_cache(
   resolveHomepageProductSectionsData,
   ["homepage-product-sections", HOMEPAGE_CACHE_VERSION],
+  {
+    revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+    tags: [HOMEPAGE_CACHE_TAG],
+  }
+);
+
+const getHomepageHeroSlidesForProd = unstable_cache(
+  resolveHomepageHeroSlides,
+  ["homepage-hero-slides", HOMEPAGE_CACHE_VERSION],
+  {
+    revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+    tags: [HOMEPAGE_CACHE_TAG],
+  }
+);
+
+const getHomepageCategoriesForProd = unstable_cache(
+  resolveHomepageCategories,
+  ["homepage-categories", HOMEPAGE_CACHE_VERSION],
+  {
+    revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+    tags: [HOMEPAGE_CACHE_TAG],
+  }
+);
+
+const getHomepageBlogPostsForProd = unstable_cache(
+  resolveHomepageBlogPosts,
+  ["homepage-blog-posts", HOMEPAGE_CACHE_VERSION],
+  {
+    revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+    tags: [HOMEPAGE_CACHE_TAG],
+  }
+);
+
+const getHomepageLatestReviewsForProd = unstable_cache(
+  resolveHomepageLatestReviews,
+  ["homepage-latest-reviews", HOMEPAGE_CACHE_VERSION],
   {
     revalidate: HOMEPAGE_REVALIDATE_SECONDS,
     tags: [HOMEPAGE_CACHE_TAG],
@@ -375,6 +446,46 @@ function getCachedHomepageProductSectionsData() {
     : getHomepageProductSectionsDataForDev();
 }
 
+function getCachedHomepageHeroSlides() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageHeroSlidesForDev();
+  }
+
+  return shouldUseProductionCache()
+    ? getHomepageHeroSlidesForProd()
+    : getHomepageHeroSlidesForDev();
+}
+
+function getCachedHomepageCategories() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageCategoriesForDev();
+  }
+
+  return shouldUseProductionCache()
+    ? getHomepageCategoriesForProd()
+    : getHomepageCategoriesForDev();
+}
+
+function getCachedHomepageBlogPosts() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageBlogPostsForDev();
+  }
+
+  return shouldUseProductionCache()
+    ? getHomepageBlogPostsForProd()
+    : getHomepageBlogPostsForDev();
+}
+
+function getCachedHomepageLatestReviews() {
+  if (shouldUseBuildFallbackData()) {
+    return getHomepageLatestReviewsForDev();
+  }
+
+  return shouldUseProductionCache()
+    ? getHomepageLatestReviewsForProd()
+    : getHomepageLatestReviewsForDev();
+}
+
 function getCachedHomepagePageData() {
   if (shouldUseBuildFallbackData()) {
     return getHomepagePageDataForDev();
@@ -394,6 +505,22 @@ export async function getHomepageShellData() {
 
 export async function getHomepageProductSectionsData() {
   return getCachedHomepageProductSectionsData();
+}
+
+export async function getHomepageHeroSlides() {
+  return getCachedHomepageHeroSlides();
+}
+
+export async function getHomepageCategories() {
+  return getCachedHomepageCategories();
+}
+
+export async function getHomepageBlogPosts() {
+  return getCachedHomepageBlogPosts();
+}
+
+export async function getHomepageLatestReviews() {
+  return getCachedHomepageLatestReviews();
 }
 
 export async function getHomepagePageData() {

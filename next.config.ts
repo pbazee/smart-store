@@ -9,6 +9,10 @@ const remotePatterns: NonNullable<NonNullable<NextConfig["images"]>["remotePatte
   { protocol: "https", hostname: "images.pexels.com" },
   { protocol: "https", hostname: "i.ebayimg.com", pathname: "/**" },
   { protocol: "https", hostname: "**.ebayimg.com", pathname: "/**" },
+  { protocol: "https", hostname: "**.googleusercontent.com" },
+  { protocol: "https", hostname: "avatars.githubusercontent.com" },
+  { protocol: "https", hostname: "graph.facebook.com" },
+  { protocol: "https", hostname: "platform-lookaside.fbsbx.com" },
   { protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" },
 ];
 

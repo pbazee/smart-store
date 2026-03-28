@@ -1,26 +1,42 @@
-import { HomepageCategoryGrid } from "@/components/shop/homepage-category-grid";
-import { BlogTeaserSection } from "@/components/shop/blog-teaser-section";
-import { HeroCarousel } from "@/components/shop/hero-carousel";
-import { HomeProductSections } from "@/components/shop/home-product-sections";
+import { Suspense } from "react";
 import { PromoCards } from "@/components/shop/promo-cards";
 import { TrustBar } from "@/components/shop/trust-bar";
-import { LatestReviews } from "@/components/shop/latest-reviews";
-import { getHomepagePageData } from "@/lib/homepage-data";
+import {
+  HomepageBlogSection,
+  HomepageBlogSkeleton,
+  HomepageCategorySection,
+  HomepageCategorySkeleton,
+  HomepageHeroSection,
+  HomepageHeroSkeleton,
+  HomepageLatestReviewsSection,
+  HomepageLatestReviewsSkeleton,
+  HomepageProductSectionBlock,
+  HomepageProductSectionsSkeleton,
+} from "@/components/shop/homepage-sections";
 
-export const revalidate = 0;
+export const revalidate = 3600;
 
-export default async function HomePage() {
-  const homepageData = await getHomepagePageData();
+export default function HomePage() {
 
   return (
     <div>
-      <HeroCarousel slides={homepageData.heroSlides} />
+      <Suspense fallback={<HomepageHeroSkeleton />}>
+        <HomepageHeroSection />
+      </Suspense>
       <PromoCards />
       <TrustBar />
-      <HomepageCategoryGrid categories={homepageData.categories} />
-      <HomeProductSections data={homepageData.productSections} />
-      <LatestReviews reviews={homepageData.latestReviews} />
-      <BlogTeaserSection posts={homepageData.blogPosts} />
+      <Suspense fallback={<HomepageCategorySkeleton />}>
+        <HomepageCategorySection />
+      </Suspense>
+      <Suspense fallback={<HomepageProductSectionsSkeleton />}>
+        <HomepageProductSectionBlock />
+      </Suspense>
+      <Suspense fallback={<HomepageLatestReviewsSkeleton />}>
+        <HomepageLatestReviewsSection />
+      </Suspense>
+      <Suspense fallback={<HomepageBlogSkeleton />}>
+        <HomepageBlogSection />
+      </Suspense>
     </div>
   );
 }

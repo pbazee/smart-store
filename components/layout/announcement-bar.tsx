@@ -1,6 +1,5 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { AnnouncementBarClient } from "@/components/layout/announcement-bar-client";
-import { getActiveAnnouncementMessages } from "@/lib/announcement-service";
+import { getHomepageShellData } from "@/lib/homepage-data";
 import type { AnnouncementMessage } from "@/types";
 
 export async function AnnouncementBar({
@@ -11,8 +10,7 @@ export async function AnnouncementBar({
   let announcements = providedAnnouncements;
 
   if (!announcements) {
-    noStore();
-    announcements = await getActiveAnnouncementMessages();
+    announcements = (await getHomepageShellData()).announcements;
   }
 
   if (announcements.length === 0) {

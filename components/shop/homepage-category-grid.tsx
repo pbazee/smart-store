@@ -7,7 +7,14 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
+import { createBlurDataURL } from "@/lib/utils";
 import type { HomepageCategory } from "@/types";
+
+const categoryBlurDataUrl = createBlurDataURL({
+  from: "#0f172a",
+  to: "#f97316",
+  accent: "#f8fafc",
+});
 
 export function HomepageCategoryGrid({
   categories,
@@ -58,6 +65,9 @@ export function HomepageCategoryGrid({
                 src={category.imageUrl}
                 alt={category.title}
                 fill
+                loading="lazy"
+                placeholder="blur"
+                blurDataURL={categoryBlurDataUrl}
                 className="object-cover transition-all duration-700 group-hover:scale-105 group-hover:brightness-110"
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 quality={85}

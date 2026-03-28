@@ -16,7 +16,6 @@ import { WishlistSessionSync } from "@/components/shop/wishlist-session-sync";
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseProvider } from "@/components/supabase-provider";
 import { getAppUrl } from "@/lib/app-url";
-import { getHomepageShellData } from "@/lib/homepage-data";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -50,13 +49,46 @@ function NavbarFallback() {
   );
 }
 
-export default async function RootLayout({
+function FooterFallback() {
+  return (
+    <div className="mt-20 border-t border-zinc-800 bg-zinc-950">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid gap-6 md:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="space-y-3">
+              <div className="h-5 w-28 rounded-full bg-zinc-800" />
+              <div className="h-4 w-full rounded-full bg-zinc-900" />
+              <div className="h-4 w-4/5 rounded-full bg-zinc-900" />
+              <div className="h-4 w-3/5 rounded-full bg-zinc-900" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function StorefrontAnnouncementBar() {
+  return <AnnouncementBar />;
+}
+
+async function StorefrontFooter() {
+  return <Footer />;
+}
+
+async function StorefrontMarketingPopup() {
+  return <MarketingPopup />;
+}
+
+async function StorefrontWhatsAppWidget() {
+  return <WhatsAppWidget />;
+}
+
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const homepageShellData = await getHomepageShellData();
-
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
@@ -65,22 +97,27 @@ export default async function RootLayout({
             <RootLayoutShell
               storefrontChrome={
                 <>
-                  <AnnouncementBar announcements={homepageShellData.announcements} />
+                  <Suspense fallback={null}>
+                    <StorefrontAnnouncementBar />
+                  </Suspense>
                   <Suspense fallback={<NavbarFallback />}>
                     <Navbar />
                   </Suspense>
                 </>
               }
               storefrontFooter={
-                <Footer
-                  socialLinks={homepageShellData.socialLinks}
-                  storeSettings={homepageShellData.storeSettings}
-                />
+                <Suspense fallback={<FooterFallback />}>
+                  <StorefrontFooter />
+                </Suspense>
               }
               storefrontOverlays={
                 <>
-                  <MarketingPopup popups={homepageShellData.popups} />
-                  <WhatsAppWidget settings={homepageShellData.whatsAppSettings} />
+                  <Suspense fallback={null}>
+                    <StorefrontMarketingPopup />
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <StorefrontWhatsAppWidget />
+                  </Suspense>
                   <MobileBottomNav />
                   <CartDrawer />
                   <CartSessionSync />

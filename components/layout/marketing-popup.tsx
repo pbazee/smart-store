@@ -1,6 +1,5 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { MarketingPopupClient } from "@/components/layout/marketing-popup-client";
-import { getActivePopups } from "@/lib/popup-service";
+import { getHomepageShellData } from "@/lib/homepage-data";
 import type { Popup } from "@/types";
 
 export async function MarketingPopup({
@@ -11,9 +10,8 @@ export async function MarketingPopup({
   let popups = providedPopups;
 
   if (!popups) {
-    noStore();
     try {
-      popups = await getActivePopups();
+      popups = (await getHomepageShellData()).popups;
     } catch (error) {
       console.error("[MarketingPopup] Failed to load popups:", error);
       popups = [];

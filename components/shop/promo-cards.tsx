@@ -58,6 +58,7 @@ export function PromoCards() {
                 src={promo.image}
                 alt={promo.alt}
                 fill
+                loading="lazy"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 quality={88}
                 placeholder="blur"

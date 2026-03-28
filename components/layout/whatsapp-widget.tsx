@@ -1,6 +1,6 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { MessageCircleMore } from "lucide-react";
-import { buildWhatsAppHref, getWhatsAppSettings } from "@/lib/whatsapp-service";
+import { getHomepageShellData } from "@/lib/homepage-data";
+import { buildWhatsAppHref } from "@/lib/whatsapp-service";
 import { cn } from "@/lib/utils";
 import type { WhatsAppSettings } from "@/types";
 
@@ -12,8 +12,7 @@ export async function WhatsAppWidget({
   let settings = providedSettings;
 
   if (typeof settings === "undefined") {
-    noStore();
-    settings = await getWhatsAppSettings({ seedIfEmpty: true });
+    settings = (await getHomepageShellData()).whatsAppSettings;
   }
 
   if (!settings || !settings.isActive || !settings.phoneNumber.trim()) {

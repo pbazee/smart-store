@@ -187,6 +187,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
               src={product.images[0] || "/images/product-placeholder.png"}
               alt={product.name}
               fill
+              loading="lazy"
               placeholder="blur"
               quality={80}
               blurDataURL={CARD_BLUR_DATA_URL}
