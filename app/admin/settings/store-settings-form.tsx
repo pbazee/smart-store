@@ -7,6 +7,7 @@ import {
   type AdminStoreSettingsInput,
   updateAdminStoreSettingsAction,
 } from "@/app/admin/settings/actions";
+import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { useToast } from "@/lib/use-toast";
 import type { StoreSettings } from "@/types";
 
@@ -20,13 +21,14 @@ export function StoreSettingsForm({
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const resolvedSettings = initialSettings ?? DEFAULT_STORE_SETTINGS;
   const [form, setForm] = useState<AdminStoreSettingsInput>({
-    supportEmail: initialSettings?.supportEmail || "",
-    supportPhone: initialSettings?.supportPhone || "",
-    adminNotificationEmail: initialSettings?.adminNotificationEmail || "",
-    contactPhone: initialSettings?.contactPhone || initialSettings?.supportPhone || "",
+    supportEmail: resolvedSettings.supportEmail || "",
+    supportPhone: resolvedSettings.supportPhone || "",
+    adminNotificationEmail: resolvedSettings.adminNotificationEmail || "",
+    contactPhone: resolvedSettings.contactPhone || resolvedSettings.supportPhone || "",
     footerContactPhone:
-      initialSettings?.footerContactPhone || initialSettings?.contactPhone || "",
+      resolvedSettings.footerContactPhone || resolvedSettings.contactPhone || "",
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {

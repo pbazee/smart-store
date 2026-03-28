@@ -46,7 +46,7 @@ export async function fetchAdminStoreSettings() {
   if (!isAdmin) return null;
   return (await getStoreSettings({
     seedIfEmpty: true,
-    fallbackOnError: false,
+    fallbackOnError: true,
   })) as StoreSettings | null;
 }
 

@@ -39,7 +39,7 @@ export async function fetchAdminWhatsAppSettings() {
   try {
     return await getWhatsAppSettings({
       seedIfEmpty: true,
-      fallbackOnError: false,
+      fallbackOnError: true,
     });
   } catch (err) {
     console.error("[WhatsApp] fetchAdminWhatsAppSettings failed:", err);

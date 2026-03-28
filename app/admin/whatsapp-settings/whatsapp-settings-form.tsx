@@ -7,6 +7,7 @@ import {
   updateAdminWhatsAppSettingsAction,
   type AdminWhatsAppSettingsInput,
 } from "@/app/admin/whatsapp-settings/actions";
+import { DEFAULT_WHATSAPP_SETTINGS } from "@/lib/default-whatsapp-settings";
 import { useToast } from "@/lib/use-toast";
 import type { WhatsAppSettings } from "@/types";
 
@@ -20,11 +21,12 @@ export function WhatsAppSettingsForm({
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const resolvedSettings = initialSettings ?? DEFAULT_WHATSAPP_SETTINGS;
   const [form, setForm] = useState<AdminWhatsAppSettingsInput>({
-    phoneNumber: initialSettings?.phoneNumber || "",
-    defaultMessage: initialSettings?.defaultMessage || "",
-    isActive: initialSettings?.isActive ?? true,
-    position: initialSettings?.position ?? "right",
+    phoneNumber: resolvedSettings.phoneNumber || "",
+    defaultMessage: resolvedSettings.defaultMessage || "",
+    isActive: resolvedSettings.isActive ?? true,
+    position: resolvedSettings.position ?? "right",
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {

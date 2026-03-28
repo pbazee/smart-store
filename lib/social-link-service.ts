@@ -4,6 +4,9 @@ import {
 import { prisma } from "@/lib/prisma";
 import type { SocialLink } from "@/types";
 
+let lastKnownSocialLinks: SocialLink[] | null = null;
+const pendingSocialLinkRequests = new Map<string, Promise<SocialLink[]>>();
+
 async function ensureSocialLinksSeeded() {
   const existingCount = await prisma.socialLink.count();
   if (existingCount > 0) {
@@ -18,14 +21,30 @@ async function ensureSocialLinksSeeded() {
 
 export async function getSocialLinks(options: { seedIfEmpty?: boolean } = {}) {
   const { seedIfEmpty = false } = options;
+  const requestKey = seedIfEmpty ? "seed" : "noseed";
+  const existingRequest = pendingSocialLinkRequests.get(requestKey);
 
-  if (seedIfEmpty) {
-    await ensureSocialLinksSeeded();
+  if (existingRequest) {
+    return existingRequest;
   }
 
-  const links = await prisma.socialLink.findMany({
-    orderBy: { createdAt: "asc" },
+  const request = (async () => {
+    if (seedIfEmpty) {
+      await ensureSocialLinksSeeded();
+    }
+
+    const links = await prisma.socialLink.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+
+    lastKnownSocialLinks = links as SocialLink[];
+
+    return lastKnownSocialLinks;
+  })().finally(() => {
+    pendingSocialLinkRequests.delete(requestKey);
   });
 
-  return links as SocialLink[];
+  pendingSocialLinkRequests.set(requestKey, request);
+
+  return request;
 }

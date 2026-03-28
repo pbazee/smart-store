@@ -1,4 +1,5 @@
 "use client";
+import { startTransition } from "react";
 import { useCartStore } from "@/lib/store";
 import { buildProductHref } from "@/lib/product-routes";
 import { formatKES } from "@/lib/utils";
@@ -134,7 +135,10 @@ export default function CartPage() {
             <Link href="/checkout" className="block w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-center transition-colors">
               Proceed to Checkout
             </Link>
-            <button onClick={clearCart} className="block w-full py-2 text-sm text-muted-foreground hover:text-destructive text-center transition-colors">
+            <button
+              onClick={() => startTransition(() => clearCart())}
+              className="block w-full py-2 text-sm text-muted-foreground hover:text-destructive text-center transition-colors"
+            >
               Clear Cart
             </button>
           </div>

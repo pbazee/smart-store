@@ -1,5 +1,5 @@
 import { MessageCircleMore } from "lucide-react";
-import { getHomepageShellData } from "@/lib/homepage-data";
+import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { buildWhatsAppHref } from "@/lib/whatsapp-service";
 import { cn } from "@/lib/utils";
 import type { WhatsAppSettings } from "@/types";
@@ -12,7 +12,7 @@ export async function WhatsAppWidget({
   let settings = providedSettings;
 
   if (typeof settings === "undefined") {
-    settings = (await getHomepageShellData()).whatsAppSettings;
+    settings = (await getStorefrontContactData()).whatsAppSettings;
   }
 
   if (!settings || !settings.isActive || !settings.phoneNumber.trim()) {

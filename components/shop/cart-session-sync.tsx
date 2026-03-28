@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { areCartItemsEqual, serializeCartItems } from "@/lib/cart-utils";
 import { useCartStore } from "@/lib/store";
@@ -14,14 +14,67 @@ async function readCartItems(response: Response) {
   return payload?.data?.items ?? [];
 }
 
+function getCartSignature(items: CartItem[]) {
+  return JSON.stringify(serializeCartItems(items));
+}
+
 export function CartSessionSync() {
   const { isLoaded, sessionUser } = useSessionUser();
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const items = useCartStore((state) => state.items);
   const replaceItems = useCartStore((state) => state.replaceItems);
+  const mergeExternalItems = useCartStore((state) => state.mergeExternalItems);
   const mergedUserIdRef = useRef<string | null>(null);
   const lastSyncedSignatureRef = useRef<string>("[]");
   const syncTimeoutRef = useRef<number | undefined>(undefined);
+  const syncRequestIdRef = useRef(0);
+
+  const syncCurrentCart = useCallback(async () => {
+    const currentItems = useCartStore.getState().items;
+    const sentSignature = getCartSignature(currentItems);
+    const requestId = ++syncRequestIdRef.current;
+
+    try {
+      const response = await fetch("/api/cart", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: serializeCartItems(currentItems),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Cart sync failed with status ${response.status}`);
+      }
+
+      const savedItems = await readCartItems(response);
+
+      if (requestId !== syncRequestIdRef.current) {
+        return;
+      }
+
+      const latestItems = useCartStore.getState().items;
+      const latestSignature = getCartSignature(latestItems);
+
+      if (latestSignature !== sentSignature) {
+        return;
+      }
+
+      if (!areCartItemsEqual(latestItems, savedItems)) {
+        replaceItems(savedItems);
+      }
+
+      lastSyncedSignatureRef.current = getCartSignature(savedItems);
+    } catch (error) {
+      if (requestId !== syncRequestIdRef.current) {
+        return;
+      }
+
+      console.error("[CartSync] Failed to sync cart update:", error);
+    }
+  }, [replaceItems]);
 
   useEffect(() => {
     return () => {
@@ -38,9 +91,8 @@ export function CartSessionSync() {
 
     if (!sessionUser) {
       mergedUserIdRef.current = null;
-      lastSyncedSignatureRef.current = JSON.stringify(
-        serializeCartItems(useCartStore.getState().items)
-      );
+      syncRequestIdRef.current += 1;
+      lastSyncedSignatureRef.current = getCartSignature(useCartStore.getState().items);
       return;
     }
 
@@ -69,48 +121,10 @@ export function CartSessionSync() {
         return;
       }
 
-      const mergedItems = useCartStore.getState().mergeExternalItems(serverItems);
-
-      try {
-        const response = await fetch("/api/cart", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            items: serializeCartItems(mergedItems),
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Cart save failed with status ${response.status}`);
-        }
-
-        const savedItems = await readCartItems(response);
-        if (cancelled) {
-          return;
-        }
-
-        if (!areCartItemsEqual(useCartStore.getState().items, savedItems)) {
-          replaceItems(savedItems);
-        }
-
-        lastSyncedSignatureRef.current = JSON.stringify(serializeCartItems(savedItems));
-      } catch (error) {
-        console.error("[CartSync] Failed to save merged cart:", error);
-
-        if (cancelled) {
-          return;
-        }
-
-        if (!areCartItemsEqual(useCartStore.getState().items, mergedItems)) {
-          replaceItems(mergedItems);
-        }
-
-        lastSyncedSignatureRef.current = JSON.stringify(serializeCartItems(mergedItems));
-      }
-
+      mergeExternalItems(serverItems);
       mergedUserIdRef.current = sessionUser.id;
+
+      await syncCurrentCart();
     };
 
     void mergeServerCart();
@@ -118,7 +132,7 @@ export function CartSessionSync() {
     return () => {
       cancelled = true;
     };
-  }, [hasHydrated, isLoaded, replaceItems, sessionUser?.id]);
+  }, [hasHydrated, isLoaded, mergeExternalItems, sessionUser?.id, syncCurrentCart]);
 
   useEffect(() => {
     if (!hasHydrated || !isLoaded || !sessionUser) {
@@ -129,7 +143,7 @@ export function CartSessionSync() {
       return;
     }
 
-    const nextSignature = JSON.stringify(serializeCartItems(items));
+    const nextSignature = getCartSignature(items);
     if (nextSignature === lastSyncedSignatureRef.current) {
       return;
     }
@@ -138,33 +152,8 @@ export function CartSessionSync() {
       window.clearTimeout(syncTimeoutRef.current);
     }
 
-    syncTimeoutRef.current = window.setTimeout(async () => {
-      try {
-        const currentItems = useCartStore.getState().items;
-        const response = await fetch("/api/cart", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            items: serializeCartItems(currentItems),
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Cart sync failed with status ${response.status}`);
-        }
-
-        const savedItems = await readCartItems(response);
-
-        if (!areCartItemsEqual(useCartStore.getState().items, savedItems)) {
-          replaceItems(savedItems);
-        }
-
-        lastSyncedSignatureRef.current = JSON.stringify(serializeCartItems(savedItems));
-      } catch (error) {
-        console.error("[CartSync] Failed to sync cart update:", error);
-      }
+    syncTimeoutRef.current = window.setTimeout(() => {
+      void syncCurrentCart();
     }, 250);
 
     return () => {
@@ -172,7 +161,7 @@ export function CartSessionSync() {
         window.clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [hasHydrated, isLoaded, items, replaceItems, sessionUser?.id]);
+  }, [hasHydrated, isLoaded, items, sessionUser?.id, syncCurrentCart]);
 
   return null;
 }

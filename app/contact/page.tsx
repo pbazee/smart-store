@@ -1,13 +1,15 @@
 import { Clock3, Mail, MapPin, MessageCircleMore, Phone } from "lucide-react";
-import { getHomepageShellData } from "@/lib/homepage-data";
-import { resolveSupportContactInfo } from "@/lib/support-contact";
+import { getSupportContactInfo } from "@/lib/support-contact";
 import { buildWhatsAppHref } from "@/lib/whatsapp-service";
+import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { ContactFormCard } from "./contact-form-card";
 
 export default async function ContactPage() {
-  const homepageShellData = await getHomepageShellData();
-  const supportInfo = resolveSupportContactInfo(homepageShellData.storeSettings);
-  const whatsAppSettings = homepageShellData.whatsAppSettings;
+  const [supportInfo, storefrontContactData] = await Promise.all([
+    getSupportContactInfo(),
+    getStorefrontContactData(),
+  ]);
+  const whatsAppSettings = storefrontContactData.whatsAppSettings;
 
   const { supportEmail, contactPhone, contactTel } = supportInfo;
   const whatsappHref =

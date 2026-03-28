@@ -5,18 +5,6 @@ import type { CartItem, Product, ProductVariant } from "@/types";
 
 const CART_STORAGE_KEY = "smartest-store-cart";
 
-const clearPersistedCart = () => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.removeItem(CART_STORAGE_KEY);
-  } catch {
-    // Swallow storage errors to avoid breaking cart interactions in restrictive environments.
-  }
-};
-
 type AddItemResult = {
   status: "added" | "updated" | "max-stock" | "out-of-stock";
 };
@@ -92,10 +80,6 @@ export const useCartStore = create<CartStore>()(
         const remainingItems = get().items.filter((i) => i.variant.id !== variantId);
 
         set({ items: remainingItems });
-
-        if (remainingItems.length === 0) {
-          clearPersistedCart();
-        }
       },
       updateQuantity: (variantId, quantity) => {
         if (quantity <= 0) {
@@ -121,7 +105,6 @@ export const useCartStore = create<CartStore>()(
       },
       clearCart: () => {
         set({ items: [], isOpen: false });
-        clearPersistedCart();
       },
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
@@ -137,49 +120,40 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: CART_STORAGE_KEY,
-      version: 3,
+      version: 4,
+      partialize: (state) => ({
+        items: state.items,
+      }),
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<CartStore> | undefined;
+        const normalizedItems = Array.isArray(state?.items)
+          ? mergeCartItems(state.items as CartItem[])
+          : [];
 
         if (!state) {
           return {
             items: [],
-            isOpen: false,
-            hasHydrated: false,
           };
         }
 
         if (version < 2) {
           return {
-            ...state,
             items: [],
-            isOpen: false,
-            hasHydrated: false,
           };
         }
 
-        if (version < 3) {
-          const normalizedItems = Array.isArray(state.items)
-            ? mergeCartItems(state.items as CartItem[])
-            : [];
-
+        if (version < 4) {
           return {
-            ...state,
             items: normalizedItems,
-            isOpen: normalizedItems.length > 0 ? Boolean(state.isOpen) : false,
-            hasHydrated: false,
           };
         }
 
-        return state;
+        return {
+          items: normalizedItems,
+        };
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
-
-        if (state && state.items.length === 0 && state.isOpen) {
-          state.closeCart();
-          clearPersistedCart();
-        }
       },
     }
   )

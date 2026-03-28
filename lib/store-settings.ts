@@ -18,6 +18,7 @@ type GetStoreSettingsOptions = {
 };
 
 let lastKnownStoreSettings: StoreSettings | null = null;
+const pendingStoreSettingsRequests = new Map<string, Promise<StoreSettings | null>>();
 
 function normalizeOptionalText(value?: string | null) {
   return (value ?? "").trim();
@@ -37,54 +38,68 @@ export function getStoreSettingsFallback() {
 
 export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
   const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;
+  const requestKey = `${seedIfEmpty ? "seed" : "noseed"}:${fallbackOnError ? "fallback" : "strict"}`;
+  const existingRequest = pendingStoreSettingsRequests.get(requestKey);
 
-  try {
-    await ensureStoreSettingsStorage();
-
-    const settings = await prisma.storeSettings.findFirst({
-      orderBy: { id: "asc" },
-    });
-
-    if (!settings && seedIfEmpty) {
-      console.log("[StoreSettings] No settings found in database, seeding with defaults...");
-      const seeded = await prisma.storeSettings.create({
-        data: {
-          supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
-          supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
-          adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
-          contactPhone: DEFAULT_STORE_SETTINGS.contactPhone,
-          footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
-        },
-      });
-      console.log("[StoreSettings] Seeded successfully");
-      return rememberStoreSettings(seeded as StoreSettings);
-    }
-
-    if (settings) {
-      console.log("[StoreSettings] Loaded from database:", {
-        email: settings.supportEmail,
-        phone: settings.supportPhone,
-        footerPhone: settings.footerContactPhone,
-      });
-    } else {
-      console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
-    }
-
-    return rememberStoreSettings(settings as StoreSettings | null);
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[StoreSettings] Query failed:", errorMsg, {
-      dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
-      seedIfEmpty,
-      fallbackOnError,
-    });
-
-    if (fallbackOnError) {
-      console.warn("[StoreSettings] Falling back to last known storefront settings");
-      return getStoreSettingsFallback();
-    }
-    throw error;
+  if (existingRequest) {
+    return existingRequest;
   }
+
+  const request = (async () => {
+    try {
+      await ensureStoreSettingsStorage();
+
+      const settings = await prisma.storeSettings.findFirst({
+        orderBy: { id: "asc" },
+      });
+
+      if (!settings && seedIfEmpty) {
+        console.log("[StoreSettings] No settings found in database, seeding with defaults...");
+        const seeded = await prisma.storeSettings.create({
+          data: {
+            supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
+            supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
+            adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
+            contactPhone: DEFAULT_STORE_SETTINGS.contactPhone,
+            footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
+          },
+        });
+        console.log("[StoreSettings] Seeded successfully");
+        return rememberStoreSettings(seeded as StoreSettings);
+      }
+
+      if (settings) {
+        console.log("[StoreSettings] Loaded from database:", {
+          email: settings.supportEmail,
+          phone: settings.supportPhone,
+          footerPhone: settings.footerContactPhone,
+        });
+      } else {
+        console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
+      }
+
+      return rememberStoreSettings(settings as StoreSettings | null);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("[StoreSettings] Query failed:", errorMsg, {
+        dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
+        seedIfEmpty,
+        fallbackOnError,
+      });
+
+      if (fallbackOnError) {
+        console.warn("[StoreSettings] Falling back to last known storefront settings");
+        return getStoreSettingsFallback();
+      }
+      throw error;
+    } finally {
+      pendingStoreSettingsRequests.delete(requestKey);
+    }
+  })();
+
+  pendingStoreSettingsRequests.set(requestKey, request);
+
+  return request;
 }
 
 export async function upsertStoreSettings(input: StoreSettingsInput) {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CreditCard, MapPin, Shield, Smartphone } from "lucide-react";
 import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form";
 import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
-import { getHomepageShellData } from "@/lib/homepage-data";
+import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { resolveSupportContactInfo } from "@/lib/support-contact";
 import type { SocialLink, StoreSettings } from "@/types";
 
@@ -18,9 +18,9 @@ export async function Footer({
 
   if (!socialLinks || typeof resolvedStoreSettings === "undefined") {
     try {
-      const homepageShellData = await getHomepageShellData();
-      socialLinks = socialLinks ?? homepageShellData.socialLinks;
-      resolvedStoreSettings = resolvedStoreSettings ?? homepageShellData.storeSettings;
+      const storefrontContactData = await getStorefrontContactData();
+      socialLinks = socialLinks ?? storefrontContactData.socialLinks;
+      resolvedStoreSettings = resolvedStoreSettings ?? storefrontContactData.storeSettings;
     } catch (error) {
       console.error("[Footer] Failed to load footer data:", error);
       socialLinks = socialLinks ?? [];
