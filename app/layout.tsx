@@ -11,6 +11,8 @@ import { RootLayoutShell } from "@/components/layout/root-layout-shell";
 import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { CartDrawer } from "@/components/shop/cart-drawer";
+import { CartSessionSync } from "@/components/shop/cart-session-sync";
+import { WishlistSessionSync } from "@/components/shop/wishlist-session-sync";
 import { Toaster } from "@/components/ui/toaster";
 import { SupabaseProvider } from "@/components/supabase-provider";
 import { getAppUrl } from "@/lib/app-url";
@@ -81,6 +83,8 @@ export default async function RootLayout({
                   <WhatsAppWidget settings={homepageShellData.whatsAppSettings} />
                   <MobileBottomNav />
                   <CartDrawer />
+                  <CartSessionSync />
+                  <WishlistSessionSync />
                 </>
               }
             >

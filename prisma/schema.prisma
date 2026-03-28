@@ -20,6 +20,16 @@ model User {
   orders       Order[]
 }
 
+model Cart {
+  id        String   @id @default(cuid())
+  ownerKey  String   @unique
+  items     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
 model Product {
   id            String                   @id @default(cuid())
   name          String

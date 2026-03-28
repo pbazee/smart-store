@@ -6,12 +6,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { Plus, Minus, X, Smartphone, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useShallow } from "zustand/react/shallow";
 
 export default function CartPage() {
-  const { hasHydrated, items, removeItem, updateQuantity, total, clearCart, itemCount } =
-    useCartStore();
-  const cartTotal = hasHydrated ? total() : 0;
-  const totalItems = hasHydrated ? itemCount() : 0;
+  const { hasHydrated, items, removeItem, updateQuantity, clearCart, cartTotal, totalItems } =
+    useCartStore(
+      useShallow((state) => ({
+        hasHydrated: state.hasHydrated,
+        items: state.items,
+        removeItem: state.removeItem,
+        updateQuantity: state.updateQuantity,
+        clearCart: state.clearCart,
+        cartTotal: state.items.reduce(
+          (sum, item) => sum + item.variant.price * item.quantity,
+          0
+        ),
+        totalItems: state.items.reduce((sum, item) => sum + item.quantity, 0),
+      }))
+    );
 
   if (!hasHydrated) {
     return (

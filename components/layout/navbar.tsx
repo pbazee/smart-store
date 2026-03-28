@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useShallow } from "zustand/react/shallow";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { SiteMenuDrawer } from "@/components/layout/site-menu-drawer";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
@@ -127,8 +128,15 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const { isLoaded, sessionUser } = useSessionUser();
-  const { hasHydrated, itemCount, toggleCart, closeCart } = useCartStore();
-  const count = hasHydrated ? itemCount() : 0;
+  const { hasHydrated, cartCount, toggleCart, closeCart } = useCartStore(
+    useShallow((state) => ({
+      hasHydrated: state.hasHydrated,
+      cartCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
+      toggleCart: state.toggleCart,
+      closeCart: state.closeCart,
+    }))
+  );
+  const count = hasHydrated ? cartCount : 0;
   const searchValue = searchParams.get("search") ?? "";
   const wishlistHref =
     isLoaded && !sessionUser ? "/sign-in?redirect_url=%2Fwishlist" : "/wishlist";

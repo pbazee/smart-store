@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { mergeCartItems } from "@/lib/cart-utils";
 import type { CartItem, Product, ProductVariant } from "@/types";
 
 const CART_STORAGE_KEY = "smartest-store-cart";
@@ -25,6 +26,8 @@ interface CartStore {
   isOpen: boolean;
   hasHydrated: boolean;
   addItem: (product: Product, variant: ProductVariant) => AddItemResult;
+  replaceItems: (items: CartItem[]) => void;
+  mergeExternalItems: (items: CartItem[]) => CartItem[];
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
@@ -66,6 +69,24 @@ export const useCartStore = create<CartStore>()(
 
         set({ items: [...items, { product, variant, quantity: 1 }] });
         return { status: "added" };
+      },
+      replaceItems: (items) => {
+        const nextItems = mergeCartItems(items);
+
+        set({
+          items: nextItems,
+          isOpen: nextItems.length > 0 ? get().isOpen : false,
+        });
+      },
+      mergeExternalItems: (items) => {
+        const nextItems = mergeCartItems(get().items, items);
+
+        set({
+          items: nextItems,
+          isOpen: nextItems.length > 0 ? get().isOpen : false,
+        });
+
+        return nextItems;
       },
       removeItem: (variantId) => {
         const remainingItems = get().items.filter((i) => i.variant.id !== variantId);
@@ -116,7 +137,7 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: CART_STORAGE_KEY,
-      version: 2,
+      version: 3,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<CartStore> | undefined;
 
@@ -133,6 +154,19 @@ export const useCartStore = create<CartStore>()(
             ...state,
             items: [],
             isOpen: false,
+            hasHydrated: false,
+          };
+        }
+
+        if (version < 3) {
+          const normalizedItems = Array.isArray(state.items)
+            ? mergeCartItems(state.items as CartItem[])
+            : [];
+
+          return {
+            ...state,
+            items: normalizedItems,
+            isOpen: normalizedItems.length > 0 ? Boolean(state.isOpen) : false,
             hasHydrated: false,
           };
         }

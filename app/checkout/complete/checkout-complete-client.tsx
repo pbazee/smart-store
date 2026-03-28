@@ -1,11 +1,9 @@
 "use client";
 
-import confetti from "canvas-confetti";
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle, Loader2, Receipt, ShoppingBag } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
@@ -57,7 +55,7 @@ function CheckoutCompleteContent({
   supportPhone: string;
 }) {
   const searchParams = useSearchParams();
-  const { clearCart } = useCartStore();
+  const clearCart = useCartStore((state) => state.clearCart);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutConfirmation | null>(null);
@@ -108,11 +106,15 @@ function CheckoutCompleteContent({
               title: "Payment successful",
               description: `Order ${confirmation.orderNumber} is now confirmed.`,
             });
-            void confetti({
-              particleCount: 140,
-              spread: 80,
-              origin: { y: 0.6 },
-            });
+            void import("canvas-confetti")
+              .then(({ default: confetti }) =>
+                confetti({
+                  particleCount: 140,
+                  spread: 80,
+                  origin: { y: 0.6 },
+                })
+              )
+              .catch(() => undefined);
             setResult(confirmation);
             return;
           }
@@ -150,7 +152,8 @@ function CheckoutCompleteContent({
     const createdAt = result.createdAt ? new Date(result.createdAt) : new Date();
     const items = result.items ?? [];
 
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
+      const { jsPDF } = await import("jspdf");
       const doc = new jsPDF();
       let y = 18;
 

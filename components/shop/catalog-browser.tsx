@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, Check, SlidersHorizontal, X } from "lucide-react";
@@ -102,6 +102,7 @@ export function CatalogBrowser({
   const [filters, setFilters] = useState<FilterState>(() =>
     buildFilterState(queryState, categories, priceBounds, lockedCategory)
   );
+  const deferredFilters = useDeferredValue(filters);
   const tag = queryState.tag ?? queryState.tags;
 
   useEffect(() => {
@@ -133,12 +134,12 @@ export function CatalogBrowser({
   const filteredProducts = useMemo(
     () =>
       filterProductCatalog(products, {
-        filters,
+        filters: deferredFilters,
         categories,
         tag,
         lockedCategory,
       }),
-    [categories, filters, lockedCategory, products, tag]
+    [categories, deferredFilters, lockedCategory, products, tag]
   );
 
   const selectedSortLabel =

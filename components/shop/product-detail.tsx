@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,43 +15,57 @@ import {
   Truck,
   ZoomIn,
 } from "lucide-react";
-import confetti from "@/lib/confetti";
-import { ReviewsPanel } from "@/components/shop/reviews-panel";
 import { SizeGuideDialog } from "@/components/shop/size-guide-dialog";
 import { useSessionUser } from "@/hooks/use-session-user";
-import { useWishlist } from "@/hooks/use-wishlist";
+import { useWishlistActions, useWishlistProduct } from "@/hooks/use-wishlist";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
 import { cn, createBlurDataURL, formatKES } from "@/lib/utils";
-import type { Product, ProductReview, ProductVariant } from "@/types";
+import type { Product, ProductVariant } from "@/types";
+
+const ReviewsPanel = dynamic(
+  () => import("@/components/shop/reviews-panel").then((module) => module.ReviewsPanel),
+  {
+    ssr: false,
+    loading: () => <ReviewsPanelFallback />,
+  }
+);
 
 export function ProductDetail({
   product,
-  reviews,
 }: {
   product: Product;
-  reviews: ProductReview[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const imageRef = useRef<HTMLDivElement>(null);
-  const { addItem } = useCartStore();
+  const addItem = useCartStore((state) => state.addItem);
   const { toast } = useToast();
-  const wishlist = useWishlist();
+  const isWishlisted = useWishlistProduct(product.id);
+  const { isSignedIn, toggle } = useWishlistActions();
   const { sessionUser } = useSessionUser();
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomed, setZoomed] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
   const initialVariant =
     product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
   const [selectedColor, setSelectedColor] = useState(initialVariant?.color ?? "");
   const [selectedSize, setSelectedSize] = useState(initialVariant?.size ?? "");
 
-  const colors = [...new Set(product.variants.map((variant) => variant.color))];
-  const sizesForColor = product.variants.filter((variant) => variant.color === selectedColor);
-  const selectedVariant: ProductVariant | undefined = product.variants.find(
-    (variant) => variant.color === selectedColor && variant.size === selectedSize
+  const colors = useMemo(
+    () => [...new Set(product.variants.map((variant) => variant.color))],
+    [product.variants]
+  );
+  const sizesForColor = useMemo(
+    () => product.variants.filter((variant) => variant.color === selectedColor),
+    [product.variants, selectedColor]
+  );
+  const selectedVariant: ProductVariant | undefined = useMemo(
+    () =>
+      product.variants.find(
+        (variant) => variant.color === selectedColor && variant.size === selectedSize
+      ),
+    [product.variants, selectedColor, selectedSize]
   );
   const blurDataUrl = useMemo(
     () =>
@@ -61,10 +76,7 @@ export function ProductDetail({
       }),
     []
   );
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-      : product.rating;
+  const averageRating = product.rating;
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) {
@@ -72,9 +84,14 @@ export function ProductDetail({
     }
 
     const rect = imageRef.current.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    setMousePos({ x, y });
+    imageRef.current.style.setProperty(
+      "--product-zoom-origin-x",
+      `${((event.clientX - rect.left) / rect.width) * 100}%`
+    );
+    imageRef.current.style.setProperty(
+      "--product-zoom-origin-y",
+      `${((event.clientY - rect.top) / rect.height) * 100}%`
+    );
   };
 
   const handleAddToCart = () => {
@@ -107,12 +124,16 @@ export function ProductDetail({
       return;
     }
 
-    confetti({
-      particleCount: 110,
-      spread: 68,
-      origin: { y: 0.62 },
-      colors: ["#f97316", "#fb923c", "#fdba74", "#22c55e"],
-    });
+    void import("@/lib/confetti")
+      .then(({ default: confetti }) =>
+        confetti({
+          particleCount: 110,
+          spread: 68,
+          origin: { y: 0.62 },
+          colors: ["#f97316", "#fb923c", "#fdba74", "#22c55e"],
+        })
+      )
+      .catch(() => undefined);
 
     toast({
       title: "Added to cart",
@@ -121,7 +142,7 @@ export function ProductDetail({
   };
 
   const handleWishlistToggle = async () => {
-    if (!wishlist.isSignedIn) {
+    if (!isSignedIn) {
       toast({
         title: "Sign in required",
         description: "Use your account or demo login to save this product.",
@@ -130,8 +151,8 @@ export function ProductDetail({
       return;
     }
 
-    const wasSaved = wishlist.has(product.id);
-    const result = await wishlist.toggle(product.id);
+    const wasSaved = isWishlisted;
+    const result = await toggle(product.id);
 
     if (!result.ok) {
       toast({
@@ -173,7 +194,14 @@ export function ProductDetail({
                 "object-cover transition-transform duration-200",
                 zoomed ? "scale-[1.55]" : "scale-100"
               )}
-              style={zoomed ? { transformOrigin: `${mousePos.x}% ${mousePos.y}%` } : undefined}
+              style={
+                zoomed
+                  ? {
+                      transformOrigin:
+                        "var(--product-zoom-origin-x, 50%) var(--product-zoom-origin-y, 50%)",
+                    }
+                  : undefined
+              }
               sizes="(max-width: 1024px) 100vw, 52vw"
             />
 
@@ -249,7 +277,7 @@ export function ProductDetail({
                 ))}
               </div>
               <span className="text-sm text-muted-foreground">
-                {averageRating.toFixed(1)} average - {reviews.length || product.reviewCount} reviews
+                {averageRating.toFixed(1)} average - {product.reviewCount} reviews
               </span>
               {sessionUser?.isDemo && (
                 <span className="rounded-full border border-brand-300/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600">
@@ -358,7 +386,7 @@ export function ProductDetail({
               <Heart
                 className={cn(
                   "h-4 w-4",
-                  wishlist.has(product.id) ? "fill-red-500 text-red-500" : ""
+                  isWishlisted ? "fill-red-500 text-red-500" : ""
                 )}
               />
               Wishlist
@@ -424,9 +452,46 @@ export function ProductDetail({
 
       <ReviewsPanel
         productId={product.id}
-        initialReviews={reviews}
         averageRating={averageRating}
+        reviewCount={product.reviewCount}
       />
     </div>
+  );
+}
+
+function ReviewsPanelFallback() {
+  return (
+    <section className="mt-20 grid gap-10 lg:grid-cols-[1.1fr,0.9fr]">
+      <div>
+        <div className="rounded-3xl border border-border bg-card p-6">
+          <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+          <div className="mt-4 flex items-center gap-4">
+            <div className="h-12 w-16 animate-pulse rounded bg-muted" />
+            <div className="space-y-2">
+              <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="rounded-3xl border border-border bg-card p-5">
+              <div className="h-5 w-2/5 animate-pulse rounded bg-muted" />
+              <div className="mt-3 h-4 w-full animate-pulse rounded bg-muted" />
+              <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-3xl border border-border bg-card p-6">
+        <div className="h-8 w-40 animate-pulse rounded bg-muted" />
+        <div className="mt-3 h-4 w-5/6 animate-pulse rounded bg-muted" />
+        <div className="mt-6 space-y-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-14 animate-pulse rounded-2xl bg-muted" />
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

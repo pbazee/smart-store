@@ -8,10 +8,11 @@ import { shouldUseMockData } from "@/lib/live-data-mode";
 import { DEMO_AUTH_COOKIE, parseDemoAuthCookie } from "@/lib/user-role";
 
 export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
+  const pathname = request.nextUrl.pathname;
+  const requestedPath = `${pathname}${request.nextUrl.search}`;
 
   // Allow sign-in/sign-up pages
-  if (/^\/(sign-in|sign-up)(?:\/.*)?$/.test(path)) {
+  if (/^\/(sign-in|sign-up)(?:\/.*)?$/.test(pathname)) {
     return NextResponse.next();
   }
 
@@ -52,7 +53,8 @@ export async function middleware(request: NextRequest) {
 
   // Check auth redirect path
   const redirectPath = getAuthRedirectPath({
-    path,
+    pathname,
+    redirectPath: requestedPath,
     userId: effectiveUserId,
     role: effectiveRole,
   });

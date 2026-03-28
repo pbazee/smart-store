@@ -1,11 +1,13 @@
 export function getAuthRedirectPath(input: {
-  path: string;
+  pathname: string;
+  redirectPath?: string;
   userId?: string | null;
   role?: string | null;
 }) {
-  const { path, userId, role } = input;
+  const { pathname, redirectPath, userId, role } = input;
+  const requestedPath = redirectPath ?? pathname;
 
-  if (path === "/admin-login" || path.startsWith("/admin-login/")) {
+  if (pathname === "/admin-login" || pathname.startsWith("/admin-login/")) {
     if (!userId) {
       return null;
     }
@@ -13,9 +15,9 @@ export function getAuthRedirectPath(input: {
     return role === "admin" ? "/admin/dashboard" : "/";
   }
 
-  if (path.startsWith("/admin")) {
+  if (pathname.startsWith("/admin")) {
     if (!userId) {
-      return `/sign-in?redirect_url=${encodeURIComponent(path)}`;
+      return `/sign-in?redirect_url=${encodeURIComponent(requestedPath)}`;
     }
 
     if (role !== "admin") {
@@ -24,13 +26,14 @@ export function getAuthRedirectPath(input: {
   }
 
   if (
-    path.startsWith("/orders") ||
-    path.startsWith("/order-confirmation") ||
-    path.startsWith("/account") ||
-    path.startsWith("/wishlist")
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/order-confirmation") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/wishlist") ||
+    pathname.startsWith("/checkout")
   ) {
     if (!userId) {
-      return `/sign-in?redirect_url=${encodeURIComponent(path)}`;
+      return `/sign-in?redirect_url=${encodeURIComponent(requestedPath)}`;
     }
   }
 

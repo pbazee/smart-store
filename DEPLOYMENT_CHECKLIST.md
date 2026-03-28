@@ -35,7 +35,7 @@ Go to: **https://vercel.com/dashboard** → Your Project → **Settings** → **
    - Paste full URL here
 
 3. **`DIRECT_URL`**
-   - Go to Supabase Dashboard → Settings → Database → Connection String
+   - Go to Supabase Dashboard → Settings → Database → Cll onnection String
    - Copy the PostgreSQL URI (NOT the pooler - the regular one on port 5432)
    - Add query params: `?sslmode=require&connection_limit=10&pool_timeout=60`
    - Paste full URL here

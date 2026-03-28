@@ -23,19 +23,19 @@ function run(name, fn) {
 
 run("auth redirect flow", () => {
   assert.equal(
-    getAuthRedirectPath({ path: "/admin/products", userId: null }),
+    getAuthRedirectPath({ pathname: "/admin/products", userId: null }),
     "/sign-in?redirect_url=%2Fadmin%2Fproducts"
   );
   assert.equal(
-    getAuthRedirectPath({ path: "/admin", userId: "user_123", role: "customer" }),
+    getAuthRedirectPath({ pathname: "/admin", userId: "user_123", role: "customer" }),
     "/"
   );
   assert.equal(
-    getAuthRedirectPath({ path: "/checkout", userId: null }),
-    null
+    getAuthRedirectPath({ pathname: "/checkout", userId: null }),
+    "/sign-in?redirect_url=%2Fcheckout"
   );
   assert.equal(
-    getAuthRedirectPath({ path: "/admin/orders", userId: "user_123", role: "admin" }),
+    getAuthRedirectPath({ pathname: "/admin/orders", userId: "user_123", role: "admin" }),
     null
   );
 });
@@ -194,5 +194,7 @@ run("admin product create delete helpers", () => {
 });
 
 console.log("Integration checks passed.");
+
+
 
 

@@ -4,14 +4,29 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingCart, Smartphone, X } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useCartStore } from "@/lib/store";
 import { formatKES } from "@/lib/utils";
 
 export function CartDrawer() {
-  const { hasHydrated, items, isOpen, closeCart, removeItem, updateQuantity, total, itemCount } =
-    useCartStore();
-  const cartTotal = hasHydrated ? total() : 0;
-  const totalItems = hasHydrated ? itemCount() : 0;
+  const { hasHydrated, items, isOpen, closeCart, removeItem, updateQuantity, cartTotal, totalItems } =
+    useCartStore(
+      useShallow((state) => ({
+        hasHydrated: state.hasHydrated,
+        items: state.items,
+        isOpen: state.isOpen,
+        closeCart: state.closeCart,
+        removeItem: state.removeItem,
+        updateQuantity: state.updateQuantity,
+        cartTotal: state.items.reduce(
+          (sum, item) => sum + item.variant.price * item.quantity,
+          0
+        ),
+        totalItems: state.items.reduce((sum, item) => sum + item.quantity, 0),
+      }))
+    );
+  const resolvedCartTotal = hasHydrated ? cartTotal : 0;
+  const resolvedTotalItems = hasHydrated ? totalItems : 0;
 
   return (
     <AnimatePresence>
@@ -38,7 +53,7 @@ export function CartDrawer() {
               <div className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-brand-500" />
                 <h2 className="text-lg font-bold text-zinc-950 dark:text-foreground">
-                  Your Cart ({totalItems})
+                  Your Cart ({resolvedTotalItems})
                 </h2>
               </div>
               <button
@@ -134,7 +149,7 @@ export function CartDrawer() {
               <div className="space-y-3 border-t border-zinc-200/80 bg-white/92 p-5 shadow-[0_-18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-border dark:bg-background dark:shadow-none">
                 <div className="flex items-center justify-between text-lg font-bold text-zinc-950 dark:text-foreground">
                   <span>Total</span>
-                  <span className="text-brand-600">{formatKES(cartTotal)}</span>
+                  <span className="text-brand-600">{formatKES(resolvedCartTotal)}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-muted-foreground">
                   <Smartphone className="h-3.5 w-3.5 text-green-500" />
@@ -145,7 +160,7 @@ export function CartDrawer() {
                   onClick={closeCart}
                   className="block w-full rounded-xl bg-brand-500 py-3.5 text-center font-bold text-white shadow-[0_12px_24px_rgba(249,115,22,0.22)] transition-colors hover:bg-brand-600"
                 >
-                  Checkout · {formatKES(cartTotal)}
+                  Checkout · {formatKES(resolvedCartTotal)}
                 </Link>
                 <Link
                   href="/cart"

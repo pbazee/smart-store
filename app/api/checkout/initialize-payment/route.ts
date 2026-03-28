@@ -93,6 +93,13 @@ function generateReference(orderNumber: string) {
 export async function POST(req: NextRequest) {
   try {
     const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json(
+        { error: "Sign in to continue to checkout." },
+        { status: 401 }
+      );
+    }
+
     const userId = sessionUser?.id ?? null;
 
     await releaseExpiredReservations();
@@ -189,7 +196,7 @@ export async function POST(req: NextRequest) {
     const order = await prisma.$transaction(async (tx) => {
       await releaseExpiredReservationsInTransaction(tx);
 
-      let finalUserId = userId;
+      let finalUserId: string | null = userId;
 
       if (userId && sessionUser) {
         try {

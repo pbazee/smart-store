@@ -126,3 +126,54 @@ export function useWishlist() {
     toggle,
   };
 }
+
+export function useWishlistSync() {
+  useWishlist();
+}
+
+export function useWishlistProduct(productId: string) {
+  return useWishlistState((state) => state.productIds.includes(productId));
+}
+
+export function useWishlistActions() {
+  const { isSignedIn, sessionUser } = useSessionUser();
+  const { setWishlist, setLoadingForUserId } = useWishlistState(
+    useShallow((state) => ({
+      setWishlist: state.setWishlist,
+      setLoadingForUserId: state.setLoadingForUserId,
+    }))
+  );
+
+  const toggle = async (productId: string) => {
+    if (!isSignedIn || !sessionUser) {
+      return { ok: false, reason: "unauthenticated" as const };
+    }
+
+    setLoadingForUserId(sessionUser.id);
+
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to update wishlist");
+      }
+
+      setWishlist(payload.data.productIds ?? [], sessionUser.id);
+      return { ok: true, reason: "updated" as const };
+    } catch (error) {
+      console.error("Wishlist update failed:", error);
+      setLoadingForUserId(null);
+      return { ok: false, reason: "error" as const };
+    }
+  };
+
+  return {
+    isSignedIn,
+    toggle,
+  };
+}

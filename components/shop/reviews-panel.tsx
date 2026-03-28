@@ -10,19 +10,24 @@ import { cn } from "@/lib/utils";
 
 type ReviewsPanelProps = {
   productId: string;
-  initialReviews: ProductReview[];
   averageRating: number;
+  reviewCount: number;
 };
 
 export function ReviewsPanel({
   productId,
-  initialReviews,
   averageRating,
+  reviewCount,
 }: ReviewsPanelProps) {
   const router = useRouter();
   const { sessionUser } = useSessionUser();
   const { toast } = useToast();
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewSummary, setReviewSummary] = useState({
+    averageRating,
+    reviewCount,
+  });
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [form, setForm] = useState({
     authorName: sessionUser?.fullName || "",
     authorCity: "Nairobi",
@@ -38,6 +43,58 @@ export function ReviewsPanel({
       authorName: sessionUser?.fullName || current.authorName,
     }));
   }, [sessionUser]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadReviews = async () => {
+      setIsLoadingReviews(true);
+
+      try {
+        const response = await fetch(`/api/reviews?productId=${encodeURIComponent(productId)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | { data?: ProductReview[]; error?: string }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to load reviews");
+        }
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const nextReviews = payload?.data ?? [];
+        const nextAverageRating =
+          nextReviews.length > 0
+            ? nextReviews.reduce((sum, review) => sum + review.rating, 0) / nextReviews.length
+            : averageRating;
+
+        setReviews(nextReviews);
+        setReviewSummary({
+          averageRating: nextAverageRating,
+          reviewCount: Math.max(reviewCount, nextReviews.length),
+        });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("[ReviewsPanel] Failed to load reviews:", error);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingReviews(false);
+        }
+      }
+    };
+
+    void loadReviews();
+
+    return () => {
+      controller.abort();
+    };
+  }, [averageRating, productId, reviewCount]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,13 +119,32 @@ export function ReviewsPanel({
           content: form.content,
         }),
       });
-      const payload = await response.json();
+      const payload = (await response.json().catch(() => null)) as
+        | { data?: ProductReview; error?: string }
+        | null;
 
       if (!response.ok) {
         throw new Error(payload?.error || "Failed to save review");
       }
 
-      setReviews((current) => [payload.data, ...current]);
+      if (!payload?.data) {
+        throw new Error("Review response was incomplete");
+      }
+
+      const nextReview = payload.data;
+
+      setReviews((current) => {
+        const nextReviews = [nextReview, ...current];
+        const nextAverageRating =
+          nextReviews.reduce((sum, review) => sum + review.rating, 0) / nextReviews.length;
+
+        setReviewSummary({
+          averageRating: nextAverageRating,
+          reviewCount: Math.max(reviewCount, nextReviews.length),
+        });
+
+        return nextReviews;
+      });
       setForm((current) => ({
         ...current,
         title: "",
@@ -79,7 +155,6 @@ export function ReviewsPanel({
         title: "Review saved",
         description: "Your feedback is now part of the product story.",
       });
-      router.refresh();
     } catch (error) {
       toast({
         title: "Review failed",
@@ -99,7 +174,7 @@ export function ReviewsPanel({
             Customer Reviews
           </p>
           <div className="mt-4 flex items-center gap-4">
-            <div className="text-5xl font-black">{averageRating.toFixed(1)}</div>
+            <div className="text-5xl font-black">{reviewSummary.averageRating.toFixed(1)}</div>
             <div>
               <div className="flex gap-1">
                 {[...Array(5)].map((_, index) => (
@@ -107,7 +182,7 @@ export function ReviewsPanel({
                     key={index}
                     className={cn(
                       "h-5 w-5",
-                      index < Math.round(averageRating)
+                      index < Math.round(reviewSummary.averageRating)
                         ? "fill-amber-400 text-amber-400"
                         : "fill-muted text-muted"
                     )}
@@ -122,6 +197,16 @@ export function ReviewsPanel({
         </div>
 
         <div className="mt-6 space-y-4">
+          {isLoadingReviews ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="rounded-3xl border border-border bg-card p-5">
+                <div className="h-5 w-2/5 animate-pulse rounded bg-muted" />
+                <div className="mt-2 h-4 w-1/3 animate-pulse rounded bg-muted" />
+                <div className="mt-4 h-4 w-full animate-pulse rounded bg-muted" />
+                <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-muted" />
+              </div>
+            ))
+          ) : null}
           {reviews.slice(0, 5).map((review) => (
             <article key={review.id} className="rounded-3xl border border-border bg-card p-5">
               <div className="flex items-start justify-between gap-4">
@@ -151,6 +236,14 @@ export function ReviewsPanel({
               </p>
             </article>
           ))}
+          {!isLoadingReviews && reviews.length === 0 ? (
+            <article className="rounded-3xl border border-border bg-card p-5">
+              <h3 className="font-semibold">Be the first to review this piece</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Share sizing, quality, and delivery notes to help the next shopper decide faster.
+              </p>
+            </article>
+          ) : null}
         </div>
       </div>
 

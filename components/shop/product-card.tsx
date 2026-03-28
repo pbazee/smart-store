@@ -1,12 +1,12 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart, ShoppingCart, Star } from "lucide-react";
-import { useWishlist } from "@/hooks/use-wishlist";
+import { useWishlistActions, useWishlistProduct } from "@/hooks/use-wishlist";
 import { buildProductHref } from "@/lib/product-routes";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
@@ -25,10 +25,26 @@ interface ProductCardProps {
   index?: number;
 }
 
+function prefetchProductRoute(
+  router: { prefetch: (href: string) => void },
+  href: string,
+  hasPrefetchedRef: { current: boolean }
+) {
+  if (hasPrefetchedRef.current) {
+    return;
+  }
+
+  hasPrefetchedRef.current = true;
+  router.prefetch(href);
+}
+
 function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const wishlist = useWishlist();
+  const linkRef = useRef<HTMLAnchorElement | null>(null);
+  const hasPrefetchedRef = useRef(false);
+  const isWishlisted = useWishlistProduct(product.id);
+  const { isSignedIn, toggle } = useWishlistActions();
   // Selector instead of full store subscription — addItem is a stable reference,
   // so this component no longer re-renders on every cart state change
   const addItem = useCartStore((state) => state.addItem);
@@ -36,6 +52,47 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
 
   const firstVariant =
     product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
+  const productHref = buildProductHref(product);
+  const colorSwatches = useMemo(
+    () => [...new Set(product.variants.map((variant) => variant.colorHex))].slice(0, 4),
+    [product.variants]
+  );
+
+  const prefetchProduct = () => {
+    prefetchProductRoute(router, productHref, hasPrefetchedRef);
+  };
+
+  useEffect(() => {
+    const linkElement = linkRef.current;
+    if (!linkElement) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === "undefined") {
+      prefetchProductRoute(router, productHref, hasPrefetchedRef);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) {
+          return;
+        }
+
+        prefetchProductRoute(router, productHref, hasPrefetchedRef);
+        observer.disconnect();
+      },
+      {
+        rootMargin: "240px 0px",
+      }
+    );
+
+    observer.observe(linkElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [productHref, router]);
 
   const handleQuickAdd = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -66,7 +123,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!wishlist.isSignedIn) {
+    if (!isSignedIn) {
       const redirectPath =
         typeof window !== "undefined"
           ? `${window.location.pathname}${window.location.search}`
@@ -80,8 +137,8 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
       return;
     }
 
-    const wasSaved = wishlist.has(product.id);
-    const result = await wishlist.toggle(product.id);
+    const wasSaved = isWishlisted;
+    const result = await toggle(product.id);
 
     if (!result.ok) {
       toast({
@@ -111,8 +168,17 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
       viewport={{ once: true, margin: "0px 0px -40px 0px" }}
       transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.3 }}
       className="group relative"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "320px 480px" }}
     >
-      <Link href={buildProductHref(product)} className="block">
+      <Link
+        ref={linkRef}
+        href={productHref}
+        prefetch={false}
+        onMouseEnter={prefetchProduct}
+        onFocus={prefetchProduct}
+        onTouchStart={prefetchProduct}
+        className="block"
+      >
         {/* Card container */}
         <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg">
           {/* Image */}
@@ -147,12 +213,12 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
               type="button"
               onClick={handleWishlistToggle}
               className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-neutral-700 shadow-sm transition-all hover:scale-110 dark:bg-black/70 dark:text-white md:opacity-0 md:group-hover:opacity-100"
-              aria-label={wishlist.has(product.id) ? "Remove from wishlist" : "Save to wishlist"}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
             >
               <Heart
                 className={cn(
                   "h-4 w-4 transition-colors",
-                  wishlist.has(product.id) ? "fill-red-500 text-red-500" : ""
+                  isWishlisted ? "fill-red-500 text-red-500" : ""
                 )}
               />
             </button>
@@ -193,15 +259,13 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
               </div>
 
               <div className="flex items-center gap-1">
-                {[...new Set(product.variants.map((variant) => variant.colorHex))]
-                  .slice(0, 4)
-                  .map((hex) => (
-                    <span
-                      key={hex}
-                      className="h-3 w-3 rounded-full border border-border"
-                      style={{ backgroundColor: hex }}
-                    />
-                  ))}
+                {colorSwatches.map((hex) => (
+                  <span
+                    key={hex}
+                    className="h-3 w-3 rounded-full border border-border"
+                    style={{ backgroundColor: hex }}
+                  />
+                ))}
               </div>
             </div>
 

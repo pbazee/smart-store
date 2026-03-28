@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Home, Heart, ShoppingCart, Store, User2 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useShallow } from "zustand/react/shallow";
+import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/store";
 import { useSessionUser } from "@/hooks/use-session-user";
@@ -14,28 +15,22 @@ const navItems = [
 ];
 
 export function MobileBottomNav() {
-  const router = useRouter();
   const pathname = usePathname();
-  const { hasHydrated, itemCount, toggleCart, closeCart } = useCartStore();
+  const { hasHydrated, cartCount, toggleCart, closeCart } = useCartStore(
+    useShallow((state) => ({
+      hasHydrated: state.hasHydrated,
+      cartCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
+      toggleCart: state.toggleCart,
+      closeCart: state.closeCart,
+    }))
+  );
   const { isLoaded, sessionUser } = useSessionUser();
-  const cartCount = hasHydrated ? itemCount() : 0;
   const wishlistHref =
     isLoaded && !sessionUser ? "/sign-in?redirect_url=%2Fwishlist" : "/wishlist";
   const accountHref = isLoaded && !sessionUser ? "/sign-in" : "/account";
-  const prefetchTargets = useMemo(
-    () => Array.from(new Set([...navItems.map((item) => item.href), wishlistHref, accountHref])),
-    [accountHref, wishlistHref]
-  );
+  const resolvedCartCount = hasHydrated ? cartCount : 0;
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      prefetchTargets.forEach((href) => router.prefetch(href));
-    }, 150);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [prefetchTargets, router]);
+  useRoutePrefetch([...navItems.map((item) => item.href), wishlistHref, accountHref]);
 
   const handleCartClick = () => {
     toggleCart();
@@ -67,9 +62,9 @@ export function MobileBottomNav() {
         >
           <ShoppingCart className="h-4 w-4" />
           Cart
-          {cartCount > 0 && (
+          {resolvedCartCount > 0 && (
             <span className="absolute right-5 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] text-white">
-              {cartCount}
+              {resolvedCartCount}
             </span>
           )}
         </button>

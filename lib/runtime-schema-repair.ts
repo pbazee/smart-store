@@ -113,6 +113,28 @@ export async function ensureReviewStorage() {
   });
 }
 
+export async function ensureCartStorage() {
+  await runSchemaRepair("cart", async () => {
+    await executeRepairStatements([
+      `
+        CREATE TABLE IF NOT EXISTS "Cart" (
+          "id" TEXT PRIMARY KEY,
+          "ownerKey" TEXT NOT NULL UNIQUE,
+          "items" JSONB NOT NULL DEFAULT '[]',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `,
+      `ALTER TABLE "Cart" ADD COLUMN IF NOT EXISTS "ownerKey" TEXT;`,
+      `ALTER TABLE "Cart" ADD COLUMN IF NOT EXISTS "items" JSONB NOT NULL DEFAULT '[]';`,
+      `ALTER TABLE "Cart" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`,
+      `ALTER TABLE "Cart" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "Cart_ownerKey_key" ON "Cart" ("ownerKey");`,
+      `CREATE INDEX IF NOT EXISTS "Cart_updatedAt_idx" ON "Cart" ("updatedAt");`,
+    ]);
+  });
+}
+
 export async function ensureHomepageCategoryStorage() {
   await runSchemaRepair("homepage-category", async () => {
     await executeRepairStatements([

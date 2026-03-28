@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { z } from "zod";
+import { useShallow } from "zustand/react/shallow";
 import { validateCouponAction } from "@/app/checkout/actions";
 import {
   buildCheckoutPayload,
@@ -175,7 +176,16 @@ function getCheckoutCompleteUrl(reference: string) {
 }
 
 export default function CheckoutPage() {
-  const { hasHydrated, items, total } = useCartStore();
+  const { hasHydrated, items, cartTotal } = useCartStore(
+    useShallow((state) => ({
+      hasHydrated: state.hasHydrated,
+      items: state.items,
+      cartTotal: state.items.reduce(
+        (sum, item) => sum + item.variant.price * item.quantity,
+        0
+      ),
+    }))
+  );
   const { toast } = useToast();
   const popupStateRef = useRef<{
     completed: boolean;
@@ -198,7 +208,6 @@ export default function CheckoutPage() {
   const [shippingRuleName, setShippingRuleName] = useState<string | null>(null);
   const [isShippingQuoting, setIsShippingQuoting] = useState(false);
 
-  const cartTotal = total();
   const appliedCoupon = checkoutData.coupon;
   const discountAmount = appliedCoupon ? Math.min(appliedCoupon.discountAmount, cartTotal) : 0;
   const shippingSubtotal = Math.max(0, cartTotal - discountAmount);

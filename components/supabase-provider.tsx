@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createSupabaseClientClient } from "@/lib/supabase-client";
 import type { SessionUser } from "@/types";
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
@@ -92,6 +92,12 @@ export function SupabaseProvider({
       return;
     }
 
+    if (session?.user) {
+      setServerUser(null);
+      setIsSessionUserLoaded(true);
+      return;
+    }
+
     let isActive = true;
     const controller = new AbortController();
 
@@ -132,7 +138,7 @@ export function SupabaseProvider({
       isActive = false;
       controller.abort();
     };
-  }, [isSessionResolved, session?.user?.id]);
+  }, [isSessionResolved, session?.user]);
 
   const supabaseSessionUser = useMemo(
     () => (session?.user ? buildSupabaseSessionUser(session.user) : null),
@@ -155,7 +161,7 @@ export function SupabaseProvider({
     return serverUser ?? supabaseSessionUser;
   }, [isSessionResolved, serverUser, session?.user, supabaseSessionUser]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     if (sessionUser?.authProvider === "local") {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -167,21 +173,29 @@ export function SupabaseProvider({
 
     await supabase.auth.signOut();
     setServerUser(null);
-  };
+  }, [sessionUser?.authProvider, supabase.auth]);
+
+  const contextValue = useMemo(
+    () => ({
+      supabase,
+      session,
+      sessionUser,
+      isSessionResolved,
+      isSessionUserLoaded,
+      signOut: handleSignOut,
+    }),
+    [
+      handleSignOut,
+      isSessionResolved,
+      isSessionUserLoaded,
+      session,
+      sessionUser,
+      supabase,
+    ]
+  );
 
   return (
-    <Context.Provider
-      value={{
-        supabase,
-        session,
-        sessionUser,
-        isSessionResolved,
-        isSessionUserLoaded,
-        signOut: handleSignOut,
-      }}
-    >
-      {children}
-    </Context.Provider>
+    <Context.Provider value={contextValue}>{children}</Context.Provider>
   );
 }
 
