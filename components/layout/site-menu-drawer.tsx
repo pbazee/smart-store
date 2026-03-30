@@ -63,7 +63,7 @@ export function SiteMenuDrawer({
 
   const isSignedIn = !!sessionUser;
   const isAdmin = sessionUser?.role === "admin";
-  const wishlistHref = isSignedIn ? "/wishlist" : "/sign-in?redirect_url=%2Fwishlist";
+  const wishlistHref = "/wishlist";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

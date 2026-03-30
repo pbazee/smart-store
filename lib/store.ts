@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mergeCartItems } from "@/lib/cart-utils";
+import { areCartItemsEqual, mergeCartItems, reconcileCartItems } from "@/lib/cart-utils";
 import type { CartItem, Product, ProductVariant } from "@/types";
 
 const CART_STORAGE_KEY = "smartest-store-cart";
@@ -38,28 +38,45 @@ export const useCartStore = create<CartStore>()(
           return { status: "out-of-stock" };
         }
 
-        const items = get().items;
-        const existing = items.find((i) => i.variant.id === variant.id);
-        if (existing) {
-          if (existing.quantity >= existing.variant.stock) {
-            return { status: "max-stock" };
+        let result: AddItemResult = { status: "added" };
+
+        set((state) => {
+          const existing = state.items.find((item) => item.variant.id === variant.id);
+
+          if (!existing) {
+            result = { status: "added" };
+            return {
+              items: [...state.items, { product, variant, quantity: 1 }],
+            };
           }
 
-          set({
-            items: items.map((i) =>
-              i.variant.id === variant.id
-                ? { ...i, quantity: i.quantity + 1 }
-                : i
-            ),
-          });
-          return { status: "updated" };
-        }
+          const nextQuantity = Math.min(existing.quantity + 1, variant.stock);
+          if (nextQuantity === existing.quantity) {
+            result = { status: "max-stock" };
+            return {
+              items: state.items,
+            };
+          }
 
-        set({ items: [...items, { product, variant, quantity: 1 }] });
-        return { status: "added" };
+          result = { status: "updated" };
+          return {
+            items: state.items.map((item) =>
+              item.variant.id === variant.id
+                ? { ...item, quantity: nextQuantity }
+                : item
+            ),
+          };
+        });
+
+        return result;
       },
       replaceItems: (items) => {
         const nextItems = mergeCartItems(items);
+        const currentItems = get().items;
+
+        if (areCartItemsEqual(currentItems, nextItems)) {
+          return;
+        }
 
         set({
           items: nextItems,
@@ -67,7 +84,12 @@ export const useCartStore = create<CartStore>()(
         });
       },
       mergeExternalItems: (items) => {
-        const nextItems = mergeCartItems(get().items, items);
+        const currentItems = get().items;
+        const nextItems = reconcileCartItems(currentItems, items);
+
+        if (areCartItemsEqual(currentItems, nextItems)) {
+          return currentItems;
+        }
 
         set({
           items: nextItems,
@@ -92,12 +114,17 @@ export const useCartStore = create<CartStore>()(
           return;
         }
 
+        const nextQuantity = Math.min(quantity, existing.variant.stock);
+        if (nextQuantity === existing.quantity) {
+          return;
+        }
+
         set({
           items: get().items.map((i) =>
             i.variant.id === variantId
               ? {
                   ...i,
-                  quantity: Math.min(quantity, i.variant.stock),
+                  quantity: nextQuantity,
                 }
               : i
           ),

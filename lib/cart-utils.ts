@@ -118,6 +118,37 @@ export function mergeCartItems(...collections: CartItem[][]): CartItem[] {
   return Array.from(mergedItems.values());
 }
 
+export function reconcileCartItems(...collections: CartItem[][]): CartItem[] {
+  const reconciledItems = new Map<string, CartItem>();
+
+  for (const collection of collections) {
+    for (const item of collection) {
+      const variantId = getVariantId(item);
+      if (!variantId || !item?.product || !item?.variant) {
+        continue;
+      }
+
+      const existingItem = reconciledItems.get(variantId);
+      const maxQuantity =
+        item.variant.stock > 0
+          ? item.variant.stock
+          : existingItem?.variant.stock && existingItem.variant.stock > 0
+            ? existingItem.variant.stock
+            : undefined;
+      const nextQuantity = existingItem
+        ? Math.max(existingItem.quantity, item.quantity)
+        : item.quantity;
+
+      reconciledItems.set(variantId, {
+        ...item,
+        quantity: normalizeQuantity(nextQuantity, maxQuantity),
+      });
+    }
+  }
+
+  return Array.from(reconciledItems.values());
+}
+
 export function areStoredCartItemsEqual(left: StoredCartItem[], right: StoredCartItem[]) {
   const normalizedLeft = sortStoredCartItems(normalizeStoredCartItems(left));
   const normalizedRight = sortStoredCartItems(normalizeStoredCartItems(right));

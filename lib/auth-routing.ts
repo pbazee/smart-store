@@ -88,9 +88,15 @@ export function resolveSignedInRedirectPath(
   role: string | null | undefined,
   fallback: string = "/"
 ) {
-  if (role === "admin") {
+  const candidate = resolveRequestedRedirectPath(fallback, "/");
+
+  if (role === "admin" && candidate.startsWith("/admin")) {
+    return resolveAdminRedirectPath(candidate, "/admin/dashboard");
+  }
+
+  if (role === "admin" && candidate === "/") {
     return "/admin/dashboard";
   }
 
-  return fallback;
+  return candidate;
 }

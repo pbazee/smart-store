@@ -51,6 +51,11 @@ export function RecommendationCarousel({
     updateState();
     emblaApi.on("select", updateState);
     emblaApi.on("reInit", updateState);
+
+    return () => {
+      emblaApi.off("select", updateState);
+      emblaApi.off("reInit", updateState);
+    };
   }, [emblaApi, updateState]);
 
   if (products.length === 0) {

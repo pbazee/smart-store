@@ -10,7 +10,6 @@ import { useShallow } from "zustand/react/shallow";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { SiteMenuDrawer } from "@/components/layout/site-menu-drawer";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
-import { useSessionUser } from "@/hooks/use-session-user";
 import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -127,7 +126,6 @@ export function Navbar() {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
-  const { isLoaded, sessionUser } = useSessionUser();
   const { hasHydrated, cartCount, toggleCart, closeCart } = useCartStore(
     useShallow((state) => ({
       hasHydrated: state.hasHydrated,
@@ -138,9 +136,8 @@ export function Navbar() {
   );
   const count = hasHydrated ? cartCount : 0;
   const searchValue = searchParams.get("search") ?? "";
-  const wishlistHref =
-    isLoaded && !sessionUser ? "/sign-in?redirect_url=%2Fwishlist" : "/wishlist";
-  const accountHref = isLoaded && !sessionUser ? "/sign-in" : "/account";
+  const wishlistHref = "/wishlist";
+  const accountHref = "/account";
 
   useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about", wishlistHref, accountHref]);
 

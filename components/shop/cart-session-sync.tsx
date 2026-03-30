@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { areCartItemsEqual, serializeCartItems } from "@/lib/cart-utils";
 import { useCartStore } from "@/lib/store";
@@ -20,14 +21,19 @@ function getCartSignature(items: CartItem[]) {
 
 export function CartSessionSync() {
   const { isLoaded, sessionUser } = useSessionUser();
-  const hasHydrated = useCartStore((state) => state.hasHydrated);
-  const items = useCartStore((state) => state.items);
-  const replaceItems = useCartStore((state) => state.replaceItems);
-  const mergeExternalItems = useCartStore((state) => state.mergeExternalItems);
+  const { hasHydrated, items, replaceItems, mergeExternalItems } = useCartStore(
+    useShallow((state) => ({
+      hasHydrated: state.hasHydrated,
+      items: state.items,
+      replaceItems: state.replaceItems,
+      mergeExternalItems: state.mergeExternalItems,
+    }))
+  );
   const mergedUserIdRef = useRef<string | null>(null);
   const lastSyncedSignatureRef = useRef<string>("[]");
   const syncTimeoutRef = useRef<number | undefined>(undefined);
   const syncRequestIdRef = useRef(0);
+  const isBootstrappingUserCartRef = useRef(false);
 
   const syncCurrentCart = useCallback(async () => {
     const currentItems = useCartStore.getState().items;
@@ -90,8 +96,12 @@ export function CartSessionSync() {
     }
 
     if (!sessionUser) {
+      isBootstrappingUserCartRef.current = false;
       mergedUserIdRef.current = null;
       syncRequestIdRef.current += 1;
+      if (syncTimeoutRef.current) {
+        window.clearTimeout(syncTimeoutRef.current);
+      }
       lastSyncedSignatureRef.current = getCartSignature(useCartStore.getState().items);
       return;
     }
@@ -101,6 +111,7 @@ export function CartSessionSync() {
     }
 
     let cancelled = false;
+    isBootstrappingUserCartRef.current = true;
 
     const mergeServerCart = async () => {
       let serverItems: CartItem[] = [];
@@ -124,13 +135,20 @@ export function CartSessionSync() {
       mergeExternalItems(serverItems);
       mergedUserIdRef.current = sessionUser.id;
 
-      await syncCurrentCart();
+      try {
+        await syncCurrentCart();
+      } finally {
+        if (!cancelled) {
+          isBootstrappingUserCartRef.current = false;
+        }
+      }
     };
 
     void mergeServerCart();
 
     return () => {
       cancelled = true;
+      isBootstrappingUserCartRef.current = false;
     };
   }, [hasHydrated, isLoaded, mergeExternalItems, sessionUser?.id, syncCurrentCart]);
 
@@ -140,6 +158,10 @@ export function CartSessionSync() {
     }
 
     if (mergedUserIdRef.current !== sessionUser.id) {
+      return;
+    }
+
+    if (isBootstrappingUserCartRef.current) {
       return;
     }
 

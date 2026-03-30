@@ -7,7 +7,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/store";
-import { useSessionUser } from "@/hooks/use-session-user";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -24,10 +23,8 @@ export function MobileBottomNav() {
       closeCart: state.closeCart,
     }))
   );
-  const { isLoaded, sessionUser } = useSessionUser();
-  const wishlistHref =
-    isLoaded && !sessionUser ? "/sign-in?redirect_url=%2Fwishlist" : "/wishlist";
-  const accountHref = isLoaded && !sessionUser ? "/sign-in" : "/account";
+  const wishlistHref = "/wishlist";
+  const accountHref = "/account";
   const resolvedCartCount = hasHydrated ? cartCount : 0;
 
   useRoutePrefetch([...navItems.map((item) => item.href), wishlistHref, accountHref]);

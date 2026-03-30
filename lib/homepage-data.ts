@@ -33,6 +33,8 @@ export const HOMEPAGE_CACHE_TAG = "homepage";
 
 const HOMEPAGE_REVALIDATE_SECONDS = 3600;
 const HOMEPAGE_PRODUCT_LIMIT = 8;
+const HOMEPAGE_SECTION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 2;
+const HOMEPAGE_RECOMMENDATION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 6;
 const HOMEPAGE_BLOG_POST_LIMIT = 4;
 const HOMEPAGE_REVIEW_LIMIT = 6;
 const HOMEPAGE_CACHE_VERSION =
@@ -129,6 +131,22 @@ function compactHomepageProduct(product: Product): Product {
 
 function compactHomepageProducts(products: Product[]) {
   return products.map((product) => compactHomepageProduct(product));
+}
+
+function mergeHomepageProductPools(...collections: Product[][]) {
+  const productsById = new Map<string, Product>();
+
+  for (const collection of collections) {
+    for (const product of collection) {
+      if (!product?.id || productsById.has(product.id)) {
+        continue;
+      }
+
+      productsById.set(product.id, product);
+    }
+  }
+
+  return Array.from(productsById.values());
 }
 
 async function resolveHomepageShellData(options: {
@@ -263,32 +281,72 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
     return getEmptyHomepageProductSectionsData();
   }
 
-  const [allProducts, popularOverrides, trendingOverrides, newArrivalOverrides, recommendedOverrides] =
-    await Promise.all([
-      getProducts(undefined, {
+  const [
+    featuredPool,
+    trendingPool,
+    newArrivalsPool,
+    recommendationPool,
+    popularOverrides,
+    trendingOverrides,
+    newArrivalOverrides,
+    recommendedOverrides,
+  ] = await Promise.all([
+    getProducts(
+      { isFeatured: true, take: HOMEPAGE_SECTION_POOL_LIMIT },
+      {
         syncReservations: false,
-        cacheKey: "homepage:products",
-      }),
-      getActiveLandingOverrides("popular", HOMEPAGE_PRODUCT_LIMIT),
-      getActiveLandingOverrides("trending", HOMEPAGE_PRODUCT_LIMIT),
-      getActiveLandingOverrides("new_arrivals", HOMEPAGE_PRODUCT_LIMIT),
-      getActiveLandingOverrides("recommended", HOMEPAGE_PRODUCT_LIMIT),
-    ]);
+        cacheKey: "homepage:featured",
+      }
+    ),
+    getProducts(
+      { isTrending: true, take: HOMEPAGE_SECTION_POOL_LIMIT },
+      {
+        syncReservations: false,
+        cacheKey: "homepage:trending",
+      }
+    ),
+    getProducts(
+      { isNew: true, take: HOMEPAGE_SECTION_POOL_LIMIT },
+      {
+        syncReservations: false,
+        cacheKey: "homepage:new-arrivals",
+      }
+    ),
+    getProducts(
+      { take: HOMEPAGE_RECOMMENDATION_POOL_LIMIT },
+      {
+        syncReservations: false,
+        cacheKey: "homepage:recommendation-pool",
+      }
+    ),
+    getActiveLandingOverrides("popular", HOMEPAGE_PRODUCT_LIMIT),
+    getActiveLandingOverrides("trending", HOMEPAGE_PRODUCT_LIMIT),
+    getActiveLandingOverrides("new_arrivals", HOMEPAGE_PRODUCT_LIMIT),
+    getActiveLandingOverrides("recommended", HOMEPAGE_PRODUCT_LIMIT),
+  ]);
 
-  const featuredAuto = allProducts.filter((product) => product.isFeatured).slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const featuredAuto = featuredPool.slice(0, HOMEPAGE_PRODUCT_LIMIT);
   const featured = mergeOverridesWithAuto(popularOverrides, featuredAuto, HOMEPAGE_PRODUCT_LIMIT);
 
-  const trendingAuto = allProducts
-    .filter((product) => product.tags.includes("trending"))
-    .slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const trendingAuto = trendingPool.slice(0, HOMEPAGE_PRODUCT_LIMIT);
   const trending = mergeOverridesWithAuto(trendingOverrides, trendingAuto, HOMEPAGE_PRODUCT_LIMIT);
 
-  const newArrivalsAuto = allProducts.filter((product) => product.isNew).slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const newArrivalsAuto = newArrivalsPool.slice(0, HOMEPAGE_PRODUCT_LIMIT);
   const newArrivals = mergeOverridesWithAuto(newArrivalOverrides, newArrivalsAuto, HOMEPAGE_PRODUCT_LIMIT);
 
-  const referenceProduct = featured[0] ?? allProducts[0] ?? null;
+  const recommendationCandidates = mergeHomepageProductPools(
+    featuredPool,
+    trendingPool,
+    newArrivalsPool,
+    recommendationPool
+  );
+  const referenceProduct = featured[0] ?? recommendationCandidates[0] ?? null;
   const recommendedAuto = referenceProduct
-    ? getCustomersAlsoBought(allProducts, referenceProduct, HOMEPAGE_PRODUCT_LIMIT)
+    ? getCustomersAlsoBought(
+        recommendationCandidates,
+        referenceProduct,
+        HOMEPAGE_PRODUCT_LIMIT
+      )
     : [];
   const alsoBought = mergeOverridesWithAuto(
     recommendedOverrides,
@@ -302,7 +360,11 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
     newArrivals: compactHomepageProducts(newArrivals),
     alsoBought: compactHomepageProducts(alsoBought),
     cityInspired: compactHomepageProducts(
-      getCityInspiredProducts(allProducts, "Nairobi", HOMEPAGE_PRODUCT_LIMIT)
+      getCityInspiredProducts(
+        recommendationCandidates,
+        "Nairobi",
+        HOMEPAGE_PRODUCT_LIMIT
+      )
     ),
   };
 }
