@@ -1,8 +1,6 @@
-import { BlogTeaserSection } from "@/components/shop/blog-teaser-section";
 import { HeroCarousel } from "@/components/shop/hero-carousel";
-import { HomeProductSections } from "@/components/shop/home-product-sections";
 import { HomepageCategoryGrid } from "@/components/shop/homepage-category-grid";
-import { LatestReviews } from "@/components/shop/latest-reviews";
+import { HomepageStorefrontSectionsClient } from "@/components/shop/homepage-storefront-sections-client";
 import {
   getHomepageBlogPosts,
   getHomepageCategories,
@@ -23,22 +21,22 @@ export async function HomepageCategorySection() {
   return <HomepageCategoryGrid categories={categories} />;
 }
 
-export async function HomepageProductSectionBlock() {
-  const productSections = await getHomepageProductSectionsData();
+export async function HomepageStorefrontSections() {
+  const [productSections, latestReviews, blogPosts] = await Promise.all([
+    getHomepageProductSectionsData(),
+    getHomepageLatestReviews(),
+    getHomepageBlogPosts(),
+  ]);
 
-  return <HomeProductSections data={productSections} />;
-}
-
-export async function HomepageLatestReviewsSection() {
-  const latestReviews = await getHomepageLatestReviews();
-
-  return <LatestReviews reviews={latestReviews} />;
-}
-
-export async function HomepageBlogSection() {
-  const blogPosts = await getHomepageBlogPosts();
-
-  return <BlogTeaserSection posts={blogPosts} />;
+  return (
+    <HomepageStorefrontSectionsClient
+      initialData={{
+        productSections,
+        latestReviews,
+        blogPosts,
+      }}
+    />
+  );
 }
 
 export function HomepageHeroSkeleton() {
@@ -98,6 +96,16 @@ export function HomepageProductSectionsSkeleton() {
         ))}
       </div>
     </section>
+  );
+}
+
+export function HomepageStorefrontSectionsSkeleton() {
+  return (
+    <>
+      <HomepageProductSectionsSkeleton />
+      <HomepageLatestReviewsSkeleton />
+      <HomepageBlogSkeleton />
+    </>
   );
 }
 

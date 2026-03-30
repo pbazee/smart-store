@@ -1,24 +1,17 @@
-import { unstable_noStore as noStore } from "next/cache";
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { getBlogExcerpt, getBlogReadTime } from "@/lib/default-blog-posts";
-import { getPublishedBlogPosts } from "@/lib/blog-service";
 import { createBlurDataURL } from "@/lib/utils";
 import type { BlogPost } from "@/types";
 
-export async function BlogTeaserSection({
-  posts: providedPosts,
+export function BlogTeaserSection({
+  posts,
 }: {
-  posts?: BlogPost[];
+  posts: BlogPost[];
 }) {
-  let posts = providedPosts;
-
-  if (!posts) {
-    noStore();
-    posts = await getPublishedBlogPosts(4);
-  }
-
   if (posts.length === 0) {
     return null;
   }

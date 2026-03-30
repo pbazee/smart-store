@@ -1,18 +1,16 @@
+"use client";
+
 import { FeaturedGrid } from "@/components/shop/featured-grid";
 import { NewArrivalsSection } from "@/components/shop/new-arrivals-section";
 import { RecommendationCarousel } from "@/components/shop/recommendation-carousel";
 import { TrendingSection } from "@/components/shop/trending-section";
-import {
-  getHomepageProductSectionsData,
-  type HomepageProductSectionsData,
-} from "@/lib/homepage-data";
+import type { HomepageProductSectionsData } from "@/lib/homepage-data";
 
-export async function HomeProductSections({
-  data: providedData,
+export function HomeProductSections({
+  data,
 }: {
-  data?: HomepageProductSectionsData;
+  data: HomepageProductSectionsData;
 }) {
-  const data = providedData ?? (await getHomepageProductSectionsData());
   const { featured, trending, newArrivals, alsoBought, cityInspired } = data;
 
   return (
