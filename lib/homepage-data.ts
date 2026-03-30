@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/data-service";
+import { DEFAULT_BLOG_POST_SEEDS, createBlogSeed } from "@/lib/default-blog-posts";
 import { createHomepageCategorySeed, DEFAULT_HOMEPAGE_CATEGORY_SEEDS } from "@/lib/default-homepage-categories";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
 import { getDefaultHeroSlides } from "@/lib/default-hero-slides";
@@ -35,6 +36,7 @@ const HOMEPAGE_REVALIDATE_SECONDS = 3600;
 const HOMEPAGE_PRODUCT_LIMIT = 8;
 const HOMEPAGE_SECTION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 2;
 const HOMEPAGE_RECOMMENDATION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 6;
+const HOMEPAGE_FALLBACK_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 8;
 const HOMEPAGE_BLOG_POST_LIMIT = 4;
 const HOMEPAGE_REVIEW_LIMIT = 6;
 const HOMEPAGE_CACHE_VERSION =
@@ -118,6 +120,10 @@ function getFallbackSocialLinks(): SocialLink[] {
   return DEFAULT_SOCIAL_LINK_SEEDS.map((seed) => createSocialLinkSeed(seed));
 }
 
+function getFallbackBlogPosts() {
+  return DEFAULT_BLOG_POST_SEEDS.slice(0, HOMEPAGE_BLOG_POST_LIMIT).map((seed) => createBlogSeed(seed));
+}
+
 function compactHomepageProduct(product: Product): Product {
   return {
     ...product,
@@ -147,6 +153,15 @@ function mergeHomepageProductPools(...collections: Product[][]) {
   }
 
   return Array.from(productsById.values());
+}
+
+function selectHomepageSectionProducts(
+  primaryProducts: Product[],
+  fallbackProducts: Product[],
+  take: number
+) {
+  const mergedProducts = mergeHomepageProductPools(primaryProducts, fallbackProducts);
+  return mergedProducts.slice(0, take);
 }
 
 async function resolveHomepageShellData(options: {
@@ -251,17 +266,20 @@ async function resolveHomepageCategories(): Promise<HomepageCategory[]> {
 
 async function resolveHomepageBlogPosts(): Promise<BlogPost[]> {
   if (shouldUseBuildFallbackData()) {
-    return [];
+    return getFallbackBlogPosts();
   }
 
   return safeQuery(
-    async () =>
-      (await prisma.blog.findMany({
+    async () => {
+      const posts = (await prisma.blog.findMany({
         where: { isPublished: true },
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
         take: HOMEPAGE_BLOG_POST_LIMIT,
-      })) as BlogPost[],
-    () => []
+      })) as BlogPost[];
+
+      return posts.length > 0 ? posts : getFallbackBlogPosts();
+    },
+    () => getFallbackBlogPosts()
   );
 }
 
@@ -282,20 +300,21 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
   }
 
   const [
-    featuredPool,
+    popularPool,
     trendingPool,
     newArrivalsPool,
     recommendationPool,
+    fallbackPool,
     popularOverrides,
     trendingOverrides,
     newArrivalOverrides,
     recommendedOverrides,
   ] = await Promise.all([
     getProducts(
-      { isFeatured: true, take: HOMEPAGE_SECTION_POOL_LIMIT },
+      { isPopular: true, take: HOMEPAGE_SECTION_POOL_LIMIT },
       {
         syncReservations: false,
-        cacheKey: "homepage:featured",
+        cacheKey: "homepage:popular",
       }
     ),
     getProducts(
@@ -319,26 +338,52 @@ async function resolveHomepageProductSectionsData(): Promise<HomepageProductSect
         cacheKey: "homepage:recommendation-pool",
       }
     ),
+    getProducts(
+      { take: HOMEPAGE_FALLBACK_POOL_LIMIT },
+      {
+        syncReservations: false,
+        cacheKey: "homepage:fallback-pool",
+      }
+    ),
     getActiveLandingOverrides("popular", HOMEPAGE_PRODUCT_LIMIT),
     getActiveLandingOverrides("trending", HOMEPAGE_PRODUCT_LIMIT),
     getActiveLandingOverrides("new_arrivals", HOMEPAGE_PRODUCT_LIMIT),
     getActiveLandingOverrides("recommended", HOMEPAGE_PRODUCT_LIMIT),
   ]);
 
-  const featuredAuto = featuredPool.slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const popularFallbackPool = fallbackPool.filter(
+    (product) => product.isFeatured || product.isTrending || product.isNew
+  );
+  const featuredAuto = selectHomepageSectionProducts(
+    popularPool,
+    popularFallbackPool.length > 0 ? popularFallbackPool : fallbackPool,
+    HOMEPAGE_PRODUCT_LIMIT
+  );
   const featured = mergeOverridesWithAuto(popularOverrides, featuredAuto, HOMEPAGE_PRODUCT_LIMIT);
 
-  const trendingAuto = trendingPool.slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const trendingFallbackPool = fallbackPool.filter(
+    (product) => product.tags.includes("trending") || product.isPopular || product.isFeatured
+  );
+  const trendingAuto = selectHomepageSectionProducts(
+    trendingPool,
+    trendingFallbackPool.length > 0 ? trendingFallbackPool : fallbackPool,
+    HOMEPAGE_PRODUCT_LIMIT
+  );
   const trending = mergeOverridesWithAuto(trendingOverrides, trendingAuto, HOMEPAGE_PRODUCT_LIMIT);
 
-  const newArrivalsAuto = newArrivalsPool.slice(0, HOMEPAGE_PRODUCT_LIMIT);
+  const newArrivalsAuto = selectHomepageSectionProducts(
+    newArrivalsPool,
+    fallbackPool,
+    HOMEPAGE_PRODUCT_LIMIT
+  );
   const newArrivals = mergeOverridesWithAuto(newArrivalOverrides, newArrivalsAuto, HOMEPAGE_PRODUCT_LIMIT);
 
   const recommendationCandidates = mergeHomepageProductPools(
-    featuredPool,
+    popularPool,
     trendingPool,
     newArrivalsPool,
-    recommendationPool
+    recommendationPool,
+    fallbackPool
   );
   const referenceProduct = featured[0] ?? recommendationCandidates[0] ?? null;
   const recommendedAuto = referenceProduct
