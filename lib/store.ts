@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { areCartItemsEqual, mergeCartItems, reconcileCartItems } from "@/lib/cart-utils";
+import { createCartItemSnapshot, createCartItemsSnapshot } from "@/lib/cart-store-snapshot";
 import type { CartItem, Product, ProductVariant } from "@/types";
 
 const CART_STORAGE_KEY = "smartest-store-cart";
@@ -39,6 +40,11 @@ export const useCartStore = create<CartStore>()(
         }
 
         let result: AddItemResult = { status: "added" };
+        const snapshotItem = createCartItemSnapshot({
+          product,
+          variant,
+          quantity: 1,
+        });
 
         set((state) => {
           const existing = state.items.find((item) => item.variant.id === variant.id);
@@ -46,7 +52,7 @@ export const useCartStore = create<CartStore>()(
           if (!existing) {
             result = { status: "added" };
             return {
-              items: [...state.items, { product, variant, quantity: 1 }],
+              items: [...state.items, snapshotItem],
             };
           }
 
@@ -62,7 +68,7 @@ export const useCartStore = create<CartStore>()(
           return {
             items: state.items.map((item) =>
               item.variant.id === variant.id
-                ? { ...item, quantity: nextQuantity }
+                ? { ...snapshotItem, quantity: nextQuantity }
                 : item
             ),
           };
@@ -71,7 +77,7 @@ export const useCartStore = create<CartStore>()(
         return result;
       },
       replaceItems: (items) => {
-        const nextItems = mergeCartItems(items);
+        const nextItems = createCartItemsSnapshot(mergeCartItems(items));
         const currentItems = get().items;
 
         if (areCartItemsEqual(currentItems, nextItems)) {
@@ -85,7 +91,7 @@ export const useCartStore = create<CartStore>()(
       },
       mergeExternalItems: (items) => {
         const currentItems = get().items;
-        const nextItems = reconcileCartItems(currentItems, items);
+        const nextItems = createCartItemsSnapshot(reconcileCartItems(currentItems, items));
 
         if (areCartItemsEqual(currentItems, nextItems)) {
           return currentItems;
@@ -147,14 +153,14 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: CART_STORAGE_KEY,
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         items: state.items,
       }),
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<CartStore> | undefined;
         const normalizedItems = Array.isArray(state?.items)
-          ? mergeCartItems(state.items as CartItem[])
+          ? createCartItemsSnapshot(mergeCartItems(state.items as CartItem[]))
           : [];
 
         if (!state) {
@@ -169,7 +175,7 @@ export const useCartStore = create<CartStore>()(
           };
         }
 
-        if (version < 4) {
+        if (version < 5) {
           return {
             items: normalizedItems,
           };

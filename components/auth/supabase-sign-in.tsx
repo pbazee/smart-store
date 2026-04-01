@@ -104,9 +104,21 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-white/88">
-            Password
-          </Label>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="password" className="text-sm font-medium text-white/88">
+              Password
+            </Label>
+            <Link
+              href={
+                redirectUrl
+                  ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
+                  : "/forgot-password"
+              }
+              className="text-xs font-semibold text-orange-300 hover:text-orange-200"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <Input
             id="password"
             name="password"

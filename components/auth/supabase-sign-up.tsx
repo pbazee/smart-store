@@ -242,6 +242,19 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
           Sign in
         </Link>
       </p>
+      <p className="text-center text-sm text-white/55">
+        Already have one but forgot the password?{" "}
+        <Link
+          href={
+            redirectUrl
+              ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
+              : "/forgot-password"
+          }
+          className="font-semibold text-orange-300 hover:text-orange-200"
+        >
+          Reset it
+        </Link>
+      </p>
     </div>
   );
 }

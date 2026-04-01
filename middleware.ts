@@ -11,8 +11,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const requestedPath = `${pathname}${request.nextUrl.search}`;
 
-  // Allow sign-in/sign-up pages
-  if (/^\/(sign-in|sign-up)(?:\/.*)?$/.test(pathname)) {
+  // Allow public auth pages
+  if (/^\/(sign-in|sign-up|forgot-password|reset-password)(?:\/.*)?$/.test(pathname)) {
     return NextResponse.next();
   }
 

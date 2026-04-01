@@ -21,6 +21,10 @@ export function RootLayoutShell({
     pathname.startsWith("/sign-in/") ||
     pathname === "/sign-up" ||
     pathname.startsWith("/sign-up/") ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/forgot-password/") ||
+    pathname === "/reset-password" ||
+    pathname.startsWith("/reset-password/") ||
     pathname === "/auth" ||
     pathname.startsWith("/auth/");
 

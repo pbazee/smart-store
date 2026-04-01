@@ -34,10 +34,27 @@ export function CartSessionSync() {
   const syncTimeoutRef = useRef<number | undefined>(undefined);
   const syncRequestIdRef = useRef(0);
   const isBootstrappingUserCartRef = useRef(false);
+  const bootstrapRequestControllerRef = useRef<AbortController | null>(null);
+  const syncRequestControllerRef = useRef<AbortController | null>(null);
+
+  const clearPendingSyncTimeout = useCallback(() => {
+    if (syncTimeoutRef.current !== undefined) {
+      window.clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = undefined;
+    }
+  }, []);
 
   const syncCurrentCart = useCallback(async () => {
     const currentItems = useCartStore.getState().items;
     const sentSignature = getCartSignature(currentItems);
+
+    if (sentSignature === lastSyncedSignatureRef.current) {
+      return;
+    }
+
+    syncRequestControllerRef.current?.abort();
+    const controller = new AbortController();
+    syncRequestControllerRef.current = controller;
     const requestId = ++syncRequestIdRef.current;
 
     try {
@@ -49,6 +66,7 @@ export function CartSessionSync() {
         body: JSON.stringify({
           items: serializeCartItems(currentItems),
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -74,21 +92,29 @@ export function CartSessionSync() {
 
       lastSyncedSignatureRef.current = getCartSignature(savedItems);
     } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+
       if (requestId !== syncRequestIdRef.current) {
         return;
       }
 
       console.error("[CartSync] Failed to sync cart update:", error);
+    } finally {
+      if (syncRequestControllerRef.current === controller) {
+        syncRequestControllerRef.current = null;
+      }
     }
   }, [replaceItems]);
 
   useEffect(() => {
     return () => {
-      if (syncTimeoutRef.current) {
-        window.clearTimeout(syncTimeoutRef.current);
-      }
+      clearPendingSyncTimeout();
+      bootstrapRequestControllerRef.current?.abort();
+      syncRequestControllerRef.current?.abort();
     };
-  }, []);
+  }, [clearPendingSyncTimeout]);
 
   useEffect(() => {
     if (!hasHydrated || !isLoaded) {
@@ -99,9 +125,11 @@ export function CartSessionSync() {
       isBootstrappingUserCartRef.current = false;
       mergedUserIdRef.current = null;
       syncRequestIdRef.current += 1;
-      if (syncTimeoutRef.current) {
-        window.clearTimeout(syncTimeoutRef.current);
-      }
+      clearPendingSyncTimeout();
+      bootstrapRequestControllerRef.current?.abort();
+      bootstrapRequestControllerRef.current = null;
+      syncRequestControllerRef.current?.abort();
+      syncRequestControllerRef.current = null;
       lastSyncedSignatureRef.current = getCartSignature(useCartStore.getState().items);
       return;
     }
@@ -112,6 +140,10 @@ export function CartSessionSync() {
 
     let cancelled = false;
     isBootstrappingUserCartRef.current = true;
+    const bootstrapCartSignature = getCartSignature(useCartStore.getState().items);
+    bootstrapRequestControllerRef.current?.abort();
+    const controller = new AbortController();
+    bootstrapRequestControllerRef.current = controller;
 
     const mergeServerCart = async () => {
       let serverItems: CartItem[] = [];
@@ -119,20 +151,37 @@ export function CartSessionSync() {
       try {
         const response = await fetch("/api/cart", {
           cache: "no-store",
+          signal: controller.signal,
         });
 
         if (response.ok) {
           serverItems = await readCartItems(response);
         }
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
         console.error("[CartSync] Failed to load saved cart:", error);
+      } finally {
+        if (bootstrapRequestControllerRef.current === controller) {
+          bootstrapRequestControllerRef.current = null;
+        }
       }
 
-      if (cancelled) {
+      if (cancelled || controller.signal.aborted) {
         return;
       }
 
-      mergeExternalItems(serverItems);
+      const currentCartSignature = getCartSignature(useCartStore.getState().items);
+
+      // If the shopper changed the cart while the saved cart was loading, keep the
+      // freshest local version and sync that back to the server instead of
+      // re-introducing stale server items.
+      if (currentCartSignature === bootstrapCartSignature) {
+        mergeExternalItems(serverItems);
+      }
+
       mergedUserIdRef.current = sessionUser.id;
 
       try {
@@ -149,8 +198,12 @@ export function CartSessionSync() {
     return () => {
       cancelled = true;
       isBootstrappingUserCartRef.current = false;
+      if (bootstrapRequestControllerRef.current === controller) {
+        bootstrapRequestControllerRef.current.abort();
+        bootstrapRequestControllerRef.current = null;
+      }
     };
-  }, [hasHydrated, isLoaded, mergeExternalItems, sessionUser?.id, syncCurrentCart]);
+  }, [clearPendingSyncTimeout, hasHydrated, isLoaded, mergeExternalItems, sessionUser?.id, syncCurrentCart]);
 
   useEffect(() => {
     if (!hasHydrated || !isLoaded || !sessionUser) {
@@ -170,20 +223,17 @@ export function CartSessionSync() {
       return;
     }
 
-    if (syncTimeoutRef.current) {
-      window.clearTimeout(syncTimeoutRef.current);
-    }
+    clearPendingSyncTimeout();
 
     syncTimeoutRef.current = window.setTimeout(() => {
+      syncTimeoutRef.current = undefined;
       void syncCurrentCart();
     }, 250);
 
     return () => {
-      if (syncTimeoutRef.current) {
-        window.clearTimeout(syncTimeoutRef.current);
-      }
+      clearPendingSyncTimeout();
     };
-  }, [hasHydrated, isLoaded, items, sessionUser?.id, syncCurrentCart]);
+  }, [clearPendingSyncTimeout, hasHydrated, isLoaded, items, sessionUser?.id, syncCurrentCart]);
 
   return null;
 }

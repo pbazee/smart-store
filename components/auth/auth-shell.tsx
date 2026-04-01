@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 type AuthShellProps = {
-  mode: "sign-in" | "sign-up";
+  mode: "sign-in" | "sign-up" | "forgot-password" | "reset-password";
   children: ReactNode;
 };
 
@@ -19,22 +19,42 @@ const authContent = {
     subtitle: "Start with Google, or continue with email and password below.",
     formEyebrow: "Sign Up",
   },
+  "forgot-password": {
+    title: "Reset your password",
+    subtitle: "Enter the email linked to your account and we will send you a secure reset link.",
+    formEyebrow: "Forgot Password",
+  },
+  "reset-password": {
+    title: "Choose a new password",
+    subtitle: "Set a fresh password for your account and we will sign you in right away.",
+    formEyebrow: "Reset Password",
+  },
 } as const;
 
 export function AuthShell({ mode, children }: AuthShellProps) {
   const content = authContent[mode];
-  const alternateAction =
-    mode === "sign-in"
-      ? {
-          prompt: "New here?",
-          href: "/sign-up",
-          label: "Create an account",
-        }
-      : {
-          prompt: "Already have an account?",
-          href: "/sign-in",
-          label: "Sign in",
-        };
+  const alternateAction = {
+    "sign-in": {
+      prompt: "New here?",
+      href: "/sign-up",
+      label: "Create an account",
+    },
+    "sign-up": {
+      prompt: "Already have an account?",
+      href: "/sign-in",
+      label: "Sign in",
+    },
+    "forgot-password": {
+      prompt: "Remembered your password?",
+      href: "/sign-in",
+      label: "Sign in",
+    },
+    "reset-password": {
+      prompt: "Need another email?",
+      href: "/forgot-password",
+      label: "Request a new link",
+    },
+  }[mode];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">

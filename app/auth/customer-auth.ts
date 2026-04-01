@@ -10,8 +10,18 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { resolveAuthenticatedRole } from "@/lib/admin-identity";
+import {
+  resolveRequestedRedirectPath,
+  resolveSignedInRedirectPath,
+} from "@/lib/auth-routing";
+import { sendPasswordResetEmail } from "@/lib/email/password-reset";
 import { subscribeToNewsletter } from "@/lib/newsletter-service";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { validatePasswordResetLink } from "@/lib/password-reset-service";
+import {
+  createPasswordResetToken,
+  getPasswordResetTokenTtlSeconds,
+} from "@/lib/password-reset-token";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -32,6 +42,17 @@ const signInSchema = z.object({
   redirectUrl: z.string().optional(),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Valid email required"),
+  redirectUrl: z.string().optional(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1, "Reset token missing"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  redirectUrl: z.string().optional(),
+});
+
 export type CustomerSignUpActionState = {
   error: string | null;
   success: boolean;
@@ -41,6 +62,225 @@ export type CustomerSignInActionState = {
   error: string | null;
   success: boolean;
 };
+
+export type CustomerForgotPasswordActionState = {
+  error: string | null;
+  success: boolean;
+  message: string | null;
+};
+
+export type CustomerResetPasswordActionState = {
+  error: string | null;
+  success: boolean;
+};
+
+function resolvePasswordResetRedirectPath(
+  role: "admin" | "customer" | "guest" | null | undefined,
+  redirectUrl?: string
+) {
+  const fallback = role === "admin" ? "/admin/dashboard" : "/account";
+  const candidate = resolveRequestedRedirectPath(redirectUrl, fallback);
+
+  if (candidate.startsWith("/admin") && role !== "admin") {
+    return fallback;
+  }
+
+  return resolveSignedInRedirectPath(role, candidate);
+}
+
+export async function requestCustomerPasswordResetAction(
+  _previousState: CustomerForgotPasswordActionState,
+  formData: FormData
+): Promise<CustomerForgotPasswordActionState> {
+  try {
+    const payload = forgotPasswordSchema.parse({
+      email: formData.get("email"),
+      redirectUrl: formData.get("redirectUrl"),
+    });
+    const normalizedEmail = payload.email.toLowerCase();
+    const redirectPath = resolveRequestedRedirectPath(payload.redirectUrl, "/account");
+    const user = await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        passwordHash: true,
+      },
+    });
+
+    if (user?.email) {
+      const resetToken = createPasswordResetToken({
+        userId: user.id,
+        email: user.email,
+        passwordHash: user.passwordHash,
+      });
+      const resetUrl = new URL("/reset-password", getAppUrl());
+
+      resetUrl.searchParams.set("token", resetToken);
+      resetUrl.searchParams.set("redirect_url", redirectPath);
+
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.fullName,
+        resetUrl: resetUrl.toString(),
+        expiresInMinutes: Math.round(getPasswordResetTokenTtlSeconds() / 60),
+      });
+    }
+
+    return {
+      error: null,
+      success: true,
+      message:
+        "If an account exists for that email, we have sent a secure reset link. Check your inbox and spam folder.",
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const firstError = error.errors[0];
+      return {
+        error: firstError.message || "Validation failed",
+        success: false,
+        message: null,
+      };
+    }
+
+    console.error(
+      "Password reset request failed:",
+      error instanceof Error ? error.message : error
+    );
+
+    if (error instanceof Error) {
+      if (error.message.includes("RESEND_API_KEY")) {
+        return {
+          error: "Password reset email is unavailable right now. Please try again shortly.",
+          success: false,
+          message: null,
+        };
+      }
+
+      if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
+        return {
+          error: "Service temporarily unavailable. Please try again in a moment.",
+          success: false,
+          message: null,
+        };
+      }
+
+      return {
+        error: error.message || "Failed to send password reset email. Please try again.",
+        success: false,
+        message: null,
+      };
+    }
+
+    return {
+      error: "Failed to send password reset email. Please try again.",
+      success: false,
+      message: null,
+    };
+  }
+}
+
+export async function resetCustomerPasswordAction(
+  _previousState: CustomerResetPasswordActionState,
+  formData: FormData
+): Promise<CustomerResetPasswordActionState> {
+  let redirectPath = "/account";
+
+  try {
+    const payload = resetPasswordSchema.parse({
+      token: formData.get("token"),
+      password: formData.get("password"),
+      redirectUrl: formData.get("redirectUrl"),
+    });
+    const validation = await validatePasswordResetLink(payload.token);
+
+    if (!validation.ok) {
+      return { error: validation.error, success: false };
+    }
+
+    const passwordHash = await hashPassword(payload.password);
+    const updatedUser = await prisma.user.update({
+      where: {
+        id: validation.user.id,
+      },
+      data: {
+        passwordHash,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+      },
+    });
+
+    if (!updatedUser.email) {
+      return {
+        error: "This account is missing an email address. Please contact support.",
+        success: false,
+      };
+    }
+
+    const sessionRole = resolveAuthenticatedRole({
+      email: updatedUser.email,
+      role: updatedUser.role,
+    });
+
+    redirectPath = resolvePasswordResetRedirectPath(sessionRole, payload.redirectUrl);
+
+    const token = await createLocalAuthToken({
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      name:
+        updatedUser.fullName ??
+        (sessionRole === "admin" ? "Store Admin" : "Customer"),
+      role: sessionRole,
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set(LOCAL_AUTH_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: getLocalAuthCookieMaxAge(),
+    });
+
+    revalidatePath("/", "layout");
+    revalidatePath("/account");
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const firstError = error.errors[0];
+      return { error: firstError.message || "Validation failed", success: false };
+    }
+
+    console.error("Password reset failed:", error instanceof Error ? error.message : error);
+
+    if (error instanceof Error) {
+      if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
+        return {
+          error: "Service temporarily unavailable. Please try again in a moment.",
+          success: false,
+        };
+      }
+
+      return {
+        error: error.message || "Failed to reset password. Please try again.",
+        success: false,
+      };
+    }
+
+    return {
+      error: "Failed to reset password. Please try again.",
+      success: false,
+    };
+  }
+
+  redirect(redirectPath);
+}
 
 export async function signUpCustomerAction(
   _previousState: CustomerSignUpActionState,
