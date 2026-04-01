@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
-import { getDefaultHeroSlides } from "@/lib/default-hero-slides";
 import { createBlurDataURL } from "@/lib/utils";
 import type { HeroSlide } from "@/types";
 
@@ -20,17 +18,15 @@ const heroBlurDataUrl = createBlurDataURL({
 });
 
 export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
-  const router = useRouter();
-  const resolvedSlides = useMemo(() => {
-    const nextSlides = slides.length ? slides : getDefaultHeroSlides();
-    return [...nextSlides].sort((left, right) => left.order - right.order);
-  }, [slides]);
+  const resolvedSlides = useMemo(
+    () => [...slides].sort((left, right) => left.order - right.order),
+    [slides]
+  );
   const ctaHrefs = useMemo(
     () => resolvedSlides.map((slide) => resolveCatalogListingHref(slide.ctaLink)),
     [resolvedSlides]
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [, startNavigation] = useTransition();
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: resolvedSlides.length > 1,
@@ -63,25 +59,35 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
     };
   }, [emblaApi]);
 
-  const prefetchCta = useCallback(
-    (href: string) => {
-      if (/^https?:\/\//i.test(href)) {
-        return;
-      }
-
-      router.prefetch(href);
-    },
-    [router]
-  );
-
-  useEffect(() => {
-    const activeHref = ctaHrefs[selectedIndex];
-    if (!activeHref) {
-      return;
-    }
-
-    prefetchCta(activeHref);
-  }, [ctaHrefs, prefetchCta, selectedIndex]);
+  if (resolvedSlides.length === 0) {
+    return (
+      <section className="relative isolate overflow-hidden bg-neutral-950">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.22),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.16),transparent_32%),linear-gradient(135deg,#05060a_0%,#101828_50%,#140a05_100%)]" />
+        <div className="relative mx-auto flex min-h-[70vh] max-w-7xl items-end px-4 pb-20 pt-24 sm:min-h-[78vh] sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/30 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em] backdrop-blur">
+              Smartest edit
+            </span>
+            <h1 className="overlay-readable-text font-display text-4xl font-black leading-[0.92] sm:text-5xl lg:text-7xl">
+              Smart fashion, no fake placeholders
+            </h1>
+            <p className="overlay-readable-text mt-5 max-w-2xl text-base sm:text-lg">
+              We are loading the latest homepage campaign and storefront picks from your live catalog.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/shop"
+                className="inline-flex items-center gap-3 rounded-full bg-orange-500 px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.03] hover:bg-orange-600 active:scale-95"
+              >
+                Shop Now
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="relative isolate overflow-hidden bg-neutral-950">
@@ -100,7 +106,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                     priority={index === 0}
                     loading={index === 0 ? undefined : "lazy"}
                     sizes="100vw"
-                    quality={100}
+                    quality={85}
                     placeholder="blur"
                     blurDataURL={heroBlurDataUrl}
                     className="object-cover object-center"
@@ -136,35 +142,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                         <div className="mt-8 flex flex-wrap items-center gap-3">
                           <Link
                             href={ctaHref}
-                            prefetch={false}
-                            onMouseEnter={() => prefetchCta(ctaHref)}
-                            onFocus={() => prefetchCta(ctaHref)}
-                            onTouchStart={() => prefetchCta(ctaHref)}
-                            onPointerDownCapture={(event) => {
-                              event.stopPropagation();
-                              prefetchCta(ctaHref);
-                            }}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              prefetchCta(ctaHref);
-
-                              if (
-                                /^https?:\/\//i.test(ctaHref) ||
-                                event.defaultPrevented ||
-                                event.button !== 0 ||
-                                event.metaKey ||
-                                event.ctrlKey ||
-                                event.shiftKey ||
-                                event.altKey
-                              ) {
-                                return;
-                              }
-
-                              event.preventDefault();
-                              startNavigation(() => {
-                                router.push(ctaHref, { scroll: true });
-                              });
-                            }}
+                            prefetch={!/^https?:\/\//i.test(ctaHref)}
                             className="inline-flex items-center gap-3 rounded-full bg-orange-500 px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-all hover:scale-[1.03] hover:bg-orange-600 active:scale-95"
                           >
                             {slide.ctaText}

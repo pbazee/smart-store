@@ -189,7 +189,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
               fill
               loading="lazy"
               placeholder="blur"
-              quality={80}
+              quality={85}
               blurDataURL={CARD_BLUR_DATA_URL}
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"

@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -53,7 +51,7 @@ export function BlogTeaserSection({
                 fill
                 loading="lazy"
                 sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
-                quality={88}
+                quality={85}
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 placeholder="blur"
                 blurDataURL={createBlurDataURL({

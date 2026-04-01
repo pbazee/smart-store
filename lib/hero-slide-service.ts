@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { DEFAULT_HERO_SLIDE_SEEDS, createHeroSlideSeed } from "@/lib/default-hero-slides";
 import { prisma } from "@/lib/prisma";
 import type { HeroSlide } from "@/types";
@@ -5,6 +6,8 @@ import type { HeroSlide } from "@/types";
 type HeroSlideQueryOptions = {
   activeOnly?: boolean;
 };
+
+const HOMEPAGE_REVALIDATE_SECONDS = 60;
 
 function normalizeMoodTags(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -52,13 +55,23 @@ export function getDefaultHeroSlides() {
 
 export async function getHeroSlides(options: HeroSlideQueryOptions = {}): Promise<HeroSlide[]> {
   const { activeOnly = false } = options;
+  const loadSlides = async () => {
+    const slides = await prisma.heroSlide.findMany({
+      where: activeOnly ? { isActive: true } : undefined,
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    });
 
-  const slides = await prisma.heroSlide.findMany({
-    where: activeOnly ? { isActive: true } : undefined,
-    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-  });
+    return slides.map((slide) => normalizeHeroSlideRecord(slide));
+  };
 
-  return slides.map((slide) => normalizeHeroSlideRecord(slide));
+  if (activeOnly) {
+    return unstable_cache(loadSlides, ["hero-slides", "active"], {
+      revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+      tags: ["homepage", "hero-slides"],
+    })();
+  }
+
+  return loadSlides();
 }
 
 export async function getActiveHeroSlides() {

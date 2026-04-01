@@ -1,15 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowUpRight, TrendingUp } from "lucide-react";
-import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
 export function TrendingSection({ products }: { products: Product[] }) {
-  useRoutePrefetch(["/shop?collection=trending"]);
-
   if (products.length === 0) {
     return null;
   }
@@ -17,12 +11,7 @@ export function TrendingSection({ products }: { products: Product[] }) {
   return (
     <section className="bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.12),_transparent_28%),linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)] py-16 text-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-        >
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <div className="overlay-readable-text flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -45,7 +34,7 @@ export function TrendingSection({ products }: { products: Product[] }) {
             View Trending
             <ArrowUpRight className="h-4 w-4" />
           </Link>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
           {products.slice(0, 8).map((product, index) => (

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Space_Grotesk, Geist } from "next/font/google";
+import { connection } from "next/server";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
@@ -68,7 +69,16 @@ function FooterFallback() {
   );
 }
 
+function AnnouncementBarFallback() {
+  return (
+    <div className="relative z-[60] border-b border-white/15 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] px-4 py-2 shadow-[0_10px_32px_rgba(255,107,0,0.2)]">
+      <div className="mx-auto h-5 max-w-7xl rounded-full bg-white/20" />
+    </div>
+  );
+}
+
 async function StorefrontAnnouncementBar() {
+  await connection();
   return <AnnouncementBar />;
 }
 
@@ -97,7 +107,7 @@ export default function RootLayout({
             <RootLayoutShell
               storefrontChrome={
                 <>
-                  <Suspense fallback={null}>
+                  <Suspense fallback={<AnnouncementBarFallback />}>
                     <StorefrontAnnouncementBar />
                   </Suspense>
                   <Suspense fallback={<NavbarFallback />}>

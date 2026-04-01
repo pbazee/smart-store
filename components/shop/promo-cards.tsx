@@ -1,10 +1,6 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { createBlurDataURL } from "@/lib/utils";
 
 const promos = [
@@ -39,18 +35,12 @@ const promos = [
 ];
 
 export function PromoCards() {
-  useRoutePrefetch(promos.map((promo) => promo.href));
-
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="grid gap-6 md:grid-cols-2">
-        {promos.map((promo, index) => (
-          <motion.article
+        {promos.map((promo) => (
+          <article
             key={promo.title}
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.12, duration: 0.5 }}
             className="group relative isolate overflow-hidden rounded-[2rem] bg-neutral-950 shadow-[0_28px_70px_rgba(15,23,42,0.14)]"
           >
             <div className="relative min-h-[320px] sm:min-h-[360px]">
@@ -60,7 +50,7 @@ export function PromoCards() {
                 fill
                 loading="lazy"
                 sizes="(max-width: 768px) 100vw, 50vw"
-                quality={88}
+                quality={85}
                 placeholder="blur"
                 blurDataURL={promo.blur}
                 className="object-cover object-center transition duration-700 group-hover:scale-105 group-hover:brightness-110"
@@ -89,7 +79,7 @@ export function PromoCards() {
                   </div>
                 </div>
               </div>
-          </motion.article>
+          </article>
         ))}
       </div>
     </section>

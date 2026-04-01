@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import { Star, MessageCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -46,13 +43,9 @@ export function LatestReviews({ reviews }: { reviews: ReviewWithProduct[] }) {
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {reviews.map((review, index) => (
-                    <motion.article
+                {reviews.map((review) => (
+                    <article
                         key={review.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: index * 0.1 }}
                         className="flex flex-col rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all hover:border-orange-500/20 hover:shadow-md"
                     >
                         <div className="mb-4 flex items-center justify-between">
@@ -101,7 +94,7 @@ export function LatestReviews({ reviews }: { reviews: ReviewWithProduct[] }) {
                             <MessageCircle className="h-3 w-3" />
                             Regarding {review.product.name}
                         </Link>
-                    </motion.article>
+                    </article>
                 ))}
             </div>
         </section>

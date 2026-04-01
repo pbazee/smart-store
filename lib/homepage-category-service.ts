@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { KNOWN_SUBCATEGORY_PARENT_SLUGS } from "@/lib/catalog-config";
 import { getActiveCategories } from "@/lib/category-service";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,8 @@ import type { Category, HomepageCategory } from "@/types";
 type HomepageCategoryQueryOptions = {
   activeOnly?: boolean;
 };
+
+const HOMEPAGE_REVALIDATE_SECONDS = 60;
 
 function normalizeCategoryToken(value?: string | null) {
   return slugify(value || "")
@@ -81,15 +84,25 @@ export async function getHomepageCategories(
   options: HomepageCategoryQueryOptions = {}
 ): Promise<HomepageCategory[]> {
   const { activeOnly = false } = options;
+  const loadCategories = async () => {
+    await ensureHomepageCategoryStorage();
 
-  await ensureHomepageCategoryStorage();
+    const categories = await prisma.homepageCategory.findMany({
+      where: activeOnly ? { isActive: true } : undefined,
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    });
 
-  const categories = await prisma.homepageCategory.findMany({
-    where: activeOnly ? { isActive: true } : undefined,
-    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-  });
+    return hydrateHomepageCategoryParentIds(categories as HomepageCategory[]);
+  };
 
-  return hydrateHomepageCategoryParentIds(categories as HomepageCategory[]);
+  if (activeOnly) {
+    return unstable_cache(loadCategories, ["homepage-categories", "active"], {
+      revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+      tags: ["homepage", "homepage-categories"],
+    })();
+  }
+
+  return loadCategories();
 }
 
 export async function getHomepageSubcategoriesForCategory(parentCategoryId: string) {

@@ -1,11 +1,6 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
 import { createBlurDataURL } from "@/lib/utils";
 import type { HomepageCategory } from "@/types";
@@ -21,44 +16,28 @@ export function HomepageCategoryGrid({
 }: {
   categories: HomepageCategory[];
 }) {
-  const categoryHrefs = useMemo(
-    () => categories.map((category) => resolveCatalogListingHref(category.link)),
-    [categories]
-  );
-
-  useRoutePrefetch([...categoryHrefs, "/shop"]);
-
   if (categories.length === 0) {
     return null;
   }
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mb-12 text-center"
-      >
+      <div className="mb-12 text-center">
         <h2 className="font-display text-4xl font-black tracking-tight sm:text-5xl">
           Shop by Category
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-lg text-muted-foreground">
           Hand-picked collections designed for the modern Kenyan lifestyle.
         </p>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {categories.map((category, index) => {
-          const href = categoryHrefs[index];
+        {categories.map((category) => {
+          const href = resolveCatalogListingHref(category.link);
 
           return (
-            <motion.article
+            <article
               key={category.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
               className="group relative isolate aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-neutral-900 shadow-[0_32px_80px_rgba(0,0,0,0.22)]"
             >
               <Image
@@ -97,17 +76,12 @@ export function HomepageCategoryGrid({
                   </div>
                 </div>
               </div>
-            </motion.article>
+            </article>
           );
         })}
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mt-16 text-center"
-      >
+      <div className="mt-16 text-center">
         <Link
           href="/shop"
           className="inline-flex items-center gap-3 rounded-full border border-border bg-background px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-foreground transition-all hover:border-orange-500/50 hover:bg-orange-500/5 hover:text-orange-600"
@@ -115,7 +89,7 @@ export function HomepageCategoryGrid({
           View More Products
           <ArrowRight className="h-4 w-4" />
         </Link>
-      </motion.div>
+      </div>
     </section>
   );
 }

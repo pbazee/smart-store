@@ -1,9 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/data-service";
-import { DEFAULT_BLOG_POST_SEEDS, createBlogSeed } from "@/lib/default-blog-posts";
-import { createHomepageCategorySeed, DEFAULT_HOMEPAGE_CATEGORY_SEEDS } from "@/lib/default-homepage-categories";
 import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
-import { getDefaultHeroSlides } from "@/lib/default-hero-slides";
 import { createSocialLinkSeed, DEFAULT_SOCIAL_LINK_SEEDS } from "@/lib/default-social-links";
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { getActiveHeroSlides } from "@/lib/hero-slide-service";
@@ -20,7 +17,6 @@ import { getStoreSettings, getStoreSettingsFallback } from "@/lib/store-settings
 import type {
   AnnouncementMessage,
   BlogPost,
-  Category,
   HeroSlide,
   HomepageCategory,
   Popup,
@@ -32,7 +28,7 @@ import type {
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
 
-const HOMEPAGE_REVALIDATE_SECONDS = 3600;
+const HOMEPAGE_REVALIDATE_SECONDS = 60;
 const HOMEPAGE_PRODUCT_LIMIT = 8;
 const HOMEPAGE_SECTION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 2;
 const HOMEPAGE_RECOMMENDATION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 6;
@@ -112,16 +108,8 @@ function getEmptyHomepageProductSectionsData(): HomepageProductSectionsData {
   };
 }
 
-function getFallbackHomepageCategories(): HomepageCategory[] {
-  return DEFAULT_HOMEPAGE_CATEGORY_SEEDS.map((seed) => createHomepageCategorySeed(seed));
-}
-
 function getFallbackSocialLinks(): SocialLink[] {
   return DEFAULT_SOCIAL_LINK_SEEDS.map((seed) => createSocialLinkSeed(seed));
-}
-
-function getFallbackBlogPosts() {
-  return DEFAULT_BLOG_POST_SEEDS.slice(0, HOMEPAGE_BLOG_POST_LIMIT).map((seed) => createBlogSeed(seed));
 }
 
 function compactHomepageProduct(product: Product): Product {
@@ -244,29 +232,29 @@ async function resolveHomepageShellData(options: {
 
 async function resolveHomepageHeroSlides(): Promise<HeroSlide[]> {
   if (shouldUseBuildFallbackData()) {
-    return getDefaultHeroSlides();
+    return [];
   }
 
   return safeQuery(
     async () => await getActiveHeroSlides(),
-    () => getDefaultHeroSlides()
+    () => []
   );
 }
 
 async function resolveHomepageCategories(): Promise<HomepageCategory[]> {
   if (shouldUseBuildFallbackData()) {
-    return getFallbackHomepageCategories();
+    return [];
   }
 
   return safeQuery(
     async () => await getActiveHomepageCategories(),
-    () => getFallbackHomepageCategories()
+    () => []
   );
 }
 
 async function resolveHomepageBlogPosts(): Promise<BlogPost[]> {
   if (shouldUseBuildFallbackData()) {
-    return getFallbackBlogPosts();
+    return [];
   }
 
   return safeQuery(
@@ -277,9 +265,9 @@ async function resolveHomepageBlogPosts(): Promise<BlogPost[]> {
         take: HOMEPAGE_BLOG_POST_LIMIT,
       })) as BlogPost[];
 
-      return posts.length > 0 ? posts : getFallbackBlogPosts();
+      return posts;
     },
-    () => getFallbackBlogPosts()
+    () => []
   );
 }
 

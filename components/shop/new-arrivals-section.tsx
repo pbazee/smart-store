@@ -1,27 +1,16 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
 export function NewArrivalsSection({ products }: { products: Product[] }) {
-  useRoutePrefetch(["/shop?collection=new-arrivals"]);
-
   if (products.length === 0) {
     return null;
   }
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-      >
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 text-brand-500">
             <Sparkles className="h-4 w-4" />
@@ -42,7 +31,7 @@ export function NewArrivalsSection({ products }: { products: Product[] }) {
           Shop New Arrivals
           <ArrowUpRight className="h-4 w-4" />
         </Link>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {products.slice(0, 8).map((product, index) => (

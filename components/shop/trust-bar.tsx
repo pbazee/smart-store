@@ -1,5 +1,3 @@
-"use client";
-import { motion } from "framer-motion";
 import { Smartphone, Truck, Shield, RotateCcw } from "lucide-react";
 
 const trust = [
@@ -14,13 +12,9 @@ export function TrustBar() {
     <section className="border-y border-border bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {trust.map((item, i) => (
-            <motion.div
+          {trust.map((item) => (
+            <div
               key={item.text}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
               className="flex items-center gap-3 p-3 rounded-xl"
             >
               <div className={`p-2 rounded-lg bg-background border border-border ${item.color}`}>
@@ -30,7 +24,7 @@ export function TrustBar() {
                 <p className="text-sm font-bold">{item.text}</p>
                 <p className="text-xs text-muted-foreground">{item.sub}</p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

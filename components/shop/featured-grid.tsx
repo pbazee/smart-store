@@ -1,27 +1,16 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import type { Product } from "@/types";
 import { ProductCard } from "@/components/shop/product-card";
 
 export function FeaturedGrid({ products }: { products: Product[] }) {
-  useRoutePrefetch(["/shop?collection=popular"]);
-
   if (products.length === 0) {
     return null;
   }
 
   return (
     <section id="home-shop" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-      >
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-500">
             Popular picks
@@ -40,7 +29,7 @@ export function FeaturedGrid({ products }: { products: Product[] }) {
           View Popular Products
           <ArrowUpRight className="h-4 w-4" />
         </Link>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {products.slice(0, 8).map((product, index) => (

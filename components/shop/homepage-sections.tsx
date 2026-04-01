@@ -1,6 +1,9 @@
+import { connection } from "next/server";
+import { BlogTeaserSection } from "@/components/shop/blog-teaser-section";
 import { HeroCarousel } from "@/components/shop/hero-carousel";
+import { HomeProductSections } from "@/components/shop/home-product-sections";
 import { HomepageCategoryGrid } from "@/components/shop/homepage-category-grid";
-import { HomepageStorefrontSectionsClient } from "@/components/shop/homepage-storefront-sections-client";
+import { LatestReviews } from "@/components/shop/latest-reviews";
 import {
   getHomepageBlogPosts,
   getHomepageCategories,
@@ -10,33 +13,38 @@ import {
 } from "@/lib/homepage-data";
 
 export async function HomepageHeroSection() {
+  await connection();
   const heroSlides = await getHomepageHeroSlides();
 
   return <HeroCarousel slides={heroSlides} />;
 }
 
 export async function HomepageCategorySection() {
+  await connection();
   const categories = await getHomepageCategories();
 
   return <HomepageCategoryGrid categories={categories} />;
 }
 
-export async function HomepageStorefrontSections() {
-  const [productSections, latestReviews, blogPosts] = await Promise.all([
-    getHomepageProductSectionsData(),
-    getHomepageLatestReviews(),
-    getHomepageBlogPosts(),
-  ]);
+export async function HomepageProductSections() {
+  await connection();
+  const productSections = await getHomepageProductSectionsData();
 
-  return (
-    <HomepageStorefrontSectionsClient
-      initialData={{
-        productSections,
-        latestReviews,
-        blogPosts,
-      }}
-    />
-  );
+  return <HomeProductSections data={productSections} />;
+}
+
+export async function HomepageReviewsSection() {
+  await connection();
+  const latestReviews = await getHomepageLatestReviews();
+
+  return <LatestReviews reviews={latestReviews} />;
+}
+
+export async function HomepageBlogSection() {
+  await connection();
+  const blogPosts = await getHomepageBlogPosts();
+
+  return <BlogTeaserSection posts={blogPosts} />;
 }
 
 export function HomepageHeroSkeleton() {

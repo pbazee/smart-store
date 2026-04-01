@@ -2,16 +2,19 @@ import { Suspense } from "react";
 import { PromoCards } from "@/components/shop/promo-cards";
 import { TrustBar } from "@/components/shop/trust-bar";
 import {
+  HomepageBlogSection,
   HomepageCategorySection,
   HomepageCategorySkeleton,
   HomepageHeroSection,
   HomepageHeroSkeleton,
-  HomepageStorefrontSections,
-  HomepageStorefrontSectionsSkeleton,
+  HomepageBlogSkeleton,
+  HomepageLatestReviewsSkeleton,
+  HomepageProductSections,
+  HomepageProductSectionsSkeleton,
+  HomepageReviewsSection,
 } from "@/components/shop/homepage-sections";
 
-export const revalidate = 3600;
-
+export const revalidate = 60;
 export default function HomePage() {
   return (
     <div>
@@ -23,8 +26,14 @@ export default function HomePage() {
       <Suspense fallback={<HomepageCategorySkeleton />}>
         <HomepageCategorySection />
       </Suspense>
-      <Suspense fallback={<HomepageStorefrontSectionsSkeleton />}>
-        <HomepageStorefrontSections />
+      <Suspense fallback={<HomepageProductSectionsSkeleton />}>
+        <HomepageProductSections />
+      </Suspense>
+      <Suspense fallback={<HomepageLatestReviewsSkeleton />}>
+        <HomepageReviewsSection />
+      </Suspense>
+      <Suspense fallback={<HomepageBlogSkeleton />}>
+        <HomepageBlogSection />
       </Suspense>
     </div>
   );

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { releaseExpiredReservations } from "@/lib/order-reservations";
 import { prisma } from "@/lib/prisma";
@@ -31,9 +32,11 @@ type LiveDataQueryOptions = {
   syncReservations?: boolean;
   timeoutMs?: number | null;
   cacheKey?: string;
+  revalidateSeconds?: number;
 };
 
 const DEFAULT_LIVE_DATA_TIMEOUT_MS = 10000;
+const HOMEPAGE_QUERY_REVALIDATE_SECONDS = 60;
 
 function normalizeProductFilters(filters?: ProductQueryFilters): ProductQueryFilters {
   if (!filters) {
@@ -236,15 +239,26 @@ export async function getProducts(
   options: LiveDataQueryOptions = {}
 ): Promise<Product[]> {
   const normalizedFilters = normalizeProductFilters(filters);
+  const loadProducts = async () =>
+    (await prisma.product.findMany({
+      where: buildProductWhere(normalizedFilters),
+      include: { variants: true },
+      orderBy: productOrderBy,
+      take: normalizedFilters.take,
+    })) as Product[];
 
-  const products = await prisma.product.findMany({
-    where: buildProductWhere(normalizedFilters),
-    include: { variants: true },
-    orderBy: productOrderBy,
-    take: normalizedFilters.take,
-  });
+  if (options.cacheKey) {
+    return unstable_cache(
+      loadProducts,
+      ["products", options.cacheKey, JSON.stringify(normalizedFilters)],
+      {
+        revalidate: options.revalidateSeconds ?? HOMEPAGE_QUERY_REVALIDATE_SECONDS,
+        tags: ["homepage", options.cacheKey],
+      }
+    )();
+  }
 
-  return products as Product[];
+  return loadProducts();
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
