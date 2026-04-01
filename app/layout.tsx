@@ -1,37 +1,36 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Space_Grotesk, Geist } from "next/font/google";
-import { connection } from "next/server";
+import { Bricolage_Grotesque, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
-import { MarketingPopup } from "@/components/layout/marketing-popup";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { RootLayoutShell } from "@/components/layout/root-layout-shell";
+import { StorefrontDeferredUI } from "@/components/layout/storefront-deferred-ui";
 import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
-import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
-import { CartDrawer } from "@/components/shop/cart-drawer";
-import { CartSessionSync } from "@/components/shop/cart-session-sync";
-import { WishlistSessionSync } from "@/components/shop/wishlist-session-sync";
-import { Toaster } from "@/components/ui/toaster";
 import { SupabaseProvider } from "@/components/supabase-provider";
 import { getAppUrl } from "@/lib/app-url";
+import { getHomepageShellData } from "@/lib/homepage-data";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const sans = Space_Grotesk({ subsets: ["latin"], variable: "--font-geist-sans" });
+const sans = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
+  display: "swap",
 });
 const metadataBase = new URL(getAppUrl());
 
 export const metadata: Metadata = {
   metadataBase,
   title: "Smartest Store KE | Shoes, Clothes & Streetwear",
-  description: "Kenya's smartest fashion destination. Premium shoes, clothes, and streetwear delivered to your door. Pay with M-Pesa.",
+  description:
+    "Kenya's smartest fashion destination. Premium shoes, clothes, and streetwear delivered to your door. Pay with M-Pesa.",
   keywords: "shoes kenya, clothes nairobi, streetwear kenya, fashion nairobi, mpesa",
   openGraph: {
     title: "Smartest Store KE",
@@ -77,38 +76,33 @@ function AnnouncementBarFallback() {
   );
 }
 
-async function StorefrontAnnouncementBar() {
-  await connection();
-  return <AnnouncementBar />;
-}
-
-async function StorefrontFooter() {
-  return <Footer />;
-}
-
-async function StorefrontMarketingPopup() {
-  return <MarketingPopup />;
-}
-
-async function StorefrontWhatsAppWidget() {
-  return <WhatsAppWidget />;
-}
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const shellData = await getHomepageShellData().catch(() => ({
+    announcements: [],
+    popups: [],
+    socialLinks: [],
+    whatsAppSettings: null,
+    storeSettings: null,
+  }));
+
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
-      <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn("font-sans", sans.variable, display.variable)}
+    >
+      <body className="font-sans antialiased">
         <SupabaseProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <RootLayoutShell
               storefrontChrome={
                 <>
                   <Suspense fallback={<AnnouncementBarFallback />}>
-                    <StorefrontAnnouncementBar />
+                    <AnnouncementBar announcements={shellData.announcements} />
                   </Suspense>
                   <Suspense fallback={<NavbarFallback />}>
                     <Navbar />
@@ -117,27 +111,21 @@ export default function RootLayout({
               }
               storefrontFooter={
                 <Suspense fallback={<FooterFallback />}>
-                  <StorefrontFooter />
+                  <Footer
+                    socialLinks={shellData.socialLinks}
+                    storeSettings={shellData.storeSettings}
+                  />
                 </Suspense>
               }
               storefrontOverlays={
                 <>
-                  <Suspense fallback={null}>
-                    <StorefrontMarketingPopup />
-                  </Suspense>
-                  <Suspense fallback={null}>
-                    <StorefrontWhatsAppWidget />
-                  </Suspense>
-                  <MobileBottomNav />
-                  <CartDrawer />
-                  <CartSessionSync />
-                  <WishlistSessionSync />
+                  <WhatsAppWidget settings={shellData.whatsAppSettings} />
+                  <StorefrontDeferredUI popups={shellData.popups} />
                 </>
               }
             >
               {children}
             </RootLayoutShell>
-            <Toaster />
           </ThemeProvider>
         </SupabaseProvider>
       </body>

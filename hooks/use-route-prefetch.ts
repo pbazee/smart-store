@@ -42,6 +42,11 @@ export function useRoutePrefetch(routes: Array<string | null | undefined>) {
       return;
     }
 
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+    let fallbackDelayId: number | null = null;
+    let hasScheduledPrefetch = false;
+
     const prefetchRoutes = () => {
       routesToPrefetch.forEach((route) => {
         if (prefetchedRoutes.has(route)) {
@@ -53,18 +58,52 @@ export function useRoutePrefetch(routes: Array<string | null | undefined>) {
       });
     };
 
-    if (typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(prefetchRoutes, { timeout: 1500 });
-
-      return () => {
+    const clearScheduledWork = () => {
+      if (idleId !== null && typeof window.requestIdleCallback === "function") {
         window.cancelIdleCallback(idleId);
-      };
-    }
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      if (fallbackDelayId !== null) {
+        window.clearTimeout(fallbackDelayId);
+      }
+      idleId = null;
+      timeoutId = null;
+      fallbackDelayId = null;
+    };
 
-    const timeoutId = window.setTimeout(prefetchRoutes, 400);
+    const schedulePrefetch = () => {
+      if (hasScheduledPrefetch) {
+        return;
+      }
+
+      hasScheduledPrefetch = true;
+
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(prefetchRoutes, { timeout: 2000 });
+        return;
+      }
+
+      timeoutId = window.setTimeout(prefetchRoutes, 0);
+    };
+
+    const handleInteraction = () => {
+      clearScheduledWork();
+      schedulePrefetch();
+    };
+
+    fallbackDelayId = window.setTimeout(schedulePrefetch, 3000);
+    window.addEventListener("pointerdown", handleInteraction, {
+      once: true,
+      passive: true,
+    });
+    window.addEventListener("keydown", handleInteraction, { once: true });
 
     return () => {
-      window.clearTimeout(timeoutId);
+      clearScheduledWork();
+      window.removeEventListener("pointerdown", handleInteraction);
+      window.removeEventListener("keydown", handleInteraction);
     };
   }, [router, uniqueRoutes]);
 }

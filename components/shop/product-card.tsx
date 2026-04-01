@@ -1,10 +1,9 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import { useWishlistActions, useWishlistProduct } from "@/hooks/use-wishlist";
 import { buildProductHref } from "@/lib/product-routes";
@@ -61,38 +60,6 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
   const prefetchProduct = () => {
     prefetchProductRoute(router, productHref, hasPrefetchedRef);
   };
-
-  useEffect(() => {
-    const linkElement = linkRef.current;
-    if (!linkElement) {
-      return;
-    }
-
-    if (typeof IntersectionObserver === "undefined") {
-      prefetchProductRoute(router, productHref, hasPrefetchedRef);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) {
-          return;
-        }
-
-        prefetchProductRoute(router, productHref, hasPrefetchedRef);
-        observer.disconnect();
-      },
-      {
-        rootMargin: "240px 0px",
-      }
-    );
-
-    observer.observe(linkElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [productHref, router]);
 
   const handleQuickAdd = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -162,11 +129,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-      transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.3 }}
+    <div
       className="group relative"
       style={{ contentVisibility: "auto", containIntrinsicSize: "320px 480px" }}
     >
@@ -176,7 +139,6 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
         prefetch={false}
         onMouseEnter={prefetchProduct}
         onFocus={prefetchProduct}
-        onTouchStart={prefetchProduct}
         className="block"
       >
         {/* Card container */}
@@ -189,7 +151,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
               fill
               loading="lazy"
               placeholder="blur"
-              quality={85}
+              quality={72}
               blurDataURL={CARD_BLUR_DATA_URL}
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -284,7 +246,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
           </div>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }
 

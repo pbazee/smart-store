@@ -14,8 +14,7 @@ import {
   HomepageReviewsSection,
 } from "@/components/shop/homepage-sections";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 60;
+export const revalidate = 300;
 export default function HomePage() {
   return (
     <div>

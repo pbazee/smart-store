@@ -7,14 +7,17 @@ import { LOCAL_AUTH_COOKIE, verifyLocalAuthToken } from "@/lib/local-auth";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { DEMO_AUTH_COOKIE, parseDemoAuthCookie } from "@/lib/user-role";
 
+function hasSupabaseSessionCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some(
+      (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")
+    );
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const requestedPath = `${pathname}${request.nextUrl.search}`;
-
-  // Allow public auth pages
-  if (/^\/(sign-in|sign-up|forgot-password|reset-password)(?:\/.*)?$/.test(pathname)) {
-    return NextResponse.next();
-  }
 
   // Check for demo auth
   const useMockData = shouldUseMockData();
@@ -24,6 +27,22 @@ export async function middleware(request: NextRequest) {
 
   // Check for local auth
   const localAuth = await verifyLocalAuthToken(request.cookies.get(LOCAL_AUTH_COOKIE)?.value);
+  const hasSupabaseSession = hasSupabaseSessionCookie(request);
+
+  if (!demoAuth && !localAuth && !hasSupabaseSession) {
+    const redirectPath = getAuthRedirectPath({
+      pathname,
+      redirectPath: requestedPath,
+      userId: null,
+      role: "guest",
+    });
+
+    if (!redirectPath) {
+      return NextResponse.next();
+    }
+
+    return NextResponse.redirect(new URL(redirectPath, request.url));
+  }
 
   // Check Supabase session
   const supabase = createMiddlewareSupabaseClient(request);
@@ -68,7 +87,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    "/admin/:path*",
+    "/admin-login",
+    "/admin-login/:path*",
+    "/orders/:path*",
+    "/order-confirmation/:path*",
+    "/account/:path*",
+    "/wishlist/:path*",
+    "/checkout/:path*",
   ],
 };

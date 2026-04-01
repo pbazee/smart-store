@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useShallow } from "zustand/react/shallow";
@@ -216,14 +215,12 @@ export function Navbar() {
               <span className="relative block">
                 <ShoppingCart className="h-5 w-5" />
                 {count > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                  <span
                     className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white"
                     suppressHydrationWarning
                   >
                     {count}
-                  </motion.span>
+                  </span>
                 )}
               </span>
             </HeaderIconButton>

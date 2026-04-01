@@ -25,13 +25,31 @@ if (supabaseHostname) {
 }
 
 const nextConfig: NextConfig = {
+  compress: true,
+  poweredByHeader: false,
   images: {
     remotePatterns,
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 3600,
+    deviceSizes: [640, 768, 1024, 1280, 1536],
+    imageSizes: [32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 2678400,
   },
   experimental: {
     ppr: false,
+    optimizePackageImports: ["lucide-react"],
+  },
+  async headers() {
+    return [
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
 };
 

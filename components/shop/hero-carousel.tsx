@@ -5,10 +5,9 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
-import { createBlurDataURL } from "@/lib/utils";
+import { cn, createBlurDataURL } from "@/lib/utils";
 import type { HeroSlide } from "@/types";
 
 const heroBlurDataUrl = createBlurDataURL({
@@ -106,7 +105,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                     priority={index === 0}
                     loading={index === 0 ? undefined : "lazy"}
                     sizes="100vw"
-                    quality={85}
+                    quality={72}
                     placeholder="blur"
                     blurDataURL={heroBlurDataUrl}
                     className="object-cover object-center"
@@ -117,14 +116,13 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
 
                   <div className="relative z-10 mx-auto flex min-h-[70vh] max-w-7xl items-end px-4 pb-20 pt-24 sm:px-6 lg:min-h-[78vh] lg:px-8">
                     <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-end">
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          opacity: selectedIndex === index ? 1 : 0.7,
-                          y: selectedIndex === index ? 0 : 14,
-                        }}
-                        transition={{ duration: 0.45, ease: "easeOut" }}
-                        className="max-w-3xl"
+                      <div
+                        className={cn(
+                          "max-w-3xl transition-[opacity,transform] duration-500 ease-out",
+                          selectedIndex === index
+                            ? "translate-y-0 opacity-100"
+                            : "translate-y-3.5 opacity-70"
+                        )}
                       >
                         <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/30 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em] backdrop-blur">
                           Smartest edit
@@ -161,16 +159,15 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                             </div>
                           )}
                         </div>
-                      </motion.div>
+                      </div>
 
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          opacity: selectedIndex === index ? 1 : 0.55,
-                          y: selectedIndex === index ? 0 : 18,
-                        }}
-                        transition={{ duration: 0.45, ease: "easeOut" }}
-                        className="overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/30 p-5 backdrop-blur-lg lg:block"
+                      <div
+                        className={cn(
+                          "overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/30 p-5 backdrop-blur-lg transition-[opacity,transform] duration-500 ease-out lg:block",
+                          selectedIndex === index
+                            ? "translate-y-0 opacity-100"
+                            : "translate-y-[18px] opacity-[0.55]"
+                        )}
                       >
                         <p className="text-xs font-bold uppercase tracking-[0.28em]">
                           Hero details
@@ -206,7 +203,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                             <p className="mt-1 text-sm">{slide.locationBadge}</p>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     </div>
                   </div>
                 </div>

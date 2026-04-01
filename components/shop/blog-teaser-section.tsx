@@ -51,7 +51,7 @@ export function BlogTeaserSection({
                 fill
                 loading="lazy"
                 sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
-                quality={85}
+                quality={70}
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 placeholder="blur"
                 blurDataURL={createBlurDataURL({
