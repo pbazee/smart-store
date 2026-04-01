@@ -1,5 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { Category } from "@/types";
+
+export const CATEGORY_CACHE_TAG = "categories";
+const CATEGORY_REVALIDATE_SECONDS = 60;
 
 const FALLBACK_CATEGORIES: Category[] = [
   // Top-level categories
@@ -29,7 +33,7 @@ const FALLBACK_CATEGORIES: Category[] = [
   { id: "jewellery", name: "Jewellery", slug: "jewellery", parentId: "accessories", order: 5, isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
-export async function getActiveCategories(): Promise<Category[]> {
+async function loadActiveCategories(): Promise<Category[]> {
   try {
     const categories = await prisma.category.findMany({
       where: { isActive: true },
@@ -46,4 +50,21 @@ export async function getActiveCategories(): Promise<Category[]> {
     console.warn("[Categories] Falling back to default categories");
     return FALLBACK_CATEGORIES;
   }
+}
+
+const getCachedActiveCategories = unstable_cache(
+  loadActiveCategories,
+  ["active-categories"],
+  {
+    revalidate: CATEGORY_REVALIDATE_SECONDS,
+    tags: [CATEGORY_CACHE_TAG],
+  }
+);
+
+export async function getActiveCategories(): Promise<Category[]> {
+  if (process.env.NODE_ENV === "production") {
+    return getCachedActiveCategories();
+  }
+
+  return loadActiveCategories();
 }

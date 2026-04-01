@@ -1,7 +1,11 @@
+import { revalidateTag, unstable_cache } from "next/cache";
 import { Resend } from "resend";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { NewsletterSubscriber } from "@/types";
+
+export const NEWSLETTER_CACHE_TAG = "newsletter-subscribers";
+const NEWSLETTER_REVALIDATE_SECONDS = 60;
 
 /** Lazily initialize Resend only when actually sending */
 function getResendClient(): Resend | null {
@@ -81,6 +85,27 @@ export async function getNewsletterSubscribers() {
   return subscribers as NewsletterSubscriber[];
 }
 
+const getCachedNewsletterSubscriberCount = unstable_cache(
+  async () => prisma.newsletterSubscriber.count(),
+  ["newsletter-subscriber-count"],
+  {
+    revalidate: NEWSLETTER_REVALIDATE_SECONDS,
+    tags: [NEWSLETTER_CACHE_TAG],
+  }
+);
+
+export async function getNewsletterSubscriberCount() {
+  if (shouldUseMockData()) {
+    return getDemoNewsletterSubscribers().length;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return getCachedNewsletterSubscriberCount();
+  }
+
+  return prisma.newsletterSubscriber.count();
+}
+
 export async function subscribeToNewsletter(email: string) {
   const normalizedEmail = normalizeNewsletterEmail(email);
 
@@ -100,6 +125,7 @@ export async function subscribeToNewsletter(email: string) {
     data: { email: normalizedEmail },
   });
 
+  revalidateTag(NEWSLETTER_CACHE_TAG);
   return subscriber as NewsletterSubscriber;
 }
 

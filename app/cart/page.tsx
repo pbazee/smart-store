@@ -5,7 +5,6 @@ import { formatKES } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { Plus, Minus, X, Smartphone, ArrowLeft } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 
 export default function CartPage() {
@@ -68,14 +67,11 @@ export default function CartPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
-          <AnimatePresence>
-            {items.map((item) => (
-              <motion.div
-                key={item.variant.id}
-                layout
-                exit={{ opacity: 0, height: 0 }}
-                className="flex gap-4 p-4 border border-border rounded-xl bg-card"
-              >
+          {items.map((item) => (
+            <div
+              key={item.variant.id}
+              className="flex gap-4 p-4 border border-border rounded-xl bg-card"
+            >
                 <div className="w-24 h-28 rounded-lg overflow-hidden relative flex-shrink-0">
                   <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="96px" />
                 </div>
@@ -104,9 +100,8 @@ export default function CartPage() {
                     <p className="font-bold text-brand-600">{formatKES(item.variant.price * item.quantity)}</p>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+            </div>
+          ))}
         </div>
 
         {/* Summary */}

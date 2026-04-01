@@ -18,22 +18,32 @@ export function useRoutePrefetch(routes: Array<string | null | undefined>) {
   );
 
   useEffect(() => {
-    if (uniqueRoutes.length === 0) {
+    if (uniqueRoutes.length === 0 || document.visibilityState !== "visible") {
       return;
     }
 
     const connection = (navigator as Navigator & {
       connection?: { saveData?: boolean; effectiveType?: string };
+      deviceMemory?: number;
     }).connection as
       | { saveData?: boolean; effectiveType?: string }
       | undefined;
+    const deviceMemory =
+      (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
 
     if (connection?.saveData || connection?.effectiveType === "slow-2g") {
       return;
     }
 
+    const prefetchBudget = deviceMemory <= 4 || hardwareConcurrency <= 4 ? 2 : 4;
+    const routesToPrefetch = uniqueRoutes.slice(0, prefetchBudget);
+    if (routesToPrefetch.length === 0) {
+      return;
+    }
+
     const prefetchRoutes = () => {
-      uniqueRoutes.forEach((route) => {
+      routesToPrefetch.forEach((route) => {
         if (prefetchedRoutes.has(route)) {
           return;
         }

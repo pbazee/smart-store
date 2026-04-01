@@ -53,11 +53,25 @@ export function AnnouncementBarClient({
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(true);
   const hasMultipleAnnouncements = announcements.length > 1;
   const activeAnnouncement = announcements[activeIndex] ?? announcements[0];
 
   useEffect(() => {
-    if (!isVisible || isPaused || !hasMultipleAnnouncements) {
+    const syncVisibility = () => {
+      setIsDocumentVisible(document.visibilityState === "visible");
+    };
+
+    syncVisibility();
+    document.addEventListener("visibilitychange", syncVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", syncVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible || isPaused || !hasMultipleAnnouncements || !isDocumentVisible) {
       return;
     }
 
@@ -66,7 +80,7 @@ export function AnnouncementBarClient({
     }, 5000);
 
     return () => window.clearInterval(timer);
-  }, [announcements.length, hasMultipleAnnouncements, isPaused, isVisible]);
+  }, [announcements.length, hasMultipleAnnouncements, isDocumentVisible, isPaused, isVisible]);
 
   useEffect(() => {
     if (activeIndex >= announcements.length) {
@@ -102,12 +116,6 @@ export function AnnouncementBarClient({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-[-20%] w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)]"
-        animate={{ x: ["-10%", "240%"] }}
-        transition={{ duration: 3.4, ease: "linear", repeat: Infinity }}
-      />
       <div className="mx-auto flex max-w-7xl items-center gap-0.5 px-2 py-1.5 sm:px-4 sm:py-2">
         <button
           type="button"

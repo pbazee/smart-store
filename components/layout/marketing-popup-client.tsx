@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -107,16 +108,27 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
               Don&apos;t show again
             </label>
 
-            <a
-              href={activePopup.ctaLink}
-              onClick={handleDismiss}
-              target={isInternalLink(activePopup.ctaLink) ? undefined : "_blank"}
-              rel={isInternalLink(activePopup.ctaLink) ? undefined : "noreferrer"}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-            >
-              {activePopup.ctaText}
-              <ArrowRight className="h-4 w-4" />
-            </a>
+            {isInternalLink(activePopup.ctaLink) ? (
+              <Link
+                href={activePopup.ctaLink}
+                onClick={handleDismiss}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+              >
+                {activePopup.ctaText}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <a
+                href={activePopup.ctaLink}
+                onClick={handleDismiss}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+              >
+                {activePopup.ctaText}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            )}
           </div>
         </div>
       </DialogContent>

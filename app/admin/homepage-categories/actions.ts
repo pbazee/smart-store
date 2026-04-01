@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
@@ -74,9 +74,24 @@ function revalidateHomepageCategoryPaths() {
   revalidatePath("/admin/homepage-categories");
 }
 
+const getCachedAdminHomepageCategories = unstable_cache(
+  () => getHomepageCategories(),
+  ["admin-homepage-categories"],
+  {
+    revalidate: 60,
+    tags: [HOMEPAGE_CACHE_TAG],
+  }
+);
+
 export async function fetchAdminHomepageCategories() {
   await ensureAdmin();
-  return getHomepageCategories();
+
+  try {
+    return await getCachedAdminHomepageCategories();
+  } catch (error) {
+    console.error("[AdminHomepageCategories] Failed to load categories:", error);
+    return [];
+  }
 }
 
 export async function uploadHomepageCategoryImageAction(formData: FormData) {

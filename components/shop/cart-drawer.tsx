@@ -86,12 +86,8 @@ export function CartDrawer() {
                 </div>
               ) : (
                 items.map((item) => (
-                  <motion.div
+                  <div
                     key={item.variant.id}
-                    layout
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
                     className="flex gap-3 rounded-2xl border border-zinc-200/80 bg-zinc-50/95 p-3 shadow-sm dark:border-transparent dark:bg-transparent dark:p-0 dark:shadow-none"
                   >
                     <div className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-100 dark:bg-muted">
@@ -140,7 +136,7 @@ export function CartDrawer() {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))
               )}
             </div>

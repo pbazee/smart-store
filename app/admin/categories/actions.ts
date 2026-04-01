@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { getActiveCategories } from "@/lib/category-service";
+import { CATEGORY_CACHE_TAG, getActiveCategories } from "@/lib/category-service";
 
 const categorySchema = z.object({
   id: z.string().optional(),
@@ -41,6 +41,34 @@ export async function fetchCategoriesAction() {
   }
 }
 
+const getCachedTopLevelCategories = unstable_cache(
+  async () =>
+    prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
+    }),
+  ["admin-top-level-categories"],
+  {
+    revalidate: 60,
+    tags: [CATEGORY_CACHE_TAG, HOMEPAGE_CACHE_TAG],
+  }
+);
+
+export async function fetchTopLevelCategoriesAction() {
+  await ensureAdmin();
+
+  try {
+    const categories = await getCachedTopLevelCategories();
+    if (categories.length > 0) {
+      return categories;
+    }
+
+    return (await getActiveCategories()).filter((category) => !category.parentId);
+  } catch {
+    return (await getActiveCategories()).filter((category) => !category.parentId);
+  }
+}
+
 export async function upsertCategoryAction(input: z.infer<typeof categorySchema>) {
   await ensureAdmin();
   const data = categorySchema.parse(input);
@@ -66,6 +94,7 @@ export async function upsertCategoryAction(input: z.infer<typeof categorySchema>
 
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products");
+  revalidateTag(CATEGORY_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");
@@ -85,6 +114,7 @@ export async function deleteCategoryAction(id: string) {
   await prisma.category.delete({ where: { id } });
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products");
+  revalidateTag(CATEGORY_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");

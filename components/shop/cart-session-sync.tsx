@@ -225,6 +225,11 @@ export function CartSessionSync() {
 
     clearPendingSyncTimeout();
 
+    if (items.length === 0) {
+      void syncCurrentCart();
+      return;
+    }
+
     syncTimeoutRef.current = window.setTimeout(() => {
       syncTimeoutRef.current = undefined;
       void syncCurrentCart();
