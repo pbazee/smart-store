@@ -95,6 +95,17 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans", sans.variable, display.variable)}
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <link
+            rel="preconnect"
+            href={new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin}
+            crossOrigin="anonymous"
+          />
+        )}
+      </head>
       <body className="font-sans antialiased">
         <SupabaseProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

@@ -50,7 +50,7 @@ export function PromoCards() {
                 fill
                 loading="lazy"
                 sizes="(max-width: 768px) 100vw, 50vw"
-                quality={72}
+                quality={80}
                 placeholder="blur"
                 blurDataURL={promo.blur}
                 className="object-cover object-center transition duration-700 group-hover:scale-105 group-hover:brightness-110"

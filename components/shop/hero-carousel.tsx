@@ -105,7 +105,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                     priority={index === 0}
                     loading={index === 0 ? undefined : "lazy"}
                     sizes="100vw"
-                    quality={72}
+                    quality={80}
                     placeholder="blur"
                     blurDataURL={heroBlurDataUrl}
                     className="object-cover object-center"

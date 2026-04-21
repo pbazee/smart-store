@@ -61,7 +61,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         disabled={isLoading}
         className="w-full min-h-[72px] rounded-[1.6rem] border border-white/75 bg-white px-5 text-slate-950 shadow-[0_18px_44px_rgba(249,115,22,0.26)] ring-1 ring-white/60 transition-all duration-200 hover:scale-[1.02] hover:bg-orange-50 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.85),0_24px_54px_rgba(249,115,22,0.3)]"
       >
-        <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
+        <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24" width="20" height="20">
           <path
             fill="currentColor"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

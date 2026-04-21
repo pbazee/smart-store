@@ -126,7 +126,7 @@ export async function Footer({
                   key={socialLink.id}
                   href={socialLink.url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label={`Open ${socialLink.platform}`}
                   className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-brand-400 hover:bg-zinc-900 hover:text-white"
                 >

@@ -122,7 +122,7 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
                 href={activePopup.ctaLink}
                 onClick={handleDismiss}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
               >
                 {activePopup.ctaText}

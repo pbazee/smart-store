@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,7 +11,7 @@ import {
 import { getBlogPostBySlug } from "@/lib/blog-service";
 import { createBlurDataURL } from "@/lib/utils";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,
@@ -39,7 +38,6 @@ export default async function BlogPostPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  noStore();
 
   const { slug } = await params;
   const post = await getBlogPostBySlug(slug);

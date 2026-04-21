@@ -4,10 +4,11 @@ import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductJsonLd } from "@/components/shop/product-json-ld";
 import { getProductByIdentifier } from "@/lib/data-service";
 import { buildProductHref } from "@/lib/product-routes";
-import { ProductRecommendations } from "./product-recommendations";
+import dynamic from "next/dynamic";
+const ProductRecommendations = dynamic(() => import("./product-recommendations").then(mod => mod.ProductRecommendations), { ssr: false });
 import { ProductRecommendationsSkeleton } from "./product-recommendations-skeleton";
 
-export const revalidate = 0;
+export const revalidate = 30;
 
 export default async function ProductPage({
   params,

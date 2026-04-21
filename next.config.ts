@@ -49,6 +49,24 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/api/products/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/api/homepage/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        ],
+      },
     ];
   },
 };

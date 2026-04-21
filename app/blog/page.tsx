@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -15,10 +14,9 @@ export const metadata: Metadata = {
   description: "Style notes, Nairobi trend reports, and quick outfit guides from Smartest Store KE.",
 };
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function BlogPage() {
-  noStore();
 
   const posts = await getPublishedBlogPosts();
   const [featuredPost, ...remainingPosts] = posts;

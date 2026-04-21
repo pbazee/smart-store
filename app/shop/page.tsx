@@ -4,7 +4,7 @@ import { buildCatalogHref } from "@/lib/catalog-routing";
 import { getCatalogPageData } from "@/lib/catalog-page-data";
 import type { CatalogQueryInput } from "@/lib/catalog-routing";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function ShopPage({
   searchParams,
