@@ -1,99 +1,117 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { resolveAuthenticatedRole } from "@/lib/admin-identity";
-import { createMiddlewareSupabaseClient } from "@/lib/supabase-server";
-import { getAuthRedirectPath } from "@/lib/auth-routing";
-import { LOCAL_AUTH_COOKIE, verifyLocalAuthToken } from "@/lib/local-auth";
-import { shouldUseMockData } from "@/lib/live-data-mode";
-import { DEMO_AUTH_COOKIE, parseDemoAuthCookie } from "@/lib/user-role";
+
+const DEMO_AUTH_COOKIE = "ske_demo_auth";
+const LOCAL_AUTH_COOKIE = "ske_local_auth";
+
+type SessionRole = "admin" | "customer" | "guest";
 
 function hasSupabaseSessionCookie(request: NextRequest) {
   return request.cookies
     .getAll()
-    .some(
-      (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")
-    );
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth-token"));
 }
 
-export async function middleware(request: NextRequest) {
+function parseDemoRole(value?: string) {
+  const role = value?.split(":")[0]?.trim().toLowerCase();
+  return role === "admin" || role === "customer" ? role : "guest";
+}
+
+function decodeBase64Url(value: string) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  return atob(`${normalized}${padding}`);
+}
+
+function parseLocalAuthRole(value?: string): SessionRole {
+  if (!value) {
+    return "guest";
+  }
+
+  const [payload] = value.split(".");
+  if (!payload) {
+    return "guest";
+  }
+
+  try {
+    const parsed = JSON.parse(decodeBase64Url(payload)) as { role?: string; exp?: number };
+    if (parsed.exp && parsed.exp <= Math.floor(Date.now() / 1000)) {
+      return "guest";
+    }
+
+    return parsed.role === "admin" || parsed.role === "customer" ? parsed.role : "guest";
+  } catch {
+    return "guest";
+  }
+}
+
+function isSignedIn(request: NextRequest) {
+  return (
+    parseDemoRole(request.cookies.get(DEMO_AUTH_COOKIE)?.value) !== "guest" ||
+    parseLocalAuthRole(request.cookies.get(LOCAL_AUTH_COOKIE)?.value) !== "guest" ||
+    hasSupabaseSessionCookie(request)
+  );
+}
+
+function getKnownRole(request: NextRequest): SessionRole {
+  const demoRole = parseDemoRole(request.cookies.get(DEMO_AUTH_COOKIE)?.value);
+  if (demoRole !== "guest") {
+    return demoRole;
+  }
+
+  const localRole = parseLocalAuthRole(request.cookies.get(LOCAL_AUTH_COOKIE)?.value);
+  if (localRole !== "guest") {
+    return localRole;
+  }
+
+  return "guest";
+}
+
+function buildSignInRedirect(request: NextRequest) {
+  const requestedPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  return new URL(`/sign-in?redirect_url=${encodeURIComponent(requestedPath)}`, request.url);
+}
+
+export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const requestedPath = `${pathname}${request.nextUrl.search}`;
+  const signedIn = isSignedIn(request);
+  const knownRole = getKnownRole(request);
 
-  // Check for demo auth
-  const useMockData = shouldUseMockData();
-  const demoAuth = useMockData
-    ? parseDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)
-    : null;
-
-  // Check for local auth
-  const localAuth = await verifyLocalAuthToken(request.cookies.get(LOCAL_AUTH_COOKIE)?.value);
-  const hasSupabaseSession = hasSupabaseSessionCookie(request);
-
-  if (!demoAuth && !localAuth && !hasSupabaseSession) {
-    const redirectPath = getAuthRedirectPath({
-      pathname,
-      redirectPath: requestedPath,
-      userId: null,
-      role: "guest",
-    });
-
-    if (!redirectPath) {
+  if (pathname === "/admin-login" || pathname.startsWith("/admin-login/")) {
+    if (!signedIn) {
       return NextResponse.next();
     }
 
-    return NextResponse.redirect(new URL(redirectPath, request.url));
+    return NextResponse.redirect(new URL(knownRole === "admin" ? "/admin/dashboard" : "/", request.url));
   }
 
-  // Check Supabase session
-  const supabase = createMiddlewareSupabaseClient(request);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (pathname.startsWith("/admin")) {
+    if (!signedIn) {
+      return NextResponse.redirect(buildSignInRedirect(request));
+    }
 
-  // Determine effective user ID and role
-  const effectiveUserId = demoAuth
-    ? `demo-${demoAuth.role}`
-    : localAuth?.userId ?? user?.id ?? null;
+    if (knownRole !== "guest" && knownRole !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
 
-  let effectiveRole: "admin" | "customer" | "guest" = "guest";
-  if (demoAuth) {
-    effectiveRole = demoAuth.role;
-  } else if (localAuth) {
-    effectiveRole = resolveAuthenticatedRole({
-      email: localAuth.email,
-      role: localAuth.role,
-    });
-  } else if (user) {
-    effectiveRole = resolveAuthenticatedRole({
-      email: user.email,
-      role: user.user_metadata?.role,
-    });
-  }
-
-  // Check auth redirect path
-  const redirectPath = getAuthRedirectPath({
-    pathname,
-    redirectPath: requestedPath,
-    userId: effectiveUserId,
-    role: effectiveRole,
-  });
-
-  if (!redirectPath) {
     return NextResponse.next();
   }
 
-  return NextResponse.redirect(new URL(redirectPath, request.url));
+  if (
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/order-confirmation") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/wishlist") ||
+    pathname.startsWith("/checkout")
+  ) {
+    if (!signedIn) {
+      return NextResponse.redirect(buildSignInRedirect(request));
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/admin-login",
-    "/admin-login/:path*",
-    "/orders/:path*",
-    "/order-confirmation/:path*",
-    "/account/:path*",
-    "/wishlist/:path*",
-    "/checkout/:path*",
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|public/).*)'],
 };
