@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bell,
+  ImagePlus,
   MapPin,
   LayoutDashboard,
   LayoutGrid,
@@ -31,12 +33,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { cn } from "@/lib/utils";
+import type { StoreSettings } from "@/types";
 
 type AdminShellProps = {
   children: React.ReactNode;
   subscriberCount: number;
+  initialStoreSettings?: StoreSettings | null;
 };
 
 type AdminNavItem = {
@@ -54,8 +59,9 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/messages", label: "Messages", icon: Mail },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-    { href: "/admin/announcements", label: "Announcements", icon: Bell },
     { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
+    { href: "/admin/promo-banners", label: "Promotional Banners", icon: ImagePlus },
+    { href: "/admin/announcements", label: "Announcements", icon: Bell },
     { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
     { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
     { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
@@ -153,23 +159,39 @@ function AdminSidebarContent({
   subscriberCount,
   sessionLabel,
   sessionEmail,
+  storeSettings,
   onNavigate,
 }: {
   pathname: string;
   subscriberCount: number;
   sessionLabel: string;
   sessionEmail: string;
+  storeSettings?: StoreSettings | null;
   onNavigate?: () => void;
 }) {
+  const branding = getStoreLogoSetFromSettings(storeSettings);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-zinc-800/80 px-5 py-5">
         <Link href="/admin" onClick={onNavigate} className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_28px_rgba(249,115,22,0.24)]">
-            SK
-          </div>
+          {branding.logoDarkUrl || branding.logoUrl ? (
+            <div className="relative h-10 w-[132px]">
+              <Image
+                src={branding.logoDarkUrl || branding.logoUrl || ""}
+                alt={branding.storeName}
+                fill
+                sizes="132px"
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_28px_rgba(249,115,22,0.24)]">
+              SK
+            </div>
+          )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-white">Smartest Store KE</p>
+            <p className="truncate text-sm font-black text-white">{branding.storeName}</p>
             <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Admin Panel</p>
           </div>
         </Link>
@@ -200,16 +222,44 @@ function AdminSidebarContent({
   );
 }
 
-export function AdminShell({ children, subscriberCount }: AdminShellProps) {
+export function AdminShell({
+  children,
+  subscriberCount,
+  initialStoreSettings,
+}: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { sessionUser, signOut } = useSessionUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null | undefined>(
+    initialStoreSettings
+  );
   const sessionLabel = sessionUser?.fullName || sessionUser?.email || "Admin session";
   const sessionEmail = sessionUser?.email || "Manage the storefront";
   const sessionInitials = getInitials(sessionLabel);
+  const branding = getStoreLogoSetFromSettings(storeSettings);
 
   useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about"]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/store-settings", { cache: "no-store" });
+        const data = await response.json();
+        if (!cancelled && response.ok && data?.data) {
+          setStoreSettings(data.data as StoreSettings);
+        }
+      } catch (error) {
+        console.error("Failed to refresh admin branding:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSignOut = () => {
     void signOut().then(() => {
@@ -228,6 +278,7 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
             subscriberCount={subscriberCount}
             sessionLabel={sessionLabel}
             sessionEmail={sessionEmail}
+            storeSettings={storeSettings}
           />
         </aside>
 
@@ -245,12 +296,24 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_28px_rgba(249,115,22,0.24)]">
-                    SK
-                  </div>
+                  {branding.logoDarkUrl || branding.logoUrl ? (
+                    <div className="relative h-10 w-[132px]">
+                      <Image
+                        src={branding.logoDarkUrl || branding.logoUrl || ""}
+                        alt={branding.storeName}
+                        fill
+                        sizes="132px"
+                        className="object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_28px_rgba(249,115,22,0.24)]">
+                      SK
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-white sm:text-base">
-                      Smartest Store KE
+                      {branding.storeName}
                     </p>
                     <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
                       Admin Panel
@@ -309,13 +372,14 @@ export function AdminShell({ children, subscriberCount }: AdminShellProps) {
             </SheetDescription>
           </SheetHeader>
 
-          <AdminSidebarContent
-            pathname={pathname}
-            subscriberCount={subscriberCount}
-            sessionLabel={sessionLabel}
-            sessionEmail={sessionEmail}
-            onNavigate={() => setMobileNavOpen(false)}
-          />
+              <AdminSidebarContent
+                pathname={pathname}
+                subscriberCount={subscriberCount}
+                sessionLabel={sessionLabel}
+                sessionEmail={sessionEmail}
+                storeSettings={storeSettings}
+                onNavigate={() => setMobileNavOpen(false)}
+              />
         </SheetContent>
       </Sheet>
     </div>

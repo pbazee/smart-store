@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { Product } from "@/types";
-import { ProductCard } from "@/components/shop/product-card";
+import { HomepageProductCard } from "@/components/shop/homepage-product-card";
 
 export function FeaturedGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {
@@ -9,7 +9,11 @@ export function FeaturedGrid({ products }: { products: Product[] }) {
   }
 
   return (
-    <section id="home-shop" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <section
+      id="home-shop"
+      className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "1200px" }}
+    >
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-500">
@@ -33,7 +37,11 @@ export function FeaturedGrid({ products }: { products: Product[] }) {
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {products.slice(0, 8).map((product, index) => (
-          <ProductCard key={product.id} product={product} index={index} />
+          <HomepageProductCard
+            key={product.id}
+            product={product}
+            priority={index < 2}
+          />
         ))}
       </div>
     </section>

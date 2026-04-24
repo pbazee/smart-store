@@ -9,6 +9,7 @@ import { Footer } from "@/components/layout/footer";
 import { RootLayoutShell } from "@/components/layout/root-layout-shell";
 import { StorefrontDeferredUI } from "@/components/layout/storefront-deferred-ui";
 import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
+import { ProvidersClient } from "@/components/providers/providers-client";
 import { SupabaseProvider } from "@/components/supabase-provider";
 import { getAppUrl } from "@/lib/app-url";
 import { getHomepageShellData } from "@/lib/homepage-data";
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
 
 function NavbarFallback() {
   return (
-    <div className="sticky top-0 z-50 border-b border-border/70 bg-background/92 backdrop-blur-xl">
+    <div className="frosted-surface border-b border-border/70 bg-transparent">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="h-[52px] rounded-full bg-muted/40" />
       </div>
@@ -70,7 +71,7 @@ function FooterFallback() {
 
 function AnnouncementBarFallback() {
   return (
-    <div className="relative z-[60] border-b border-white/15 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] px-4 py-2 shadow-[0_10px_32px_rgba(255,107,0,0.2)]">
+    <div className="w-full max-w-full overflow-hidden border-b border-white/15 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] px-4 py-2 shadow-[0_10px_32px_rgba(255,107,0,0.2)]">
       <div className="mx-auto h-5 max-w-7xl rounded-full bg-white/20" />
     </div>
   );
@@ -105,39 +106,47 @@ export default async function RootLayout({
             crossOrigin="anonymous"
           />
         )}
+        {shellData.storeSettings?.faviconUrl ? (
+          <link rel="icon" href={shellData.storeSettings.faviconUrl} />
+        ) : null}
       </head>
-      <body className="font-sans antialiased">
+      <body
+        className="font-sans antialiased"
+        style={{ ["--storefront-header-height" as string]: "104px" }}
+      >
         <SupabaseProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <RootLayoutShell
-              storefrontChrome={
-                <>
-                  <Suspense fallback={<AnnouncementBarFallback />}>
-                    <AnnouncementBar announcements={shellData.announcements} />
+          <ProvidersClient>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <RootLayoutShell
+                storefrontChrome={
+                  <>
+                    <Suspense fallback={<AnnouncementBarFallback />}>
+                      <AnnouncementBar announcements={shellData.announcements} />
+                    </Suspense>
+                    <Suspense fallback={<NavbarFallback />}>
+                      <Navbar initialStoreSettings={shellData.storeSettings} />
+                    </Suspense>
+                  </>
+                }
+                storefrontFooter={
+                  <Suspense fallback={<FooterFallback />}>
+                    <Footer
+                      socialLinks={shellData.socialLinks}
+                      storeSettings={shellData.storeSettings}
+                    />
                   </Suspense>
-                  <Suspense fallback={<NavbarFallback />}>
-                    <Navbar />
-                  </Suspense>
-                </>
-              }
-              storefrontFooter={
-                <Suspense fallback={<FooterFallback />}>
-                  <Footer
-                    socialLinks={shellData.socialLinks}
-                    storeSettings={shellData.storeSettings}
-                  />
-                </Suspense>
-              }
-              storefrontOverlays={
-                <>
-                  <WhatsAppWidget settings={shellData.whatsAppSettings} />
-                  <StorefrontDeferredUI popups={shellData.popups} />
-                </>
-              }
-            >
-              {children}
-            </RootLayoutShell>
-          </ThemeProvider>
+                }
+                storefrontOverlays={
+                  <>
+                    <WhatsAppWidget settings={shellData.whatsAppSettings} />
+                    <StorefrontDeferredUI popups={shellData.popups} />
+                  </>
+                }
+              >
+                {children}
+              </RootLayoutShell>
+            </ThemeProvider>
+          </ProvidersClient>
         </SupabaseProvider>
       </body>
     </html>

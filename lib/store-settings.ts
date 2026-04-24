@@ -3,8 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { ensureStoreSettingsStorage } from "@/lib/runtime-schema-repair";
 import type { StoreSettings } from "@/types";
 
+export const STORE_SETTINGS_CACHE_TAG = "store-settings";
+
 type StoreSettingsInput = Pick<
   StoreSettings,
+  | "storeName"
+  | "storeTagline"
+  | "logoUrl"
+  | "logoDarkUrl"
+  | "faviconUrl"
   | "supportEmail"
   | "supportPhone"
   | "adminNotificationEmail"
@@ -57,6 +64,11 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
         console.log("[StoreSettings] No settings found in database, seeding with defaults...");
         const seeded = await prisma.storeSettings.create({
           data: {
+            storeName: DEFAULT_STORE_SETTINGS.storeName,
+            storeTagline: DEFAULT_STORE_SETTINGS.storeTagline,
+            logoUrl: DEFAULT_STORE_SETTINGS.logoUrl,
+            logoDarkUrl: DEFAULT_STORE_SETTINGS.logoDarkUrl,
+            faviconUrl: DEFAULT_STORE_SETTINGS.faviconUrl,
             supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
             supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
             adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
@@ -70,6 +82,7 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
 
       if (settings) {
         console.log("[StoreSettings] Loaded from database:", {
+          storeName: settings.storeName,
           email: settings.supportEmail,
           phone: settings.supportPhone,
           footerPhone: settings.footerContactPhone,
@@ -106,6 +119,11 @@ export async function upsertStoreSettings(input: StoreSettingsInput) {
   await ensureStoreSettingsStorage();
 
   const data = {
+    storeName: normalizeOptionalText(input.storeName),
+    storeTagline: normalizeOptionalText(input.storeTagline),
+    logoUrl: normalizeOptionalText(input.logoUrl),
+    logoDarkUrl: normalizeOptionalText(input.logoDarkUrl),
+    faviconUrl: normalizeOptionalText(input.faviconUrl),
     supportEmail: normalizeOptionalText(input.supportEmail),
     supportPhone: normalizeOptionalText(input.supportPhone),
     adminNotificationEmail: normalizeOptionalText(input.adminNotificationEmail),

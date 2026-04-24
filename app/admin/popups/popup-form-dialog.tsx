@@ -256,6 +256,8 @@ export function PopupFormDialog({
               >
                 <option value="homepage">Homepage only</option>
                 <option value="all">All pages</option>
+                <option value="shop">Shop All / Products Page</option>
+                <option value="product">Individual Product Pages</option>
               </select>
             </label>
 

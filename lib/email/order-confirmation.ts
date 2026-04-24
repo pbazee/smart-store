@@ -140,8 +140,14 @@ function renderCustomerEmail(details: OrderEmailDetails, baseUrl: string) {
               <tr>
                 <td style="text-align:left;">
                   <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:36px;height:36px;border-radius:8px;background:#fb923c;display:flex;align-items:center;justify-content:center;color:#0f172a;font-weight:800;font-size:14px;">SK</div>
-                    <div style="font-weight:800;font-size:18px;color:#fff;">Smartest Store KE</div>
+                    ${
+                      details.storeSettings?.logoDarkUrl || details.storeSettings?.logoUrl
+                        ? `<img src="${details.storeSettings.logoDarkUrl || details.storeSettings.logoUrl}" alt="${details.storeSettings.storeName || "Smartest Store KE"}" style="height:36px;max-width:140px;object-fit:contain;display:block;" />`
+                        : `<div style="width:36px;height:36px;border-radius:8px;background:#fb923c;display:flex;align-items:center;justify-content:center;color:#0f172a;font-weight:800;font-size:14px;">SK</div>`
+                    }
+                    <div style="font-weight:800;font-size:18px;color:#fff;">${
+                      details.storeSettings?.storeName || "Smartest Store KE"
+                    }</div>
                   </div>
                 </td>
                 <td style="text-align:right;color:#38bdf8;font-weight:700;">Order Confirmed 🎉</td>

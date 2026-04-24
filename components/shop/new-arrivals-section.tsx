@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import type { Product } from "@/types";
-import { ProductCard } from "@/components/shop/product-card";
+import { HomepageProductCard } from "@/components/shop/homepage-product-card";
 
 export function NewArrivalsSection({ products }: { products: Product[] }) {
   if (products.length === 0) {
@@ -9,7 +9,10 @@ export function NewArrivalsSection({ products }: { products: Product[] }) {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <section
+      className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "1200px" }}
+    >
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 text-brand-500">
@@ -35,7 +38,11 @@ export function NewArrivalsSection({ products }: { products: Product[] }) {
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {products.slice(0, 8).map((product, index) => (
-          <ProductCard key={product.id} product={product} index={index} />
+          <HomepageProductCard
+            key={product.id}
+            product={product}
+            priority={index === 0}
+          />
         ))}
       </div>
     </section>

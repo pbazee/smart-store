@@ -5,10 +5,15 @@ import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { normalizeCheckoutPhoneNumber } from "@/lib/checkout-payload";
-import { getStoreSettings, upsertStoreSettings } from "@/lib/store-settings";
+import { getStoreSettings, STORE_SETTINGS_CACHE_TAG, upsertStoreSettings } from "@/lib/store-settings";
 import type { StoreSettings } from "@/types";
 
 const storeSettingsSchema = z.object({
+  storeName: z.string().trim().min(2, "Store name is required"),
+  storeTagline: z.string().trim().min(2, "Store tagline is required"),
+  logoUrl: z.string().trim().optional(),
+  logoDarkUrl: z.string().trim().optional(),
+  faviconUrl: z.string().trim().optional(),
   supportEmail: z.string().trim().email("Valid support email required"),
   supportPhone: z.string().trim().min(7, "Support phone is required"),
   adminNotificationEmail: z.string().trim().email("Admin notification email required"),
@@ -28,6 +33,7 @@ function normalizeOptionalPhone(phone?: string) {
 }
 
 function revalidateStorefront() {
+  revalidateTag(STORE_SETTINGS_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
@@ -38,6 +44,7 @@ function revalidateStorefront() {
   revalidatePath("/track-order");
   revalidatePath("/checkout/complete");
   revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
 }
 
@@ -71,6 +78,11 @@ export async function updateAdminStoreSettingsAction(
     }
 
     const settings = await upsertStoreSettings({
+      storeName: data.storeName,
+      storeTagline: data.storeTagline,
+      logoUrl: data.logoUrl,
+      logoDarkUrl: data.logoDarkUrl,
+      faviconUrl: data.faviconUrl,
       supportEmail: data.supportEmail,
       supportPhone: normalizeCheckoutPhoneNumber(data.supportPhone),
       adminNotificationEmail: data.adminNotificationEmail,

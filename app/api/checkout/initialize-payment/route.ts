@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -16,8 +17,10 @@ import {
   releaseReservationForReference,
 } from "@/lib/order-reservations";
 import { initializePaystackTransaction } from "@/lib/paystack";
+import { getPaystackPublicKey } from "@/lib/paystack-config";
 import { getSessionUser } from "@/lib/session-user";
 import { getShippingQuote } from "@/lib/shipping-rules";
+import { NEWSLETTER_CACHE_TAG } from "@/lib/newsletter-service";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -38,6 +41,7 @@ const initializePaymentSchema = z
     lastName: z.string().trim().min(2),
     email: z.string().trim().email(),
     phone: z.string().trim().min(10),
+    subscribeToNewsletter: z.boolean().default(true),
     address: z.string().trim().min(5),
     city: z.string().trim().min(2),
     county: z.string().trim().min(2),
@@ -190,8 +194,9 @@ export async function POST(req: NextRequest) {
       }/checkout/paystack-callback?reference=${encodeURIComponent(reference)}`;
     const channels =
       validatedData.paymentMethod === "mpesa"
-        ? (["mobile_money", "card"] as const)
-        : (["card", "mobile_money"] as const);
+        ? (["mobile_money"] as const)
+        : (["card"] as const);
+    const paystackPublicKey = getPaystackPublicKey();
 
     const order = await prisma.$transaction(async (tx) => {
       await releaseExpiredReservationsInTransaction(tx);
@@ -278,6 +283,20 @@ export async function POST(req: NextRequest) {
         include: { items: true },
       });
     });
+
+    if (validatedData.subscribeToNewsletter) {
+      await prisma.newsletterSubscriber.upsert({
+        where: { email: validatedData.email.trim().toLowerCase() },
+        update: {},
+        create: {
+          email: validatedData.email.trim().toLowerCase(),
+        },
+      });
+      revalidateTag(NEWSLETTER_CACHE_TAG);
+      revalidatePath("/admin/newsletter");
+      revalidatePath("/admin");
+    }
+
     let paystackTransaction;
 
     try {
@@ -358,6 +377,7 @@ export async function POST(req: NextRequest) {
             accessCode: paystackTransaction.accessCode,
             reference: paystackTransaction.reference,
             callbackUrl,
+            publicKey: paystackPublicKey,
             channels,
           },
         },

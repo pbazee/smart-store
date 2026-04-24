@@ -147,6 +147,11 @@ model WhatsAppSettings {
 
 model StoreSettings {
   id                     Int      @id @default(autoincrement())
+  storeName              String?
+  storeTagline           String?
+  logoUrl                String?
+  logoDarkUrl            String?
+  faviconUrl             String?
   supportEmail           String?
   supportPhone           String?
   adminNotificationEmail String?
@@ -290,9 +295,14 @@ model ShippingRule {
   id             Int      @id @default(autoincrement())
   name           String
   description    String?
-  locationScope  String
-  minOrderAmount Float?
-  cost           Float    @default(0)
+  county         String?
+  counties       String[] @default([])
+  deliveryFeeKES Int      @default(0)
+  estimatedDays  Int      @default(1)
+  countries      String[] @default(["Kenya"])
+  regions        String[]
+  towns          String[]
+  freeAboveKES   Int?
   isActive       Boolean  @default(true)
   priority       Int      @default(0)
   createdAt      DateTime @default(now())
@@ -390,6 +400,8 @@ enum CouponDiscountType {
 enum PopupDisplayTarget {
   homepage
   all
+  shop
+  product
 }
 
 enum SocialPlatform {

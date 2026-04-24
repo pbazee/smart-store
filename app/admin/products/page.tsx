@@ -1,13 +1,27 @@
 import {
   fetchAdminProducts,
+  fetchAdminProductCount,
   fetchInvalidAdminProductCount,
 } from "@/app/admin/products/actions";
 import { ProductsManager } from "@/app/admin/products/products-manager";
 import { fetchCategoriesAction } from "@/app/admin/categories/actions";
 
-export default async function AdminProductsPage() {
-  const [products, categories, invalidProductCount] = await Promise.all([
-    fetchAdminProducts(),
+export default async function AdminProductsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ page?: string; limit?: string; search?: string }>;
+}) {
+  const { page = "1", limit = "10", search } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.max(1, parseInt(limit));
+
+  const [products, total, categories, invalidProductCount] = await Promise.all([
+    fetchAdminProducts({ 
+        skip: (pageNum - 1) * limitNum, 
+        take: limitNum,
+        search
+    }),
+    fetchAdminProductCount(search),
     fetchCategoriesAction(),
     fetchInvalidAdminProductCount(),
   ]);
@@ -15,6 +29,10 @@ export default async function AdminProductsPage() {
   return (
     <ProductsManager
       initialProducts={products}
+      totalProducts={total}
+      page={pageNum}
+      limit={limitNum}
+      search={search}
       categories={categories}
       invalidProductCount={invalidProductCount}
     />

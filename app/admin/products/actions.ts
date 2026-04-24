@@ -86,14 +86,38 @@ async function normalizeAdminProductUpdateInput(
   };
 }
 
-export async function fetchAdminProducts() {
+export async function fetchAdminProducts(params?: { skip?: number; take?: number; search?: string }) {
   await ensureAdmin();
+  const { skip, take, search } = params || {};
 
   return (await prisma.product.findMany({
-    where: buildValidCatalogProductWhere(),
+    where: search 
+      ? {
+          OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { slug: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : buildValidCatalogProductWhere(),
     include: { variants: true },
     orderBy: { createdAt: "desc" },
+    skip,
+    take,
   })) as Product[];
+}
+
+export async function fetchAdminProductCount(search?: string) {
+    await ensureAdmin();
+    return prisma.product.count({
+        where: search 
+          ? {
+              OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { slug: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : buildValidCatalogProductWhere(),
+    });
 }
 
 export async function fetchInvalidAdminProductCount() {

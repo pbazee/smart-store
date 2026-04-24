@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
-const AccountMenu = dynamic(() => import("@/components/layout/account-menu").then(mod => mod.AccountMenu), { ssr: false });
-const SiteMenuDrawer = dynamic(() => import("@/components/layout/site-menu-drawer").then(mod => mod.SiteMenuDrawer), { ssr: false });
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
+import type { StoreSettings } from "@/types";
 import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+
+const AccountMenu = dynamic(
+  () => import("@/components/layout/account-menu").then((mod) => mod.AccountMenu),
+  { ssr: false }
+);
+const SiteMenuDrawer = dynamic(
+  () => import("@/components/layout/site-menu-drawer").then((mod) => mod.SiteMenuDrawer),
+  { ssr: false }
+);
 
 function DesktopNavLink({
   href,
@@ -120,11 +130,72 @@ function HeaderIconLink({
   );
 }
 
-export function Navbar() {
+function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | undefined }) {
+  const branding = getStoreLogoSetFromSettings(storeSettings);
+  const storeName = branding.storeName;
+  const lightLogo = branding.logoUrl;
+  const darkLogo = branding.logoDarkUrl || lightLogo;
+
+  if (lightLogo || darkLogo) {
+    return (
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="relative h-10 w-[132px] shrink-0">
+          {lightLogo ? (
+            <Image
+              src={lightLogo}
+              alt={storeName}
+              fill
+              sizes="132px"
+              className={cn("object-contain dark:hidden")}
+              priority
+            />
+          ) : null}
+          {darkLogo ? (
+            <Image
+              src={darkLogo}
+              alt={storeName}
+              fill
+              sizes="132px"
+              className={cn("hidden object-contain dark:block")}
+              priority
+            />
+          ) : null}
+        </div>
+        <div className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-muted-foreground">
+                {branding.storeTagline}
+              </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
+        SK
+      </div>
+      <div className="min-w-0">
+        <span className="block truncate font-display text-xl font-black tracking-tight">
+          {storeName}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function Navbar({
+  initialStoreSettings,
+}: {
+  initialStoreSettings?: StoreSettings | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null | undefined>(
+    initialStoreSettings
+  );
   const { resolvedTheme, setTheme } = useTheme();
   const { hasHydrated, cartCount, toggleCart, closeCart } = useCartStore(
     useShallow((state) => ({
@@ -141,9 +212,25 @@ export function Navbar() {
 
   useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about", wishlistHref, accountHref]);
 
-  const handleCartClick = () => {
-    toggleCart();
-  };
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/store-settings", { cache: "no-store" });
+        const data = await response.json();
+        if (!cancelled && response.ok && data?.data) {
+          setStoreSettings(data.data as StoreSettings);
+        }
+      } catch (error) {
+        console.error("Failed to refresh store settings in navbar:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const submitSearch = (form: HTMLFormElement) => {
     const q = (form.elements.namedItem("q") as HTMLInputElement).value;
@@ -157,18 +244,11 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/92 backdrop-blur-xl">
+    <header className="relative z-40 w-full border-b border-border/70 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="hidden min-h-[84px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-6 py-3 md:grid">
           <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
-              SK
-            </div>
-            <div className="min-w-0">
-              <span className="block truncate font-display text-xl font-black tracking-tight">
-                Smartest Store KE
-              </span>
-            </div>
+            <BrandMark storeSettings={storeSettings} />
           </Link>
 
           <SearchForm
@@ -208,7 +288,7 @@ export function Navbar() {
             </HeaderIconButton>
 
             <HeaderIconButton
-              onClick={handleCartClick}
+              onClick={toggleCart}
               className={pathname === "/cart" ? "border-orange-200 bg-muted text-foreground" : ""}
               aria-label="Open cart"
               suppressHydrationWarning
@@ -237,16 +317,13 @@ export function Navbar() {
         <div className="py-3 md:hidden">
           <div className="flex items-center gap-2">
             <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
-                SK
-              </div>
+              <BrandMark storeSettings={storeSettings} />
             </Link>
 
             <div className="flex-1">
               <SearchForm
                 defaultValue={searchValue}
                 onSubmit={submitSearch}
-                className=""
                 inputClassName="h-10"
               />
             </div>
@@ -269,10 +346,7 @@ export function Navbar() {
         </div>
       </div>
 
-      <SiteMenuDrawer
-        open={menuOpen}
-        onOpenChange={setMenuOpen}
-      />
+      <SiteMenuDrawer open={menuOpen} onOpenChange={setMenuOpen} />
     </header>
   );
 }

@@ -73,7 +73,7 @@ export type CustomerData = {
   lastName: string;
   email: string;
   phone: string;
-  wantsNewsletter?: boolean;
+  subscribeToNewsletter?: boolean;
 };
 
 export type ShippingData = {
@@ -128,6 +128,7 @@ export function buildCheckoutPayload(input: {
     lastName: checkoutData.customer.lastName.trim(),
     email: checkoutData.customer.email.trim().toLowerCase(),
     phone: normalizeCheckoutPhoneNumber(checkoutData.customer.phone),
+    subscribeToNewsletter: checkoutData.customer.subscribeToNewsletter ?? true,
     address: checkoutData.shipping.address.trim(),
     city: checkoutData.shipping.city.trim(),
     county: checkoutData.shipping.county.trim(),

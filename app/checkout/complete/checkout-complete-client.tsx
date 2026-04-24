@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle, Loader2, Receipt, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/lib/store";
@@ -55,6 +56,7 @@ function CheckoutCompleteContent({
   supportPhone: string;
 }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +117,7 @@ function CheckoutCompleteContent({
                 })
               )
               .catch(() => undefined);
-            setResult(confirmation);
+            router.replace(`/order-confirmation/${confirmation.orderId}`);
             return;
           }
 
@@ -146,7 +148,7 @@ function CheckoutCompleteContent({
     return () => {
       isCancelled = true;
     };
-  }, [clearCart, searchParams, toast]);
+  }, [clearCart, router, searchParams, toast]);
 
   if (result) {
     const createdAt = result.createdAt ? new Date(result.createdAt) : new Date();

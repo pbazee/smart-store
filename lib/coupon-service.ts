@@ -103,6 +103,14 @@ export function getCouponDiscountAmount(coupon: Coupon, subtotal: number) {
   return Math.max(0, Math.min(rawDiscount, subtotal));
 }
 
+function getCouponDescription(coupon: Coupon) {
+  if (coupon.discountType === "percentage") {
+    return `${coupon.discountValue}% off your order`;
+  }
+
+  return `KSh ${Math.round(coupon.discountValue)} off your order`;
+}
+
 export async function validateCouponForSubtotal(input: {
   code: string;
   subtotal: number;
@@ -154,6 +162,7 @@ export async function validateCouponForSubtotal(input: {
     discountType: coupon.discountType,
     discountValue: coupon.discountValue,
     discountAmount,
+    description: getCouponDescription(coupon),
   };
 }
 

@@ -23,6 +23,19 @@ export function PopupsManager({
     [popups]
   );
 
+  const getTargetLabel = (showOn: Popup["showOn"]) => {
+    switch (showOn) {
+      case "all":
+        return "All pages";
+      case "shop":
+        return "Shop All / Products Page";
+      case "product":
+        return "Individual Product Pages";
+      default:
+        return "Homepage";
+    }
+  };
+
   const handleSavedPopup = (popup: Popup) => {
     setPopups((current) => {
       const exists = current.some((item) => item.id === popup.id);
@@ -127,7 +140,7 @@ export function PopupsManager({
                       {popup.isActive ? "Active" : "Inactive"}
                     </span>
                     <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-300">
-                      {popup.showOn === "all" ? "All pages" : "Homepage"}
+                      {getTargetLabel(popup.showOn)}
                     </span>
                   </div>
                   <h2 className="mt-4 text-2xl font-black text-white">{popup.title}</h2>

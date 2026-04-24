@@ -1,185 +1,140 @@
-import { DEFAULT_SHIPPING_RULES } from "@/lib/default-shipping-rules";
-import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { ensureShippingRuleStorage } from "@/lib/runtime-schema-repair";
 import type { ShippingRule } from "@/types";
 
 type ShippingInput = {
   subtotal: number;
-  county: string;
+  county?: string;
   city?: string;
 };
 
-type ShippingMatch = {
+export type ShippingMatch = {
+  ruleId: number | null;
+  ruleName: string;
   cost: number;
-  ruleId?: number | null;
-  ruleName?: string | null;
+  zoneName: string;
+  county: string;
+  counties: string[];
+  deliveryFeeKES: number;
+  estimatedDays: number;
+  freeAboveKES: number | null;
+  noMatch?: boolean;
 };
 
-let demoShippingRules: ShippingRule[] = DEFAULT_SHIPPING_RULES.map((rule, index) => ({
-  id: index + 1,
-  ...rule,
-  minOrderAmount: rule.minOrderAmount ?? null,
-  cost: rule.cost,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}));
-
-function normalizeCounty(value?: string | null) {
-  return (value || "").trim().toLowerCase();
+function normalizeCountyName(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
 }
 
-function matchesRule(input: ShippingInput, rule: ShippingRule) {
-  const county = normalizeCounty(input.county);
-  const city = normalizeCounty(input.city);
-  const scope = (rule.locationScope || "").trim().toLowerCase();
+function getRuleCounties(rule: ShippingRule) {
+  const counties = [
+    ...(Array.isArray(rule.counties) ? rule.counties : []),
+    ...(rule.county ? [rule.county] : []),
+  ]
+    .map((county) => county.trim())
+    .filter(Boolean);
 
-  const meetsMin =
-    rule.minOrderAmount == null || Number.isNaN(rule.minOrderAmount)
-      ? true
-      : input.subtotal >= rule.minOrderAmount;
-
-  if (!meetsMin) {
-    return false;
-  }
-
-  if (scope === "nairobi") {
-    return county.includes("nairobi") || city.includes("nairobi");
-  }
-
-  if (scope === "kenya") {
-    return true; // default country scope (all Kenyan addresses)
-  }
-
-  if (scope === "other") {
-    return true;
-  }
-
-  return false;
+  return [...new Set(counties)];
 }
 
-export function pickShippingRule(input: ShippingInput, rules: ShippingRule[]): ShippingMatch {
-  const ordered = [...rules].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+function formatMatch(rule: ShippingRule, subtotal: number, county: string): ShippingMatch {
+  const qualifyingForFreeShipping =
+    typeof rule.freeAboveKES === "number" &&
+    rule.freeAboveKES > 0 &&
+    subtotal >= rule.freeAboveKES;
+  const cost = qualifyingForFreeShipping ? 0 : rule.deliveryFeeKES;
 
-  for (const rule of ordered) {
-    if (!rule.isActive) continue;
-    if (matchesRule(input, rule)) {
-      return {
-        cost: Math.round(Number(rule.cost) || 0),
-        ruleId: rule.id,
-        ruleName: rule.name,
-      };
-    }
-  }
-
-  return { cost: 0, ruleId: null, ruleName: null };
+  return {
+    ruleId: rule.id,
+    ruleName: rule.name,
+    cost,
+    zoneName: rule.name,
+    county,
+    counties: getRuleCounties(rule),
+    deliveryFeeKES: cost,
+    estimatedDays: rule.estimatedDays,
+    freeAboveKES: rule.freeAboveKES ?? null,
+  };
 }
 
 export async function getShippingRules(options: { activeOnly?: boolean } = {}) {
   const { activeOnly = false } = options;
-
-  if (shouldUseMockData()) {
-    return demoShippingRules.filter((rule) => (activeOnly ? rule.isActive : true));
-  }
+  await ensureShippingRuleStorage();
 
   const rules = await prisma.shippingRule.findMany({
     where: activeOnly ? { isActive: true } : undefined,
-    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
   });
 
-  return rules as ShippingRule[];
+  return rules as unknown as ShippingRule[];
 }
 
-export async function upsertShippingRule(input: Omit<ShippingRule, "createdAt" | "updatedAt">) {
-  if (shouldUseMockData()) {
-    if (input.id) {
-      const existingIndex = demoShippingRules.findIndex((rule) => rule.id === input.id);
-      const existing = demoShippingRules[existingIndex];
-      const updated: ShippingRule = {
-        ...(existing ?? { id: input.id }),
-        ...input,
-        createdAt: existing?.createdAt ?? new Date(),
-        updatedAt: new Date(),
-      };
-      if (existingIndex >= 0) {
-        demoShippingRules[existingIndex] = updated;
-      } else {
-        demoShippingRules.push(updated);
-      }
-      return updated;
-    }
+export function findMatchingZone(input: ShippingInput, zones: ShippingRule[]): ShippingMatch {
+  const county = input.county?.trim() ?? "";
+  const normalizedCounty = normalizeCountyName(county);
+  const sortedZones = [...zones].sort((a, b) => b.priority - a.priority);
 
-    const next: ShippingRule = {
-      ...input,
-      id: demoShippingRules.length ? Math.max(...demoShippingRules.map((r) => r.id)) + 1 : 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+  const matchingRule = sortedZones.find((zone) =>
+    getRuleCounties(zone).some((zoneCounty) => normalizeCountyName(zoneCounty) === normalizedCounty)
+  );
+
+  if (!matchingRule) {
+    return {
+      ruleId: null,
+      ruleName: "Shipping to be confirmed",
+      cost: 0,
+      zoneName: "",
+      county,
+      counties: [],
+      deliveryFeeKES: 0,
+      estimatedDays: 0,
+      freeAboveKES: null,
+      noMatch: true,
     };
-    demoShippingRules.push(next);
-    return next;
   }
 
-  const { id, ...rest } = input;
-  return prisma.shippingRule.upsert({
-    where: { id: id ?? 0 },
-    update: rest,
-    create: rest,
-  });
+  return formatMatch(matchingRule, input.subtotal, county);
 }
 
-export async function deleteShippingRule(id: number) {
-  if (shouldUseMockData()) {
-    demoShippingRules = demoShippingRules.filter((rule) => rule.id !== id);
-    return;
-  }
-
-  await prisma.shippingRule.delete({ where: { id } });
+export async function getShippingQuote(input: ShippingInput) {
+  const rules = await getShippingRules({ activeOnly: true });
+  return findMatchingZone(input, rules);
 }
 
-export async function seedDefaultShippingRules() {
-  if (shouldUseMockData()) {
-    demoShippingRules = DEFAULT_SHIPPING_RULES.map((rule, index) => ({
-      id: index + 1,
-      ...rule,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
-    return;
-  }
+export async function upsertShippingZones(zones: Array<Partial<ShippingRule>>) {
+  await ensureShippingRuleStorage();
 
-  for (const rule of DEFAULT_SHIPPING_RULES) {
-    const existing = await prisma.shippingRule.findFirst({
-      where: { name: rule.name },
+  return prisma.$transaction(async (tx) => {
+    await tx.shippingRule.deleteMany({});
+
+    const sanitizedZones = zones.map((zone, index) => {
+      const counties = [...new Set((zone.counties ?? []).map((county) => county.trim()).filter(Boolean))];
+
+      return tx.shippingRule.create({
+        data: {
+          name: zone.name?.trim() || `Zone ${index + 1}`,
+          description: zone.description?.trim() || null,
+          county: counties[0] ?? null,
+          counties,
+          deliveryFeeKES: Number(zone.deliveryFeeKES ?? 0),
+          estimatedDays: Math.max(1, Number(zone.estimatedDays ?? 1)),
+          countries: ["Kenya"],
+          regions: [],
+          towns: [],
+          freeAboveKES:
+            zone.freeAboveKES === null || zone.freeAboveKES === undefined || zone.freeAboveKES === 0
+              ? null
+              : Number(zone.freeAboveKES),
+          isActive: Boolean(zone.isActive),
+          priority: zones.length - index,
+        },
+      });
     });
 
-    if (existing) {
-      await prisma.shippingRule.update({
-        where: { id: existing.id },
-        data: {
-          description: rule.description,
-          locationScope: rule.locationScope,
-          minOrderAmount: rule.minOrderAmount,
-          cost: rule.cost,
-          isActive: rule.isActive,
-          priority: rule.priority,
-        },
-      });
-    } else {
-      await prisma.shippingRule.create({
-        data: {
-          name: rule.name,
-          description: rule.description,
-          locationScope: rule.locationScope,
-          minOrderAmount: rule.minOrderAmount,
-          cost: rule.cost,
-          isActive: rule.isActive,
-          priority: rule.priority,
-        },
-      });
-    }
-  }
+    return Promise.all(sanitizedZones);
+  });
 }
 
-export async function getShippingQuote(input: ShippingInput): Promise<ShippingMatch> {
-  const rules = await getShippingRules({ activeOnly: true });
-  return pickShippingRule(input, rules);
+export async function deleteShippingZone(id: number) {
+  await ensureShippingRuleStorage();
+  return prisma.shippingRule.delete({ where: { id } });
 }

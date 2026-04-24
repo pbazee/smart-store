@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { CreditCard, MapPin, Shield, Smartphone } from "lucide-react";
 import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form";
 import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { resolveSupportContactInfo } from "@/lib/support-contact";
 import type { SocialLink, StoreSettings } from "@/types";
@@ -30,6 +32,7 @@ export async function Footer({
 
   const { supportEmail, footerContactPhone, footerTel } =
     resolveSupportContactInfo(resolvedStoreSettings);
+  const branding = getStoreLogoSetFromSettings(resolvedStoreSettings);
 
   return (
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
@@ -37,12 +40,24 @@ export async function Footer({
         <div className="mb-12 grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr,0.9fr,0.9fr,0.9fr,1.2fr]">
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-brand-500">
-                <span className="text-xs font-bold text-white">SK</span>
-              </div>
-              <span className="text-lg font-bold text-white">
-                Smartest Store <span className="text-brand-500">KE</span>
-              </span>
+              {branding.logoDarkUrl || branding.logoUrl ? (
+                <div className="relative h-10 w-[140px]">
+                  <Image
+                    src={branding.logoDarkUrl || branding.logoUrl || ""}
+                    alt={branding.storeName}
+                    fill
+                    sizes="140px"
+                    className="object-contain"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-brand-500">
+                    <span className="text-xs font-bold text-white">SK</span>
+                  </div>
+                  <span className="text-lg font-bold text-white">{branding.storeName}</span>
+                </>
+              )}
             </div>
             <p className="text-sm leading-relaxed">
               Kenya&apos;s smartest fashion destination. Premium shoes, clothes, and streetwear.
@@ -55,10 +70,11 @@ export async function Footer({
             <ul className="space-y-2 text-sm">
               {[
                 { label: "All Products", href: "/shop" },
-                { label: "Sneakers", href: "/shop?category=shoes" },
-                { label: "Streetwear", href: "/shop?subcategory=t-shirts" },
+                { label: "Recommended", href: "/shop?sort=recommended" },
+                { label: "Popular Products", href: "/shop?sort=popular" },
                 { label: "New Arrivals", href: "/shop?collection=new-arrivals" },
                 { label: "Trending", href: "/shop?collection=trending" },
+                { label: "Explore by City", href: "/shop?filter=city" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} className="transition-colors hover:text-white">

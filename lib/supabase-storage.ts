@@ -6,6 +6,8 @@ const DEFAULT_BLOG_IMAGE_BUCKET =
   process.env.SUPABASE_BLOG_IMAGE_BUCKET || "blog-images";
 const DEFAULT_POPUP_IMAGE_BUCKET =
   process.env.SUPABASE_POPUP_IMAGE_BUCKET || "popup-images";
+const DEFAULT_STORE_ASSETS_BUCKET =
+  process.env.SUPABASE_STORE_ASSETS_BUCKET || "store-assets";
 const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024;
 
 function getSupabaseUrl() {
@@ -55,13 +57,18 @@ export function getPopupImageBucketName() {
   return DEFAULT_POPUP_IMAGE_BUCKET;
 }
 
+export function getStoreAssetsBucketName() {
+  return DEFAULT_STORE_ASSETS_BUCKET;
+}
+
 async function uploadImageToBucket(input: {
   file: File;
   bucket: string;
   fallbackName: string;
   contextLabel: string;
+  folder?: string;
 }) {
-  const { file, bucket, fallbackName, contextLabel } = input;
+  const { file, bucket, fallbackName, contextLabel, folder } = input;
 
   if (file.size > MAX_UPLOAD_FILE_SIZE) {
     throw new Error("Please upload an image smaller than 5MB.");
@@ -76,10 +83,8 @@ async function uploadImageToBucket(input: {
     return createInlineImageDataUrl(buffer, mimeType);
   }
 
-  const objectPath = `${Date.now()}-${crypto.randomUUID()}-${sanitizeFileName(
-    file.name,
-    fallbackName
-  )}`;
+  const fileName = `${Date.now()}-${crypto.randomUUID()}-${sanitizeFileName(file.name, fallbackName)}`;
+  const objectPath = folder ? `${folder.replace(/^\/+|\/+$/g, "")}/${fileName}` : fileName;
 
   try {
     const response = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`, {
@@ -224,5 +229,23 @@ export async function deletePopupImage(imageUrl?: string | null) {
     imageUrl,
     bucket: DEFAULT_POPUP_IMAGE_BUCKET,
     contextLabel: "Popup",
+  });
+}
+
+export async function uploadStoreAsset(file: File, fallbackName: string, folder?: string) {
+  return uploadImageToBucket({
+    file,
+    bucket: DEFAULT_STORE_ASSETS_BUCKET,
+    fallbackName,
+    contextLabel: "store asset",
+    folder,
+  });
+}
+
+export async function deleteStoreAsset(imageUrl?: string | null) {
+  return deleteImageFromBucket({
+    imageUrl,
+    bucket: DEFAULT_STORE_ASSETS_BUCKET,
+    contextLabel: "Store asset",
   });
 }

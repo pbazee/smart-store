@@ -14,6 +14,7 @@ import { createDefaultWhatsAppSettings } from "@/lib/default-whatsapp-settings";
 import { getSocialLinks } from "@/lib/social-link-service";
 import { getWhatsAppSettings, getWhatsAppSettingsFallback } from "@/lib/whatsapp-service";
 import { getStoreSettings, getStoreSettingsFallback } from "@/lib/store-settings";
+import { STORE_SETTINGS_TAG } from "@/lib/store-branding";
 import type {
   AnnouncementMessage,
   BlogPost,
@@ -455,8 +456,8 @@ const getHomepageShellDataForProd = unstable_cache(
   () => resolveHomepageShellData({ allowRuntimeFallbacks: false }),
   ["homepage-shell", HOMEPAGE_CACHE_VERSION],
   {
-  revalidate: HOMEPAGE_REVALIDATE_SECONDS,
-  tags: [HOMEPAGE_CACHE_TAG],
+    revalidate: HOMEPAGE_REVALIDATE_SECONDS,
+  tags: [HOMEPAGE_CACHE_TAG, "popups", STORE_SETTINGS_TAG],
   }
 );
 

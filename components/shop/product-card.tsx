@@ -22,6 +22,8 @@ const CARD_BLUR_DATA_URL = createBlurDataURL({
 interface ProductCardProps {
   product: Product;
   index?: number;
+  priority?: boolean;
+  sizes?: string;
 }
 
 function prefetchProductRoute(
@@ -37,7 +39,12 @@ function prefetchProductRoute(
   router.prefetch(href);
 }
 
-function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
+function ProductCardComponent({
+  product,
+  index = 0,
+  priority = false,
+  sizes = "(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw",
+}: ProductCardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const linkRef = useRef<HTMLAnchorElement | null>(null);
@@ -149,12 +156,13 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
               src={product.images[0] || "/images/product-placeholder.png"}
               alt={product.name}
               fill
-              loading="lazy"
+              priority={priority}
+              loading={priority ? undefined : "lazy"}
               placeholder="blur"
               quality={80}
               blurDataURL={CARD_BLUR_DATA_URL}
               className="object-cover transition-transform duration-500 group-hover:scale-110"
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              sizes={sizes}
             />
 
             {/* Badges */}
@@ -165,7 +173,7 @@ function ProductCardComponent({ product, index = 0 }: ProductCardProps) {
                 </span>
               )}
               {product.tags.includes("trending") && (
-                <span className="rounded-full bg-neutral-900/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                <span className="rounded-full bg-neutral-900/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                   Trending
                 </span>
               )}

@@ -4,17 +4,16 @@ export type NavigationLink = {
 };
 
 export const primaryCategoryLinks: NavigationLink[] = [
+  { href: "/shop", label: "Products" },
   { href: "/shop?gender=men", label: "Men" },
   { href: "/shop?gender=women", label: "Women" },
-  { href: "/shop?gender=children", label: "Children" },
 ];
 
 export const drawerMenuLinks: NavigationLink[] = [
   { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop All" },
+  { href: "/shop", label: "Products" },
   { href: "/shop?gender=men", label: "Men" },
   { href: "/shop?gender=women", label: "Women" },
-  { href: "/shop?gender=children", label: "Children" },
   { href: "/shop?collection=new-arrivals", label: "New Arrivals" },
   { href: "/shop?collection=trending", label: "Trending" },
   { href: "/blog", label: "Blog" },
@@ -45,6 +44,10 @@ export function isNavigationLinkActive(
   }
 
   if (!targetQuery) {
+    if (href === "/shop" && searchParams.get("gender")) {
+      return false;
+    }
+
     return true;
   }
 

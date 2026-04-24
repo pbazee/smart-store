@@ -26,6 +26,7 @@ export type ProductQueryFilters = {
   isTrending?: boolean;
   isRecommended?: boolean;
   take?: number;
+  skip?: number;
 };
 
 type LiveDataQueryOptions = {
@@ -56,6 +57,7 @@ function normalizeProductFilters(filters?: ProductQueryFilters): ProductQueryFil
     isTrending: filters.isTrending,
     isRecommended: filters.isRecommended,
     take: filters.take,
+    skip: filters.skip,
   };
 }
 
@@ -245,6 +247,7 @@ export async function getProducts(
       include: { variants: true },
       orderBy: productOrderBy,
       take: normalizedFilters.take,
+      skip: normalizedFilters.skip,
     })) as Product[];
 
   if (options.cacheKey) {
@@ -277,33 +280,94 @@ export async function getProductByIdentifier(identifier: string): Promise<Produc
   }) as Promise<Product | null>;
 }
 
-export async function getFeaturedProducts(take?: number): Promise<Product[]> {
-  return getProducts({ isFeatured: true, take });
+export async function getCountProducts(filters?: ProductQueryFilters) {
+  return prisma.product.count({
+    where: buildProductWhere(filters),
+  });
 }
 
-export async function getTrendingProducts(take?: number): Promise<Product[]> {
-  return getProducts({ isTrending: true, take });
-}
-
-export async function getPopularProducts(take?: number): Promise<Product[]> {
-  return getProducts({ isPopular: true, take });
-}
-
-export async function getRecommendedProducts(take?: number): Promise<Product[]> {
-  return getProducts({ isRecommended: true, take });
-}
-
-export async function getNewArrivals(take?: number): Promise<Product[]> {
-  return getProducts({ isNew: true, take });
-}
-
-export async function getAllOrders(): Promise<Order[]> {
+export async function getAllOrders(params?: { skip?: number; take?: number }) {
+  const { skip, take } = params || {};
   const orders = await prisma.order.findMany({
     include: { items: true },
     orderBy: { createdAt: "desc" },
+    skip,
+    take,
   });
 
   return orders as unknown as Order[];
+}
+
+export async function getCountOrders() {
+  return prisma.order.count();
+}
+
+export type AdminOrdersQuery = {
+  search?: string;
+  status?: string;
+  skip?: number;
+  take?: number;
+};
+
+function buildAdminOrdersWhere(query: AdminOrdersQuery = {}): Prisma.OrderWhereInput {
+  const clauses: Prisma.OrderWhereInput[] = [];
+  const search = query.search?.trim();
+  const status = query.status?.trim().toLowerCase();
+
+  if (search) {
+    clauses.push({
+      OR: [
+        { orderNumber: { contains: search, mode: "insensitive" } },
+        { customerName: { contains: search, mode: "insensitive" } },
+        { customerEmail: { contains: search, mode: "insensitive" } },
+        { paymentMethod: { contains: search, mode: "insensitive" } },
+        { status: { equals: search.toLowerCase() as any } },
+        { paymentStatus: { equals: search.toLowerCase() as any } },
+      ],
+    });
+  }
+
+  if (status && status !== "all") {
+    if (status === "paid") {
+      clauses.push({ paymentStatus: "paid" });
+    } else if (
+      status === "pending" ||
+      status === "processing" ||
+      status === "shipped" ||
+      status === "delivered" ||
+      status === "cancelled"
+    ) {
+      clauses.push({ status });
+    }
+  }
+
+  if (clauses.length === 0) {
+    return {};
+  }
+
+  if (clauses.length === 1) {
+    return clauses[0];
+  }
+
+  return { AND: clauses };
+}
+
+export async function getAdminOrders(query: AdminOrdersQuery = {}) {
+  const where = buildAdminOrdersWhere(query);
+
+  return prisma.order.findMany({
+    where,
+    include: { items: true },
+    orderBy: { createdAt: "desc" },
+    skip: query.skip,
+    take: query.take,
+  }) as Promise<Order[]>;
+}
+
+export async function getAdminOrdersCount(query: AdminOrdersQuery = {}) {
+  return prisma.order.count({
+    where: buildAdminOrdersWhere(query),
+  });
 }
 
 export async function getAdminOrderByIdentifier(
@@ -356,7 +420,7 @@ export async function getAdminDashboardStats() {
       }),
       prisma.order.findMany({
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take: 5, // Hardcapped at 5 for performance as requested
         select: {
           id: true,
           orderNumber: true,
@@ -372,6 +436,23 @@ export async function getAdminDashboardStats() {
 
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
   const now = new Date();
+  
+  // Calculate trend (% vs last month)
+  const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const lastMonthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+  const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+  const lastMonthRevenue = paidOrders
+    .filter(o => o.createdAt >= lastMonthStart && o.createdAt <= lastMonthEnd)
+    .reduce((sum, o) => sum + o.total, 0);
+  const thisMonthRevenue = paidOrders
+    .filter(o => o.createdAt >= thisMonthStart)
+    .reduce((sum, o) => sum + o.total, 0);
+    
+  const revenueTrend = lastMonthRevenue > 0 
+    ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+    : 0;
+
   const monthBuckets = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
 
@@ -379,6 +460,7 @@ export async function getAdminDashboardStats() {
       key: `${date.getUTCFullYear()}-${date.getUTCMonth()}`,
       month: date.toLocaleString("en-KE", { month: "short", timeZone: "UTC" }),
       revenue: 0,
+      orderCount: 0,
     };
   });
   const revenueByMonth = new Map(monthBuckets.map((bucket) => [bucket.key, bucket]));
@@ -390,14 +472,69 @@ export async function getAdminDashboardStats() {
       bucket.revenue += order.total;
     }
   }
+  
+  // Get all orders for count trends
+  const allOrders = await prisma.order.findMany({
+      select: { createdAt: true },
+  });
+  
+  for (const order of allOrders) {
+      const key = `${order.createdAt.getUTCFullYear()}-${order.createdAt.getUTCMonth()}`;
+      const bucket = revenueByMonth.get(key);
+      if (bucket) {
+          bucket.orderCount += 1;
+      }
+  }
+
+  // Top 3 Selling Products
+  const topProducts = await prisma.orderItem.groupBy({
+      by: ["productId"],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
+      take: 3,
+  });
+  
+  const topProductDetails = await Promise.all(
+      topProducts.map(async (p) => {
+          const details = await prisma.product.findUnique({
+              where: { id: p.productId },
+              select: { name: true, images: true, basePrice: true }
+          });
+          return {
+              ...details,
+              unitsSold: p._sum.quantity || 0,
+          };
+      })
+  );
+
+  // Today's stats
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayOrders = allOrders.filter(o => o.createdAt >= todayStart).length;
+  const pendingOrdersCount = await prisma.order.count({ where: { status: "pending" } });
+  
+  // Needs attention (pending > 24h)
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const needsAttention = await prisma.order.count({
+      where: {
+          status: "pending",
+          createdAt: { lt: yesterday }
+      }
+  });
 
     return {
       totalRevenue,
+      revenueTrend,
       totalOrders,
       totalProducts,
       lowStockProducts: lowStockProducts as Product[],
       revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
       recentOrders,
+      topProducts: topProductDetails,
+      todayOrders,
+      pendingOrdersCount,
+      needsAttentionCount: needsAttention,
+      lastUpdated: new Date().toISOString()
     };
 }
 

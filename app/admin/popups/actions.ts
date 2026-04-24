@@ -6,6 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { getPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
+import { ensurePopupStorage } from "@/lib/runtime-schema-repair";
 import { deletePopupImage, uploadPopupImage } from "@/lib/supabase-storage";
 import type { Popup } from "@/types";
 
@@ -17,7 +18,7 @@ const optionalImageUrlSchema = z
   .refine(
     (value) => {
       if (!value) return true;
-      if (value.startsWith("data:image/") || value.startsWith("/")) return true;
+      if (value.startsWith("/")) return true;
       try { new URL(value); return true; } catch { return false; }
     },
     { message: "Image must be a valid URL or uploaded image." }
@@ -42,7 +43,7 @@ const adminPopupSchema = z.object({
   imageUrl: optionalImageUrlSchema,
   ctaText: z.string().trim().min(2, "CTA text is required").max(40, "Keep it under 40 characters"),
   ctaLink: popupLinkSchema,
-  showOn: z.enum(["homepage", "all"]),
+  showOn: z.enum(["homepage", "all", "shop", "product"]),
   delaySeconds: z.number().int().min(0).max(30),
   isActive: z.boolean().default(true),
   expiresAt: z.string().trim().optional().or(z.literal("")),
@@ -81,14 +82,17 @@ function normalizePopupInput(input: AdminPopupInput) {
 
 function revalidatePopupPaths() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidateTag("popups");
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/popups");
 }
 
 export async function fetchAdminPopups() {
   await ensureAdmin();
+  await ensurePopupStorage();
   return getPopups();
 }
 
@@ -110,6 +114,7 @@ export async function cleanupPopupImageAction(imageUrl: string) {
 
 export async function createAdminPopupAction(input: AdminPopupInput) {
   await ensureAdmin();
+  await ensurePopupStorage();
   const data = normalizePopupInput(input);
 
   const popup = await prisma.popup.create({
@@ -132,6 +137,7 @@ export async function createAdminPopupAction(input: AdminPopupInput) {
 
 export async function updateAdminPopupAction(input: AdminPopupInput) {
   await ensureAdmin();
+  await ensurePopupStorage();
   const id = z.string().min(1).parse(input.id);
   const normalized = normalizePopupInput({ ...input, id });
 
@@ -163,6 +169,7 @@ export async function updateAdminPopupAction(input: AdminPopupInput) {
 
 export async function deleteAdminPopupAction(popupId: string) {
   await ensureAdmin();
+  await ensurePopupStorage();
   const id = z.string().min(1).parse(popupId);
 
   const existingPopup = await prisma.popup.findUnique({ where: { id } });

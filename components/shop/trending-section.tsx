@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, TrendingUp } from "lucide-react";
 import type { Product } from "@/types";
-import { ProductCard } from "@/components/shop/product-card";
+import { HomepageProductCard } from "@/components/shop/homepage-product-card";
 
 export function TrendingSection({ products }: { products: Product[] }) {
   if (products.length === 0) {
@@ -9,7 +9,10 @@ export function TrendingSection({ products }: { products: Product[] }) {
   }
 
   return (
-    <section className="bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.12),_transparent_28%),linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)] py-16 text-white">
+    <section
+      className="bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.12),_transparent_28%),linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)] py-16 text-white"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "1200px" }}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
@@ -38,7 +41,11 @@ export function TrendingSection({ products }: { products: Product[] }) {
 
         <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
           {products.slice(0, 8).map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
+            <HomepageProductCard
+              key={product.id}
+              product={product}
+              priority={index === 0}
+            />
           ))}
         </div>
       </div>

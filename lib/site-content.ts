@@ -140,10 +140,9 @@ export const popularBrands: PopularBrand[] = [
 
 export const desktopSecondaryLinks = [
   { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop All" },
+  { href: "/shop", label: "Products" },
   { href: "/shop?gender=men", label: "Men" },
   { href: "/shop?gender=women", label: "Women" },
-  { href: "/shop?gender=children", label: "Children" },
   { href: "/shop?collection=new-arrivals", label: "New Arrivals" },
   { href: "/shop?collection=trending", label: "Trending" },
   { href: "/blog", label: "Blog" },
@@ -156,10 +155,9 @@ export const mobileMenuSections = [
     title: "Shop",
     links: [
       { href: "/", label: "Home" },
-      { href: "/shop", label: "Shop All" },
+      { href: "/shop", label: "Products" },
       { href: "/shop?gender=men", label: "Men" },
       { href: "/shop?gender=women", label: "Women" },
-      { href: "/shop?gender=children", label: "Children" },
       { href: "/brands", label: "Brands" },
       { href: "/shop?collection=new-arrivals", label: "New Arrivals" },
       { href: "/shop?collection=trending", label: "Trending" },

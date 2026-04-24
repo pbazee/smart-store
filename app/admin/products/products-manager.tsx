@@ -2,13 +2,12 @@
 
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   useReactTable,
   type ColumnDef,
-  type PaginationState,
   type RowSelectionState,
 } from "@tanstack/react-table";
 import {
@@ -19,6 +18,8 @@ import {
   Plus,
   Search,
   Trash2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import {
   deleteAdminProductsAction,
@@ -31,6 +32,10 @@ import type { Product, Category } from "@/types";
 
 type ProductsManagerProps = {
   initialProducts: Product[];
+  totalProducts: number;
+  page: number;
+  limit: number;
+  search?: string;
   categories: Category[];
   invalidProductCount: number;
 };
@@ -44,7 +49,6 @@ function escapeCsv(value: string | number) {
   if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
     return `"${stringValue.replaceAll('"', '""')}"`;
   }
-
   return stringValue;
 }
 
@@ -60,520 +64,236 @@ function downloadCsv(filename: string, rows: string[]) {
 
 export function ProductsManager({
   initialProducts,
+  totalProducts,
+  page,
+  limit,
+  search: initialSearch = "",
   categories,
   invalidProductCount,
 }: ProductsManagerProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [products, setProducts] = useState(initialProducts);
   const [legacyProductCount, setLegacyProductCount] = useState(invalidProductCount);
-  const [search, setSearch] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | "all">("all");
+  const [searchInput, setSearchInput] = useState(initialSearch);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 8,
-  });
   const [isPending, startTransition] = useTransition();
-  const deferredSearch = useDeferredValue(search);
-  const categoryById = useMemo(
-    () => new Map(categories.map((c) => [c.id, c])),
-    [categories]
-  );
 
-  const visibleProducts = useMemo(() => {
-    return products.filter((product) => {
-      const productCategory = product.categoryId ? categoryById.get(product.categoryId) : null;
-      const parentId = productCategory?.parentId ?? null;
-      const matchesSearch =
-        !deferredSearch.trim() ||
-        [product.name, product.slug, product.description, product.subcategory]
-          .join(" ")
-          .toLowerCase()
-          .includes(deferredSearch.trim().toLowerCase());
+  const totalPages = Math.ceil(totalProducts / limit);
 
-      const matchesCategory =
-        selectedCategoryId === "all" ||
-        product.categoryId === selectedCategoryId ||
-        parentId === selectedCategoryId ||
-        product.category === selectedCategoryId;
-      return matchesSearch && matchesCategory;
-    });
-  }, [selectedCategoryId, deferredSearch, products, categoryById]);
-
+  // Sync products when initialProducts changes (e.g. on navigation)
   useEffect(() => {
-    setPagination((current) => ({ ...current, pageIndex: 0 }));
-  }, [selectedCategoryId, deferredSearch]);
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
-  const handleDeleteInvalidProducts = async () => {
-    if (legacyProductCount <= 0) {
-      return;
-    }
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams();
+    params.set("page", newPage.toString());
+    params.set("limit", limit.toString());
+    if (searchInput) params.set("search", searchInput);
+    router.push(`/admin/products?${params.toString()}`);
+  };
 
-    const confirmed = window.confirm(
-      `Delete ${legacyProductCount} invalid seeded product${
-        legacyProductCount === 1 ? "" : "s"
-      } from the database?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    startTransition(() => {
-      void (async () => {
-        try {
-          const result = await deleteInvalidAdminProductsAction();
-          setLegacyProductCount(0);
-          toast({
-            title: result.deletedCount === 0 ? "No legacy products found" : "Legacy products removed",
-            description:
-              result.deletedCount === 0
-                ? "The catalog is already clean."
-                : `${result.deletedCount} invalid seeded product${
-                    result.deletedCount === 1 ? "" : "s"
-                  } removed from the database.`,
-          });
-        } catch (error) {
-          toast({
-            title: "Cleanup failed",
-            description: error instanceof Error ? error.message : "Please try again.",
-            variant: "destructive",
-          });
-        }
-      })();
-    });
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    params.set("page", "1");
+    params.set("limit", limit.toString());
+    if (searchInput) params.set("search", searchInput);
+    router.push(`/admin/products?${params.toString()}`);
   };
 
   const handleSavedProduct = (product: Product) => {
-    startTransition(() => {
-      setProducts((current) => {
-        const exists = current.some((item) => item.id === product.id);
-        if (exists) {
-          return current.map((item) => (item.id === product.id ? product : item));
-        }
-
-        return [product, ...current];
-      });
+    setProducts((current) => {
+      const exists = current.some((item) => item.id === product.id);
+      if (exists) {
+        return current.map((item) => (item.id === product.id ? product : item));
+      }
+      return [product, ...current];
     });
   };
 
   const handleDelete = async (ids: string[]) => {
-    if (ids.length === 0) {
+    if (ids.length === 0) return;
+
+    if (!window.confirm(ids.length === 1 ? "Delete product?" : `Delete ${ids.length} products?`)) {
       return;
     }
 
-    const confirmed = window.confirm(
-      ids.length === 1
-        ? "Delete this product from the catalog?"
-        : `Delete ${ids.length} selected products from the catalog?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    startTransition(() => {
-      void (async () => {
-        try {
-          await deleteAdminProductsAction(ids);
-          setProducts((current) => current.filter((product) => !ids.includes(product.id)));
-          setRowSelection({});
-          toast({
-            title: ids.length === 1 ? "Product deleted" : "Products deleted",
-            description:
-              ids.length === 1
-                ? "The product was removed from the catalog."
-                : `${ids.length} products were removed from the catalog.`,
-          });
-        } catch (error) {
-          toast({
-            title: "Delete failed",
-            description: error instanceof Error ? error.message : "Please try again.",
-            variant: "destructive",
-          });
-        }
-      })();
+    startTransition(async () => {
+      try {
+        await deleteAdminProductsAction(ids);
+        setProducts((current) => current.filter((p) => !ids.includes(p.id)));
+        setRowSelection({});
+        toast({ title: "Deleted", description: `${ids.length} item(s) removed.` });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to delete.", variant: "destructive" });
+      }
     });
   };
 
-  const columns = useMemo<ColumnDef<Product>[]>(
-    () => [
-      {
-        id: "select",
-        header: ({ table }) => (
-          <input
-            type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-            className="h-4 w-4 rounded border-zinc-600 bg-zinc-950"
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-            className="h-4 w-4 rounded border-zinc-600 bg-zinc-950"
-          />
-        ),
-        enableSorting: false,
+  const columns = useMemo<ColumnDef<Product>[]>(() => [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          checked={table.getIsAllRowsSelected()}
+          onChange={table.getToggleAllRowsSelectedHandler()}
+          className="h-4 w-4 rounded border-zinc-700 bg-zinc-950 accent-orange-500"
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          className="h-4 w-4 rounded border-zinc-700 bg-zinc-950 accent-orange-500"
+        />
+      ),
+    },
+    {
+      id: "image",
+      header: "Image",
+      cell: ({ row }) => (
+        <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-zinc-800">
+          <Image src={row.original.images[0]} alt="" fill className="object-cover" />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "name",
+      header: "Product",
+      cell: ({ row }) => (
+        <div className="min-w-[150px]">
+          <p className="text-sm font-bold text-white truncate">{row.original.name}</p>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{row.original.subcategory}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "basePrice",
+      header: "Price",
+      cell: ({ row }) => <span className="text-sm font-black text-white">{formatKES(row.original.basePrice)}</span>,
+    },
+    {
+      id: "stock",
+      header: "Stock",
+      cell: ({ row }) => {
+        const stock = getTotalStock(row.original);
+        const color = stock <= 5 ? "text-red-400 bg-red-400/10 border-red-500/20" : stock <= 15 ? "text-orange-400 bg-orange-400/10 border-orange-500/20" : "text-emerald-400 bg-emerald-400/10 border-emerald-500/20";
+        return <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black ${color}`}>{stock} Units</span>;
       },
-      {
-        id: "image",
-        header: "Image",
-        cell: ({ row }) => (
-          <div className="relative h-14 w-14 overflow-hidden rounded-2xl border border-zinc-800">
-            <Image
-              src={row.original.images[0]}
-              alt={row.original.name}
-              fill
-              className="object-cover"
-              sizes="56px"
-            />
-          </div>
-        ),
-      },
-      {
-        accessorKey: "name",
-        header: "Name",
-        cell: ({ row }) => (
-          <div className="min-w-[220px]">
-            <p className="font-semibold text-zinc-100">{row.original.name}</p>
-            <p className="text-xs text-zinc-500">{row.original.slug}</p>
-          </div>
-        ),
-      },
-      {
-        accessorKey: "basePrice",
-        header: "Price (KES)",
-        cell: ({ row }) => (
-          <span className="text-sm font-semibold text-zinc-100">
-            {formatKES(row.original.basePrice)}
-          </span>
-        ),
-      },
-      {
-        id: "stock",
-        header: "Stock",
-        cell: ({ row }) => {
-          const stock = getTotalStock(row.original);
-          return (
-            <span
-              className={`text-sm font-semibold ${
-                stock <= 10 ? "text-amber-400" : "text-emerald-400"
-              }`}
-            >
-              {stock}
-            </span>
-          );
-        },
-      },
-      {
-        accessorKey: "category",
-        header: "Category",
-        cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold capitalize text-zinc-300">
-              {categoryById.get(row.original.categoryId ?? "")?.name ?? row.original.category}
-            </span>
-            {row.original.categoryId && categoryById.get(row.original.categoryId ?? "")?.parentId && (
-              <span className="text-[11px] text-zinc-500">
-                {categoryById.get(categoryById.get(row.original.categoryId ?? "")?.parentId ?? "")
-                  ?.name ?? ""}
-              </span>
-            )}
-          </div>
-        ),
-      },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setEditingProduct(row.original);
-                setDialogOpen(true);
-              }}
-              className="rounded-xl border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-brand-400 hover:text-white"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleDelete([row.original.id])}
-              className="rounded-xl border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-red-400 hover:text-red-400"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        ),
-      },
-    ],
-    [categoryById, handleDelete]
-  );
+    },
+    {
+      id: "actions",
+      header: "Action",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <button onClick={() => { setEditingProduct(row.original); setDialogOpen(true); }} className="p-2 border border-zinc-800 rounded-lg hover:border-orange-500 transition-colors">
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button onClick={() => handleDelete([row.original.id])} className="p-2 border border-zinc-800 rounded-lg hover:border-red-500 hover:text-red-500 transition-colors">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    }
+  ], [handleDelete]);
 
   const table = useReactTable({
-    data: visibleProducts,
+    data: products,
     columns,
-    state: {
-      rowSelection,
-      pagination,
-    },
+    state: { rowSelection },
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     enableRowSelection: true,
   });
 
-  const selectedIds = table
-    .getSelectedRowModel()
-    .rows.map((row) => row.original.id);
-
-  const exportRows = () => {
-    const rows =
-      selectedIds.length > 0
-        ? visibleProducts.filter((product) => selectedIds.includes(product.id))
-        : visibleProducts;
-
-    const csvRows = [
-      ["Name", "Slug", "Category", "Subcategory", "Gender", "Base Price", "Stock", "Tags", "Images"].join(","),
-      ...rows.map((product) =>
-        [
-          escapeCsv(product.name),
-          escapeCsv(product.slug),
-          escapeCsv(product.category),
-          escapeCsv(product.subcategory),
-          escapeCsv(product.gender),
-          escapeCsv(product.basePrice),
-          escapeCsv(getTotalStock(product)),
-          escapeCsv(product.tags.join("|")),
-          escapeCsv(product.images.join("|")),
-        ].join(",")
-      ),
-    ];
-
-    downloadCsv("smartest-store-products.csv", csvRows);
-    toast({
-      title: "CSV exported",
-      description: `${rows.length} product${rows.length === 1 ? "" : "s"} exported.`,
-    });
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-400">
-            Product control
-          </p>
-          <h1 className="mt-2 text-3xl font-black text-white">Admin Products</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            Search, update, and launch catalog changes without database diving.
-          </p>
+          <h1 className="text-3xl font-black text-white">Inventory Engine</h1>
+          <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.2em] mt-1">{totalProducts} active records loaded</p>
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={exportRows}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-500"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
-          <button
-            type="button"
-            disabled={selectedIds.length === 0 || isPending}
-            onClick={() => void handleDelete(selectedIds)}
-            className="inline-flex items-center gap-2 rounded-full border border-red-500/30 px-5 py-3 text-sm font-semibold text-red-300 transition-colors hover:border-red-400 disabled:opacity-40"
-          >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            Bulk delete
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingProduct(null);
-              setDialogOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-          >
-            <Plus className="h-4 w-4" />
-            Add New Product
-          </button>
+        <div className="flex gap-4">
+            <button onClick={() => { setEditingProduct(null); setDialogOpen(true); }} className="flex items-center gap-2 bg-orange-500 px-6 py-3 rounded-full text-sm font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
+                <Plus className="h-4 w-4" /> Launch Product
+            </button>
         </div>
       </div>
 
-      {legacyProductCount > 0 ? (
-        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-amber-500/30 bg-amber-500/10 p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-amber-300">
-              <AlertTriangle className="h-4 w-4" />
-              Legacy catalog cleanup required
-            </p>
-            <p className="mt-2 text-sm text-amber-50">
-              {legacyProductCount} invalid seeded product{legacyProductCount === 1 ? "" : "s"} still exist in
-              the database and can leak into old landing-page queries if left behind.
-            </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2rem] p-6">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total Inventory</p>
+              <h3 className="text-3xl font-black text-white mt-1">{totalProducts}</h3>
           </div>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => void handleDeleteInvalidProducts()}
-            className="inline-flex items-center gap-2 self-start rounded-full border border-amber-300/40 bg-amber-400/15 px-5 py-3 text-sm font-semibold text-amber-50 transition-colors hover:border-amber-200 hover:bg-amber-400/25 disabled:opacity-40"
-          >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            Remove invalid seeded products
-          </button>
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-900 p-5">
-          <p className="text-sm text-zinc-400">Catalog size</p>
-          <p className="mt-2 text-3xl font-black text-white">{products.length}</p>
-        </div>
-        <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-900 p-5">
-          <p className="text-sm text-zinc-400">Visible results</p>
-          <p className="mt-2 text-3xl font-black text-white">{visibleProducts.length}</p>
-        </div>
-        <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-900 p-5">
-          <p className="text-sm text-zinc-400">Selected rows</p>
-          <p className="mt-2 text-3xl font-black text-white">{selectedIds.length}</p>
-        </div>
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-[2rem] p-6">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Selected Rows</p>
+              <h3 className="text-3xl font-black text-white mt-1">{Object.keys(rowSelection).length}</h3>
+          </div>
+          <form onSubmit={handleSearchSubmit} className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <input 
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Lookup by name or SKU..."
+                className="w-full h-full bg-zinc-900/40 border border-zinc-800 rounded-[2rem] pl-12 pr-4 text-sm font-bold text-white outline-none focus:border-orange-500/50"
+              />
+          </form>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by name, slug, description, or subcategory"
-            className="h-12 w-full rounded-full border border-zinc-800 bg-zinc-900 pl-11 pr-4 text-sm text-zinc-100 placeholder:text-zinc-600"
-          />
-        </div>
-
-      <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setSelectedCategoryId("all")}
-            className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
-              selectedCategoryId === "all"
-                ? "bg-brand-500 text-white"
-                : "border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
-            }`}
-          >
-            All
-          </button>
-          {categories
-            .filter((c) => !c.parentId)
-            .map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategoryId(cat.id)}
-                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  selectedCategoryId === cat.id
-                    ? "bg-brand-500 text-white"
-                    : "border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-      </div>
-      </div>
-
-      <div className="overflow-hidden rounded-[1.75rem] border border-zinc-800 bg-zinc-900">
+      <div className="rounded-[2.5rem] border border-zinc-800 bg-zinc-900/40 p-8 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="border-b border-zinc-800 bg-zinc-950/70">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-zinc-800">
+                {table.getFlatHeaders().map((header) => (
+                  <th key={header.id} className="pb-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800/50">
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="group hover:bg-zinc-800/30 transition-colors">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="py-4">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
                   ))}
                 </tr>
               ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.length === 0 ? (
-                <tr>
-                  <td colSpan={columns.length} className="px-6 py-16 text-center text-zinc-400">
-                    No products match the current search.
-                  </td>
-                </tr>
-              ) : (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-zinc-800/70 transition-colors hover:bg-zinc-800/40"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-4 align-middle">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
             </tbody>
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-zinc-800 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-zinc-400">
-            Page {pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={pagination.pageSize}
-              onChange={(event) =>
-                setPagination((current) => ({
-                  ...current,
-                  pageSize: Number(event.target.value),
-                  pageIndex: 0,
-                }))
-              }
-              className="rounded-full border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm text-zinc-200"
-            >
-              {[8, 12, 20].map((size) => (
-                <option key={size} value={size}>
-                  {size} / page
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="rounded-full border border-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-200 disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="rounded-full border border-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-200 disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+        <div className="mt-8 flex items-center justify-between border-t border-zinc-800 pt-8">
+            <div className="flex items-center gap-4">
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Page {page} of {totalPages || 1}</p>
+                <select 
+                  value={limit} 
+                  onChange={(e) => {
+                      const newLimit = e.target.value;
+                      router.push(`/admin/products?page=1&limit=${newLimit}${searchInput ? `&search=${searchInput}` : ""}`);
+                  }}
+                  className="bg-zinc-950 border border-zinc-800 text-[10px] font-black text-zinc-400 rounded-full px-3 py-1 outline-none"
+                >
+                    {[10, 25, 50].map(v => <option key={v} value={v}>{v} / Page</option>)}
+                </select>
+            </div>
+            <div className="flex gap-2">
+                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1} className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-zinc-300 disabled:opacity-30">
+                    <ChevronLeft className="h-3 w-3 inline mr-1" /> Prev
+                </button>
+                <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages || totalPages === 0} className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-zinc-300 disabled:opacity-30">
+                    Next <ChevronRight className="h-3 w-3 inline ml-1" />
+                </button>
+            </div>
         </div>
       </div>
 

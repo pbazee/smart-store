@@ -25,6 +25,10 @@ export async function POST(req: NextRequest) {
         cost: quote.cost,
         ruleId: quote.ruleId,
         ruleName: quote.ruleName,
+        county: quote.county,
+        estimatedDays: quote.estimatedDays,
+        freeAboveKES: quote.freeAboveKES,
+        noMatch: quote.noMatch ?? false,
       },
     });
   } catch (error) {

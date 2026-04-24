@@ -7,6 +7,22 @@ function isLiveDeployment() {
   return process.env.VERCEL_ENV === "production";
 }
 
+export function getPaystackPublicKey() {
+  const publicKey =
+    normalizeEnvValue(process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) ??
+    normalizeEnvValue(process.env.PAYSTACK_PUBLIC_KEY);
+
+  if (!publicKey) {
+    throw new Error("Paystack public key is missing");
+  }
+
+  if (isLiveDeployment() && publicKey.startsWith("pk_test_")) {
+    throw new Error("Paystack live public key is not configured for production checkout");
+  }
+
+  return publicKey;
+}
+
 export function getPaystackSecretKey() {
   const explicitLiveKey =
     normalizeEnvValue(process.env.PAYSTACK_LIVE_SECRET_KEY) ??

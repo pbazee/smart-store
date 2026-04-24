@@ -36,7 +36,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
         return true;
       },
     },
-    [Autoplay({ delay: 6500, stopOnInteraction: false })]
+    [Autoplay({ delay: 4800, stopOnInteraction: false })]
   );
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.22),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.16),transparent_32%),linear-gradient(135deg,#05060a_0%,#101828_50%,#140a05_100%)]" />
         <div className="relative mx-auto flex min-h-[70vh] max-w-7xl items-end px-4 pb-20 pt-24 sm:min-h-[78vh] sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/30 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em] backdrop-blur">
+            <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/55 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em]">
               Smartest edit
             </span>
             <h1 className="overlay-readable-text font-display text-4xl font-black leading-[0.92] sm:text-5xl lg:text-7xl">
@@ -124,7 +124,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                             : "translate-y-3.5 opacity-70"
                         )}
                       >
-                        <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/30 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em] backdrop-blur">
+                        <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/55 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em]">
                           Smartest edit
                         </span>
                         <h1 className="overlay-readable-text font-display text-4xl font-black leading-[0.92] sm:text-5xl lg:text-7xl">
@@ -133,7 +133,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                         <p className="overlay-readable-text mt-5 max-w-2xl text-base sm:text-lg">
                           {slide.subtitle}
                         </p>
-                        <div className="overlay-readable-text mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
+                        <div className="overlay-readable-text mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                           <MapPin className="h-3.5 w-3.5 text-orange-300" />
                           <span>{slide.locationBadge}</span>
                         </div>
@@ -151,7 +151,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                               {slide.moodTags.slice(0, 3).map((tag) => (
                                 <span
                                   key={`${slide.id}-${tag}`}
-                                  className="overlay-readable-text rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] backdrop-blur"
+                                  className="overlay-readable-text rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]"
                                 >
                                   {tag}
                                 </span>
@@ -163,7 +163,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
 
                       <div
                         className={cn(
-                          "overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/30 p-5 backdrop-blur-lg transition-[opacity,transform] duration-500 ease-out lg:block",
+                          "overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/60 p-5 transition-[opacity,transform] duration-500 ease-out lg:block",
                           selectedIndex === index
                             ? "translate-y-0 opacity-100"
                             : "translate-y-[18px] opacity-[0.55]"
@@ -235,7 +235,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
               type="button"
               onClick={() => emblaApi?.scrollPrev()}
               aria-label="Previous slide"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur transition-colors hover:bg-black/45"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white transition-colors hover:bg-black/70"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -243,7 +243,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
               type="button"
               onClick={() => emblaApi?.scrollNext()}
               aria-label="Next slide"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur transition-colors hover:bg-black/45"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white transition-colors hover:bg-black/70"
             >
               <ChevronRight className="h-5 w-5" />
             </button>

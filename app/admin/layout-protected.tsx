@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Bell,
@@ -21,7 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useDemoStore } from "@/lib/store";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
 import { useSessionUser } from "@/hooks/use-session-user";
+import type { StoreSettings } from "@/types";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -43,6 +46,28 @@ export default function AdminLayoutProtected({ children }: { children: React.Rea
   const pathname = usePathname();
   const { isMockMode, toggleMockMode } = useDemoStore();
   const { sessionUser, signOut } = useSessionUser();
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const branding = getStoreLogoSetFromSettings(storeSettings);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/store-settings", { cache: "no-store" });
+        const data = await response.json();
+        if (!cancelled && response.ok && data?.data) {
+          setStoreSettings(data.data as StoreSettings);
+        }
+      } catch (error) {
+        console.error("Failed to refresh protected admin branding:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,10 +80,22 @@ export default function AdminLayoutProtected({ children }: { children: React.Rea
       <aside className="w-64 border-r border-zinc-800 flex flex-col fixed h-full">
         <div className="p-5 border-b border-zinc-800">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 bg-brand-500 rounded-sm flex items-center justify-center">
-              <span className="text-white font-bold text-xs">SK</span>
-            </div>
-            <span className="font-bold text-sm">Smartest Store KE</span>
+            {branding.logoDarkUrl || branding.logoUrl ? (
+              <div className="relative h-8 w-[116px]">
+                <Image
+                  src={branding.logoDarkUrl || branding.logoUrl || ""}
+                  alt={branding.storeName}
+                  fill
+                  sizes="116px"
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-7 h-7 bg-brand-500 rounded-sm flex items-center justify-center">
+                <span className="text-white font-bold text-xs">SK</span>
+              </div>
+            )}
+            <span className="font-bold text-sm">{branding.storeName}</span>
           </div>
           <p className="text-xs text-zinc-500">Admin Panel</p>
         </div>

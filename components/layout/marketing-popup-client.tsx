@@ -12,8 +12,28 @@ function isInternalLink(link: string) {
   return link.startsWith("/");
 }
 
-function getDismissedKey(popupId: string) {
-  return `marketing-popup-dismissed:${popupId}`;
+function getDismissedKey(popup: Popup) {
+  return `marketing-popup-dismissed:${popup.id}:${new Date(popup.updatedAt).getTime()}`;
+}
+
+function matchesPopupTarget(showOn: Popup["showOn"], pathname: string) {
+  if (showOn === "all") {
+    return true;
+  }
+
+  if (showOn === "homepage") {
+    return pathname === "/";
+  }
+
+  if (showOn === "shop") {
+    return pathname === "/shop";
+  }
+
+  if (showOn === "product") {
+    return pathname.startsWith("/product/");
+  }
+
+  return false;
 }
 
 export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
@@ -22,13 +42,7 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
   const [rememberDismissal, setRememberDismissal] = useState(true);
 
   const activePopup = useMemo(() => {
-    return popups.find((popup) => {
-      if (popup.showOn === "homepage") {
-        return pathname === "/";
-      }
-
-      return true;
-    });
+    return popups.find((popup) => matchesPopupTarget(popup.showOn, pathname));
   }, [pathname, popups]);
 
   useEffect(() => {
@@ -37,7 +51,7 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
       return;
     }
 
-    const dismissedKey = getDismissedKey(activePopup.id);
+    const dismissedKey = getDismissedKey(activePopup);
     if (window.localStorage.getItem(dismissedKey)) {
       setOpen(false);
       return;
@@ -53,7 +67,7 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
   }, [activePopup]);
 
   useEffect(() => {
-    setRememberDismissal(true);
+      setRememberDismissal(true);
   }, [activePopup?.id]);
 
   if (!activePopup) {
@@ -62,7 +76,7 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
 
   const handleDismiss = () => {
     if (rememberDismissal) {
-      window.localStorage.setItem(getDismissedKey(activePopup.id), "1");
+      window.localStorage.setItem(getDismissedKey(activePopup), "1");
     }
 
     setOpen(false);

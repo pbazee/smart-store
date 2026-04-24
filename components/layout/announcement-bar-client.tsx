@@ -112,7 +112,7 @@ export function AnnouncementBarClient({
 
   return (
     <motion.div
-      className="overlay-readable-surface relative z-[60] overflow-hidden border-b border-white/25 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] text-white shadow-[0_10px_32px_rgba(255,107,0,0.28)]"
+      className="overlay-readable-surface relative w-full max-w-full overflow-hidden border-b border-white/25 bg-gradient-to-r from-[#ff6b00] via-[#ff7a00] to-[#ff3d2e] text-white shadow-[0_10px_32px_rgba(255,107,0,0.28)]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

@@ -79,6 +79,9 @@
   }
   * {
     @apply border-border outline-ring/50;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   body {
     @apply bg-background text-foreground;
@@ -131,4 +134,25 @@
 .dark .shimmer-bg {
   background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
   background-size: 200% 100%;
+}
+
+.frosted-surface {
+  isolation: isolate;
+  position: relative;
+}
+
+.frosted-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: hsl(var(--background) / 0.92);
+  backdrop-filter: blur(20px);
+}
+
+@media (prefers-color-scheme: dark) {
+  option {
+    background-color: #18181b;
+    color: #f4f4f5;
+  }
 }

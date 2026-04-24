@@ -95,7 +95,7 @@ export interface ContactMessage {
   repliedAt?: string | Date | null;
 }
 
-export type PopupDisplayTarget = "homepage" | "all";
+export type PopupDisplayTarget = "homepage" | "all" | "shop" | "product";
 
 export interface Popup {
   id: string;
@@ -144,6 +144,11 @@ export interface WhatsAppSettings {
 
 export interface StoreSettings {
   id: number;
+  storeName?: string | null;
+  storeTagline?: string | null;
+  logoUrl?: string | null;
+  logoDarkUrl?: string | null;
+  faviconUrl?: string | null;
   supportEmail?: string | null;
   supportPhone?: string | null;
   adminNotificationEmail?: string | null;
@@ -189,6 +194,20 @@ export interface HomepageCategory {
   updatedAt: string | Date;
 }
 
+export interface PromoBanner {
+  id: string;
+  badgeText?: string | null;
+  title: string;
+  subtitle?: string | null;
+  ctaText?: string | null;
+  ctaLink?: string | null;
+  backgroundImageUrl?: string | null;
+  backgroundColor?: string | null;
+  position: number;
+  isActive: boolean;
+  createdAt: string | Date;
+}
+
 export interface HeroSlide {
   id: string;
   title: string;
@@ -230,6 +249,7 @@ export interface Coupon {
   isActive: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
+  orders?: Order[];
 }
 
 export interface AppliedCoupon {
@@ -237,6 +257,7 @@ export interface AppliedCoupon {
   discountType: CouponDiscountType;
   discountValue: number;
   discountAmount: number;
+  description?: string;
 }
 
 export interface CartItem {
@@ -290,9 +311,14 @@ export interface ShippingRule {
   id: number;
   name: string;
   description?: string | null;
-  locationScope: string;
-  minOrderAmount?: number | null;
-  cost: number;
+  county?: string | null;
+  counties: string[];
+  deliveryFeeKES: number;
+  estimatedDays: number;
+  countries: string[];
+  regions: string[];
+  towns: string[];
+  freeAboveKES?: number | null;
   isActive: boolean;
   priority: number;
   createdAt: string | Date;

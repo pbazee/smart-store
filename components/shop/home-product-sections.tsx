@@ -1,19 +1,8 @@
-import dynamic from "next/dynamic";
-
 import { FeaturedGrid } from "@/components/shop/featured-grid";
+import { HomepageRecommendationSection } from "@/components/shop/homepage-recommendation-section";
 import { NewArrivalsSection } from "@/components/shop/new-arrivals-section";
 import { TrendingSection } from "@/components/shop/trending-section";
 import type { HomepageProductSectionsData } from "@/lib/homepage-data";
-
-const RecommendationCarousel = dynamic(
-  () =>
-    import("@/components/shop/recommendation-carousel").then(
-      (module) => module.RecommendationCarousel
-    ),
-  {
-    loading: () => <RecommendationCarouselSkeleton />,
-  }
-);
 
 function RecommendationCarouselSkeleton() {
   return (
@@ -47,7 +36,7 @@ export function HomeProductSections({
   return (
     <>
       <FeaturedGrid products={featured} />
-      <RecommendationCarousel
+      <HomepageRecommendationSection
         eyebrow="Smart recommendations"
         title="Customers who bought this also bought"
         description="A fast-moving mix of compatible silhouettes, matching price bands, and category logic that feels personal without slowing down the storefront."
@@ -57,7 +46,7 @@ export function HomeProductSections({
       />
       <TrendingSection products={trending} />
       <NewArrivalsSection products={newArrivals} />
-      <RecommendationCarousel
+      <HomepageRecommendationSection
         eyebrow="Inspired by your city"
         title="Built for Nairobi streets and late golden-hour plans"
         description="Smart picks shaped by what the city responds to: versatile layers, confident color, and easy daily wear."
