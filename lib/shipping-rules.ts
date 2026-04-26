@@ -1,6 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensureShippingRuleStorage } from "@/lib/runtime-schema-repair";
 import type { ShippingRule } from "@/types";
+
+export const SHIPPING_ZONES_CACHE_TAG = "shipping-zones";
 
 type ShippingInput = {
   subtotal: number;
@@ -20,6 +23,8 @@ export type ShippingMatch = {
   freeAboveKES: number | null;
   noMatch?: boolean;
 };
+
+const SHIPPING_RULES_REVALIDATE_SECONDS = 3600;
 
 function normalizeCountyName(value?: string | null) {
   return (value ?? "").trim().toLowerCase();
@@ -56,8 +61,7 @@ function formatMatch(rule: ShippingRule, subtotal: number, county: string): Ship
   };
 }
 
-export async function getShippingRules(options: { activeOnly?: boolean } = {}) {
-  const { activeOnly = false } = options;
+async function loadShippingRules(activeOnly: boolean) {
   await ensureShippingRuleStorage();
 
   const rules = await prisma.shippingRule.findMany({
@@ -66,6 +70,19 @@ export async function getShippingRules(options: { activeOnly?: boolean } = {}) {
   });
 
   return rules as unknown as ShippingRule[];
+}
+
+export async function getShippingRules(options: { activeOnly?: boolean } = {}) {
+  const { activeOnly = false } = options;
+
+  return unstable_cache(
+    () => loadShippingRules(activeOnly),
+    ["shipping-rules", activeOnly ? "active" : "all"],
+    {
+      revalidate: SHIPPING_RULES_REVALIDATE_SECONDS,
+      tags: [SHIPPING_ZONES_CACHE_TAG],
+    }
+  )();
 }
 
 export function findMatchingZone(input: ShippingInput, zones: ShippingRule[]): ShippingMatch {

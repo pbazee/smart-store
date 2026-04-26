@@ -4,6 +4,8 @@ import { buildWhatsAppHref } from "@/lib/whatsapp-service";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { ContactFormCard } from "./contact-form-card";
 
+export const dynamic = "force-static";
+
 export default async function ContactPage() {
   const [supportInfo, storefrontContactData] = await Promise.all([
     getSupportContactInfo(),

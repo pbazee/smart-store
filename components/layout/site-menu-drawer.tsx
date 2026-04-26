@@ -64,19 +64,20 @@ export function SiteMenuDrawer({
   const isSignedIn = !!sessionUser;
   const isAdmin = sessionUser?.role === "admin";
   const wishlistHref = "/wishlist";
+  const cartCount = useCartStore((state) => state.items.reduce((sum, item) => sum + item.quantity, 0));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[90vw] max-w-sm border-r border-border/60 bg-background font-sans dark:border-white/10 dark:bg-[#121212] px-0 shadow-2xl"
+        className="w-[92vw] max-w-md border-r border-border/60 bg-background px-0 font-sans shadow-2xl dark:border-white/10 dark:bg-[#121212]"
       >
-        <div className="flex h-full flex-col overflow-y-auto px-6 pb-8 pt-6">
+        <div className="flex h-full flex-col overflow-y-auto overscroll-contain px-6 pb-8 pt-6">
           <SheetHeader className="text-left pr-10">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-500">Navigation</p>
             <SheetTitle className="font-display text-3xl font-black tracking-tight text-foreground dark:text-white">Smartest Store KE</SheetTitle>
             <SheetDescription>
-              Clean access to the full storefront, collections, and support pages.
+              Products, cart, wishlist, and account tools now live here on mobile.
             </SheetDescription>
           </SheetHeader>
 
@@ -99,7 +100,7 @@ export function SiteMenuDrawer({
                 {/* Cart and Wishlist on Mobile */}
                 <DrawerLink
                   href="/cart"
-                  label="Cart"
+                  label={cartCount > 0 ? `Cart (${cartCount})` : "Cart"}
                   active={pathname === "/cart"}
                   onSelect={closeDrawer}
                 />

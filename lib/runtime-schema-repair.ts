@@ -1,7 +1,16 @@
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 
-const schemaRepairTasks = new Map<string, Promise<void>>();
+// Use globalThis so the Map survives Next.js dev-mode module reloads.
+// Without this, every new route compilation resets the Map and re-runs
+// all 30+ ALTER TABLE migration queries, causing massive slowdowns.
+const globalForSchemaRepair = globalThis as typeof globalThis & {
+  _schemaRepairTasks?: Map<string, Promise<void>>;
+};
+if (!globalForSchemaRepair._schemaRepairTasks) {
+  globalForSchemaRepair._schemaRepairTasks = new Map();
+}
+const schemaRepairTasks = globalForSchemaRepair._schemaRepairTasks;
 
 async function runSchemaRepair(key: string, repair: () => Promise<void>) {
   if (shouldUseMockData()) {

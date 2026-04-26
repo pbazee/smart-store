@@ -1,9 +1,12 @@
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
-import { releaseExpiredReservations } from "@/lib/order-reservations";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import type { Order, Product } from "@/types";
+
+export const PRODUCTS_CACHE_TAG = "products";
+export const ADMIN_STATS_CACHE_TAG = "admin-stats";
 
 export type AdminOrderDetail = Order & {
   user?: {
@@ -34,10 +37,15 @@ type LiveDataQueryOptions = {
   timeoutMs?: number | null;
   cacheKey?: string;
   revalidateSeconds?: number;
+  tags?: string[];
+  disableCache?: boolean;
 };
 
-const DEFAULT_LIVE_DATA_TIMEOUT_MS = 10000;
-const HOMEPAGE_QUERY_REVALIDATE_SECONDS = 60;
+const DEFAULT_LIVE_DATA_TIMEOUT_MS = 10_000;
+const DEFAULT_PRODUCTS_REVALIDATE_SECONDS = 300;
+const DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS = 300;
+const ADMIN_STATS_REVALIDATE_SECONDS = 60;
+const LIVE_DATA_TIMEOUT_MS = getLiveDataTimeoutMs();
 
 function normalizeProductFilters(filters?: ProductQueryFilters): ProductQueryFilters {
   if (!filters) {
@@ -186,8 +194,6 @@ const productOrderBy: Prisma.ProductOrderByWithRelationInput[] = [
   { createdAt: "desc" },
 ];
 
-const LIVE_DATA_TIMEOUT_MS = getLiveDataTimeoutMs();
-
 function getLiveDataTimeoutMs() {
   const rawValue = process.env.LIVE_DATA_TIMEOUT_MS;
   if (process.env.NODE_ENV === "development" && rawValue === "0") {
@@ -233,7 +239,43 @@ async function withLiveData<T>(
   query: () => Promise<T>,
   options: LiveDataQueryOptions = {}
 ): Promise<T> {
-  return withLiveDataTimeout(context, query, options.timeoutMs);
+  return withLiveDataTimeout(
+    context,
+    query,
+    shouldSkipLiveDataDuringBuild() ? null : options.timeoutMs
+  );
+}
+
+function buildProductCacheTags(cacheKey: string, extraTags: string[] = []) {
+  const tags = new Set<string>([PRODUCTS_CACHE_TAG, ...extraTags]);
+
+  if (cacheKey.startsWith("homepage:")) {
+    tags.add("homepage");
+  }
+
+  return Array.from(tags);
+}
+
+async function loadProductsFromDb(
+  filters: ProductQueryFilters,
+  options: LiveDataQueryOptions = {}
+): Promise<Product[]> {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return [];
+  }
+
+  return withLiveData(
+    "getProducts",
+    async () =>
+      (await prisma.product.findMany({
+        where: buildProductWhere(filters),
+        include: { variants: true },
+        orderBy: productOrderBy,
+        take: filters.take,
+        skip: filters.skip,
+      })) as Product[],
+    options
+  );
 }
 
 export async function getProducts(
@@ -241,49 +283,90 @@ export async function getProducts(
   options: LiveDataQueryOptions = {}
 ): Promise<Product[]> {
   const normalizedFilters = normalizeProductFilters(filters);
-  const loadProducts = async () =>
-    (await prisma.product.findMany({
-      where: buildProductWhere(normalizedFilters),
-      include: { variants: true },
-      orderBy: productOrderBy,
-      take: normalizedFilters.take,
-      skip: normalizedFilters.skip,
-    })) as Product[];
+  const cacheKey = options.cacheKey ?? `catalog:${JSON.stringify(normalizedFilters)}`;
 
-  if (options.cacheKey) {
-    return unstable_cache(
-      loadProducts,
-      ["products", options.cacheKey, JSON.stringify(normalizedFilters)],
-      {
-        revalidate: options.revalidateSeconds ?? HOMEPAGE_QUERY_REVALIDATE_SECONDS,
-        tags: ["homepage", options.cacheKey],
-      }
-    )();
+  if (options.disableCache || shouldSkipLiveDataDuringBuild()) {
+    return loadProductsFromDb(normalizedFilters, options);
   }
 
-  return loadProducts();
+  return unstable_cache(
+    () => loadProductsFromDb(normalizedFilters, options),
+    ["products", cacheKey],
+    {
+      revalidate: options.revalidateSeconds ?? DEFAULT_PRODUCTS_REVALIDATE_SECONDS,
+      tags: buildProductCacheTags(cacheKey, options.tags),
+    }
+  )();
+}
+
+async function loadProductBySlug(slug: string) {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return null;
+  }
+
+  return withLiveData(
+    "getProductBySlug",
+    async () =>
+      (await prisma.product.findFirst({
+        where: buildValidCatalogProductWhere({ slug }),
+        include: { variants: true },
+      })) as Product | null
+  );
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  return prisma.product.findFirst({
-    where: buildValidCatalogProductWhere({ slug }),
-    include: { variants: true },
-  }) as Promise<Product | null>;
+  return unstable_cache(
+    () => loadProductBySlug(slug),
+    ["product-by-slug", slug],
+    {
+      revalidate: DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS,
+      tags: [PRODUCTS_CACHE_TAG],
+    }
+  )();
+}
+
+async function loadProductByIdentifier(identifier: string) {
+  return withLiveData(
+    "getProductByIdentifier",
+    async () =>
+      (await prisma.product.findFirst({
+        where: buildValidCatalogProductWhere({
+          OR: [{ slug: identifier }, { id: identifier }],
+        }),
+        include: { variants: true },
+      })) as Product | null
+  );
 }
 
 export async function getProductByIdentifier(identifier: string): Promise<Product | null> {
-  return prisma.product.findFirst({
-    where: buildValidCatalogProductWhere({
-      OR: [{ slug: identifier }, { id: identifier }],
-    }),
-    include: { variants: true },
-  }) as Promise<Product | null>;
+  return unstable_cache(
+    () => loadProductByIdentifier(identifier),
+    ["product-by-identifier", identifier],
+    {
+      revalidate: DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS,
+      tags: [PRODUCTS_CACHE_TAG],
+    }
+  )();
 }
 
 export async function getCountProducts(filters?: ProductQueryFilters) {
-  return prisma.product.count({
-    where: buildProductWhere(filters),
-  });
+  const normalizedFilters = normalizeProductFilters(filters);
+
+  return unstable_cache(
+    () =>
+      withLiveData(
+        "getCountProducts",
+        async () =>
+          prisma.product.count({
+            where: buildProductWhere(normalizedFilters),
+          })
+      ),
+    ["product-count", JSON.stringify(normalizedFilters)],
+    {
+      revalidate: DEFAULT_PRODUCTS_REVALIDATE_SECONDS,
+      tags: [PRODUCTS_CACHE_TAG],
+    }
+  )();
 }
 
 export async function getAllOrders(params?: { skip?: number; take?: number }) {
@@ -321,8 +404,8 @@ function buildAdminOrdersWhere(query: AdminOrdersQuery = {}): Prisma.OrderWhereI
         { customerName: { contains: search, mode: "insensitive" } },
         { customerEmail: { contains: search, mode: "insensitive" } },
         { paymentMethod: { contains: search, mode: "insensitive" } },
-        { status: { equals: search.toLowerCase() as any } },
-        { paymentStatus: { equals: search.toLowerCase() as any } },
+        { status: { equals: search.toLowerCase() as never } },
+        { paymentStatus: { equals: search.toLowerCase() as never } },
       ],
     });
   }
@@ -392,14 +475,46 @@ export async function getAdminOrderByIdentifier(
   return (order as unknown as AdminOrderDetail | null) ?? null;
 }
 
-export async function getAdminDashboardStats() {
-  const [paidOrders, totalOrders, totalProducts, lowStockProducts, recentOrders] =
-    await Promise.all([
-      prisma.order.findMany({
-        where: { paymentStatus: "paid" },
-        select: { total: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
-      }),
+async function loadAdminDashboardStats() {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return {
+      totalRevenue: 0,
+      revenueTrend: 0,
+      totalOrders: 0,
+      totalProducts: 0,
+      lowStockProducts: [],
+      revenueByMonth: [],
+      recentOrders: [],
+      topProducts: [],
+      todayOrders: 0,
+      pendingOrdersCount: 0,
+      needsAttentionCount: 0,
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // All 8 queries fire simultaneously — no sequential waits
+  const [
+    paidOrders,
+    allOrderDates,
+    totalOrders,
+    totalProducts,
+    lowStockProducts,
+    recentOrders,
+    topProductsGrouped,
+    pendingOrdersCount,
+    needsAttentionCount,
+  ] = await Promise.all([
+    prisma.order.findMany({
+      where: { paymentStatus: "paid" },
+      select: { total: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.order.findMany({
+      select: { createdAt: true },
+    }),
     prisma.order.count(),
     prisma.product.count({
       where: buildValidCatalogProductWhere(),
@@ -415,43 +530,52 @@ export async function getAdminDashboardStats() {
           },
         },
       }),
-        include: { variants: true },
-        take: 6,
-      }),
-      prisma.order.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5, // Hardcapped at 5 for performance as requested
-        select: {
-          id: true,
-          orderNumber: true,
-          customerEmail: true,
-          customerName: true,
-          total: true,
-          paymentMethod: true,
-          status: true,
-          createdAt: true,
-        },
-      }),
-    ]);
+      include: { variants: true },
+      take: 6,
+    }),
+    prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        orderNumber: true,
+        customerEmail: true,
+        customerName: true,
+        total: true,
+        paymentMethod: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
+    prisma.orderItem.groupBy({
+      by: ["productId"],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
+      take: 3,
+    }),
+    prisma.order.count({ where: { status: "pending" } }),
+    prisma.order.count({
+      where: {
+        status: "pending",
+        createdAt: { lt: yesterday },
+      },
+    }),
+  ]);
 
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
   const now = new Date();
-  
-  // Calculate trend (% vs last month)
   const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
   const lastMonthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
   const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const lastMonthRevenue = paidOrders
-    .filter(o => o.createdAt >= lastMonthStart && o.createdAt <= lastMonthEnd)
-    .reduce((sum, o) => sum + o.total, 0);
+    .filter((order) => order.createdAt >= lastMonthStart && order.createdAt <= lastMonthEnd)
+    .reduce((sum, order) => sum + order.total, 0);
   const thisMonthRevenue = paidOrders
-    .filter(o => o.createdAt >= thisMonthStart)
-    .reduce((sum, o) => sum + o.total, 0);
-    
-  const revenueTrend = lastMonthRevenue > 0 
-    ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
-    : 0;
+    .filter((order) => order.createdAt >= thisMonthStart)
+    .reduce((sum, order) => sum + order.total, 0);
+  const revenueTrend =
+    lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
 
   const monthBuckets = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
@@ -468,74 +592,60 @@ export async function getAdminDashboardStats() {
   for (const order of paidOrders) {
     const key = `${order.createdAt.getUTCFullYear()}-${order.createdAt.getUTCMonth()}`;
     const bucket = revenueByMonth.get(key);
+
     if (bucket) {
       bucket.revenue += order.total;
     }
   }
-  
-  // Get all orders for count trends
-  const allOrders = await prisma.order.findMany({
-      select: { createdAt: true },
-  });
-  
-  for (const order of allOrders) {
-      const key = `${order.createdAt.getUTCFullYear()}-${order.createdAt.getUTCMonth()}`;
-      const bucket = revenueByMonth.get(key);
-      if (bucket) {
-          bucket.orderCount += 1;
-      }
+
+  for (const order of allOrderDates) {
+    const key = `${order.createdAt.getUTCFullYear()}-${order.createdAt.getUTCMonth()}`;
+    const bucket = revenueByMonth.get(key);
+
+    if (bucket) {
+      bucket.orderCount += 1;
+    }
   }
 
-  // Top 3 Selling Products
-  const topProducts = await prisma.orderItem.groupBy({
-      by: ["productId"],
-      _sum: { quantity: true },
-      orderBy: { _sum: { quantity: "desc" } },
-      take: 3,
-  });
-  
   const topProductDetails = await Promise.all(
-      topProducts.map(async (p) => {
-          const details = await prisma.product.findUnique({
-              where: { id: p.productId },
-              select: { name: true, images: true, basePrice: true }
-          });
-          return {
-              ...details,
-              unitsSold: p._sum.quantity || 0,
-          };
-      })
+    topProductsGrouped.map(async (product) => {
+      const details = await prisma.product.findUnique({
+        where: { id: product.productId },
+        select: { name: true, images: true, basePrice: true },
+      });
+
+      return {
+        ...details,
+        unitsSold: product._sum.quantity || 0,
+      };
+    })
   );
 
-  // Today's stats
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const todayOrders = allOrders.filter(o => o.createdAt >= todayStart).length;
-  const pendingOrdersCount = await prisma.order.count({ where: { status: "pending" } });
-  
-  // Needs attention (pending > 24h)
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const needsAttention = await prisma.order.count({
-      where: {
-          status: "pending",
-          createdAt: { lt: yesterday }
-      }
-  });
+  const todayOrders = allOrderDates.filter((order) => order.createdAt >= todayStart).length;
 
-    return {
-      totalRevenue,
-      revenueTrend,
-      totalOrders,
-      totalProducts,
-      lowStockProducts: lowStockProducts as Product[],
-      revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
-      recentOrders,
-      topProducts: topProductDetails,
-      todayOrders,
-      pendingOrdersCount,
-      needsAttentionCount: needsAttention,
-      lastUpdated: new Date().toISOString()
-    };
+  return {
+    totalRevenue,
+    revenueTrend,
+    totalOrders,
+    totalProducts,
+    lowStockProducts: lowStockProducts as Product[],
+    revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
+    recentOrders,
+    topProducts: topProductDetails,
+    todayOrders,
+    pendingOrdersCount,
+    needsAttentionCount,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+export async function getAdminDashboardStats() {
+  return unstable_cache(loadAdminDashboardStats, ["admin-dashboard-stats"], {
+    revalidate: ADMIN_STATS_REVALIDATE_SECONDS,
+    tags: [ADMIN_STATS_CACHE_TAG],
+  })();
 }
 
 export async function getRelatedProducts(

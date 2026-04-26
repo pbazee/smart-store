@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import {
   CheckCircle,
   ChevronLeft,
@@ -14,8 +15,10 @@ import {
   Truck,
   X,
 } from "lucide-react";
-import type { Order } from "@/types";
+import { InlineLoader } from "@/components/ui/ripple-loader";
+import { jsonFetcher } from "@/lib/fetcher";
 import { cn, formatKES } from "@/lib/utils";
+import type { Order } from "@/types";
 
 type OrdersTableProps = {
   initialOrders: Order[];
@@ -51,22 +54,57 @@ type ApiResponse = {
 
 function getStatusConfig(order: Order) {
   if (order.paymentStatus === "paid" && order.status === "pending") {
-    return { label: "paid", color: "text-emerald-400 bg-emerald-400/10 border-emerald-500/20", icon: CheckCircle };
+    return {
+      label: "paid",
+      color: "text-emerald-400 bg-emerald-400/10 border-emerald-500/20",
+      icon: CheckCircle,
+    };
   }
 
   switch (order.status) {
     case "delivered":
-      return { label: "delivered", color: "text-emerald-400 bg-emerald-400/10 border-emerald-500/20", icon: CheckCircle };
+      return {
+        label: "delivered",
+        color: "text-emerald-400 bg-emerald-400/10 border-emerald-500/20",
+        icon: CheckCircle,
+      };
     case "shipped":
-      return { label: "shipped", color: "text-blue-400 bg-blue-400/10 border-blue-500/20", icon: Truck };
+      return {
+        label: "shipped",
+        color: "text-blue-400 bg-blue-400/10 border-blue-500/20",
+        icon: Truck,
+      };
     case "pending":
     case "processing":
-      return { label: order.status, color: "text-amber-400 bg-amber-400/10 border-amber-500/20", icon: Clock };
+      return {
+        label: order.status,
+        color: "text-amber-400 bg-amber-400/10 border-amber-500/20",
+        icon: Clock,
+      };
     case "cancelled":
-      return { label: "cancelled", color: "text-red-400 bg-red-400/10 border-red-500/20", icon: Package };
+      return {
+        label: "cancelled",
+        color: "text-red-400 bg-red-400/10 border-red-500/20",
+        icon: Package,
+      };
     default:
-      return { label: order.status, color: "text-zinc-400 bg-zinc-400/10 border-zinc-500/20", icon: Package };
+      return {
+        label: order.status,
+        color: "text-zinc-400 bg-zinc-400/10 border-zinc-500/20",
+        icon: Package,
+      };
   }
+}
+
+function buildOrdersUrl(page: number, limit: number, search: string, status: string) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    search,
+    status,
+  });
+
+  return `/api/admin/orders?${params.toString()}`;
 }
 
 export function OrdersTable({
@@ -79,71 +117,75 @@ export function OrdersTable({
   limit,
 }: OrdersTableProps) {
   const router = useRouter();
-  const [orders, setOrders] = useState(initialOrders);
   const [query, setQuery] = useState(initialSearch);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialSearch);
   const [status, setStatus] = useState(initialStatus);
   const [currentPage, setCurrentPage] = useState(page);
-  const [currentFilteredTotal, setCurrentFilteredTotal] = useState(filteredTotal);
-  const [currentTotalOrders, setCurrentTotalOrders] = useState(totalOrders);
-  const [totalPages, setTotalPages] = useState(Math.max(1, Math.ceil(filteredTotal / limit)));
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setOrders(initialOrders);
-    setCurrentFilteredTotal(filteredTotal);
-    setCurrentTotalOrders(totalOrders);
-    setCurrentPage(page);
-    setStatus(initialStatus);
-    setQuery(initialSearch);
-    setTotalPages(Math.max(1, Math.ceil(filteredTotal / limit)));
-  }, [filteredTotal, initialOrders, initialSearch, initialStatus, limit, page, totalOrders]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void (async () => {
-        setIsLoading(true);
-
-        try {
-          const searchParams = new URLSearchParams({
-            search: query,
-            status,
-            page: String(currentPage),
-            limit: String(limit),
-          });
-
-          const response = await fetch(`/api/admin/orders?${searchParams.toString()}`, {
-            cache: "no-store",
-          });
-          const data = (await response.json()) as ApiResponse;
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch orders");
-          }
-
-          setOrders(data.data);
-          setCurrentFilteredTotal(data.meta.filteredTotal);
-          setCurrentTotalOrders(data.meta.totalOrders);
-          setTotalPages(data.meta.totalPages);
-          router.replace(
-            `/admin/orders?page=${data.meta.page}&limit=${data.meta.limit}&search=${encodeURIComponent(
-              data.meta.search
-            )}&status=${encodeURIComponent(data.meta.status)}`
-          );
-        } catch (error) {
-          console.error("Orders search failed:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      })();
+    const timeout = window.setTimeout(() => {
+      setDebouncedQuery(query);
     }, 300);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      window.clearTimeout(timeout);
     };
-  }, [currentPage, limit, query, router, status]);
+  }, [query]);
+
+  useEffect(() => {
+    setQuery(initialSearch);
+    setDebouncedQuery(initialSearch);
+    setStatus(initialStatus);
+    setCurrentPage(page);
+  }, [initialSearch, initialStatus, page]);
+
+  const { data, isLoading, isValidating } = useSWR<ApiResponse>(
+    buildOrdersUrl(currentPage, limit, debouncedQuery, status),
+    jsonFetcher,
+    {
+      fallbackData: {
+        success: true,
+        data: initialOrders,
+        meta: {
+          page,
+          limit,
+          filteredTotal,
+          totalOrders,
+          totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
+          search: initialSearch,
+          status: initialStatus,
+        },
+      },
+      keepPreviousData: true,
+      revalidateOnFocus: true,
+      dedupingInterval: 30_000,
+    }
+  );
+
+  const orders = data?.data ?? initialOrders;
+  const meta = data?.meta ?? {
+    page,
+    limit,
+    filteredTotal,
+    totalOrders,
+    totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
+    search: initialSearch,
+    status: initialStatus,
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      limit: String(limit),
+      search: debouncedQuery,
+      status,
+    });
+
+    router.replace(`/admin/orders?${params.toString()}`, { scroll: false });
+  }, [currentPage, debouncedQuery, limit, router, status]);
 
   const changePage = (nextPage: number) => {
-    if (nextPage < 1 || nextPage > totalPages) {
+    if (nextPage < 1 || nextPage > meta.totalPages) {
       return;
     }
 
@@ -155,7 +197,7 @@ export function OrdersTable({
       <div>
         <h1 className="text-2xl font-black text-white">Full Order Ledger</h1>
         <p className="mt-1 text-xs font-bold uppercase tracking-widest text-zinc-500">
-          Showing {currentFilteredTotal} of {currentTotalOrders} entries
+          Showing {meta.filteredTotal} of {meta.totalOrders} entries
         </p>
       </div>
 
@@ -170,7 +212,7 @@ export function OrdersTable({
                 setCurrentPage(1);
               }}
               placeholder="Search by order ref, customer name, email, or payment method..."
-              className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 pl-11 pr-11 py-3 text-sm font-medium text-white outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-2xl border border-zinc-700 bg-zinc-950 py-3 pl-11 pr-11 text-sm font-medium text-white outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
             />
             {query ? (
               <button
@@ -209,13 +251,11 @@ export function OrdersTable({
         </div>
 
         {isLoading ? (
-          <div className="flex min-h-[320px] items-center justify-center">
-            <Clock className="h-6 w-6 animate-spin text-orange-500" />
-          </div>
+          <InlineLoader label="Loading orders..." />
         ) : orders.length === 0 ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-zinc-700 bg-zinc-950/60 text-center">
             <p className="text-lg font-black text-white">
-              No orders found matching &apos;{query}&apos;
+              No orders found matching &apos;{debouncedQuery}&apos;
             </p>
             <button
               type="button"
@@ -231,6 +271,12 @@ export function OrdersTable({
           </div>
         ) : (
           <>
+            {isValidating ? (
+              <div className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+                Refreshing orders...
+              </div>
+            ) : null}
+
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[900px]">
                 <thead>
@@ -299,22 +345,22 @@ export function OrdersTable({
               </table>
             </div>
 
-            {totalPages > 1 ? (
+            {meta.totalPages > 1 ? (
               <div className="mt-8 flex items-center justify-between border-t border-zinc-800 pt-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                  Showing page {currentPage} of {totalPages}
+                  Showing page {meta.page} of {meta.totalPages}
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => changePage(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    onClick={() => changePage(meta.page - 1)}
+                    disabled={meta.page === 1}
                     className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-300 transition hover:border-orange-500/50 disabled:opacity-30"
                   >
                     <ChevronLeft className="h-3 w-3" /> Previous
                   </button>
                   <button
-                    onClick={() => changePage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    onClick={() => changePage(meta.page + 1)}
+                    disabled={meta.page === meta.totalPages}
                     className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-300 transition hover:border-orange-500/50 disabled:opacity-30"
                   >
                     Next <ChevronRight className="h-3 w-3" />

@@ -5,9 +5,16 @@ import type { Product } from "@/types";
 export async function getWishlistProductIds(userId: string) {
   const items = await prisma.wishlistItem.findMany({
     where: { userId },
+    orderBy: { createdAt: "desc" },
     select: { productId: true },
   });
   return items.map((item) => item.productId);
+}
+
+export async function getWishlistCount(userId: string) {
+  return prisma.wishlistItem.count({
+    where: { userId },
+  });
 }
 
 export async function getWishlistProducts(userId: string): Promise<Product[]> {
@@ -21,20 +28,24 @@ export async function getWishlistProducts(userId: string): Promise<Product[]> {
   })) as Product[];
 }
 
-export async function toggleWishlistProduct(userId: string, productId: string) {
+export async function addWishlistProduct(userId: string, productId: string) {
   const existing = await prisma.wishlistItem.findUnique({
     where: { userId_productId: { userId, productId } },
   });
 
   if (existing) {
-    await prisma.wishlistItem.delete({
-      where: { userId_productId: { userId, productId } },
-    });
-  } else {
-    await prisma.wishlistItem.create({
-      data: { userId, productId },
-    });
+    return false;
   }
 
-  return getWishlistProductIds(userId);
+  await prisma.wishlistItem.create({
+    data: { userId, productId },
+  });
+
+  return true;
+}
+
+export async function removeWishlistProduct(userId: string, productId: string) {
+  await prisma.wishlistItem.deleteMany({
+    where: { userId, productId },
+  });
 }

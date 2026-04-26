@@ -99,11 +99,9 @@ export async function getNewsletterSubscriberCount() {
     return getDemoNewsletterSubscribers().length;
   }
 
-  if (process.env.NODE_ENV === "production") {
-    return getCachedNewsletterSubscriberCount();
-  }
-
-  return prisma.newsletterSubscriber.count();
+  // Always use the cached version (works in dev too) to avoid a DB
+  // COUNT query on every admin layout render.
+  return getCachedNewsletterSubscriberCount();
 }
 
 export async function subscribeToNewsletter(email: string) {

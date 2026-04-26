@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import {
   AlertCircle,
   CheckCircle,
@@ -12,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { InlineLoader } from "@/components/ui/ripple-loader";
+import { jsonFetcher } from "@/lib/fetcher";
 import { KENYA_COUNTIES } from "@/lib/kenya-counties";
 import { useToast } from "@/lib/use-toast";
 
@@ -24,6 +27,11 @@ type ShippingZone = {
   estimatedDays: number;
   freeAboveKES?: number | null;
   isActive: boolean;
+};
+
+type ShippingZonesResponse = {
+  success: boolean;
+  data: ShippingZone[];
 };
 
 const DEFAULT_ZONES: ShippingZone[] = [
@@ -64,35 +72,26 @@ function isZoneValid(zone: ShippingZone) {
 export default function ShippingAdminPage() {
   const { toast } = useToast();
   const [zones, setZones] = useState<ShippingZone[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { data, error, isLoading, mutate } = useSWR<ShippingZonesResponse>(
+    "/api/admin/shipping-zones",
+    jsonFetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 300_000,
+    }
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    if (data?.data?.length) {
+      setZones(data.data);
+      return;
+    }
 
-    void (async () => {
-      try {
-        const response = await fetch("/api/admin/shipping-zones");
-        const payload = await response.json();
-
-        if (!cancelled) {
-          setZones(payload.data?.length ? payload.data : DEFAULT_ZONES);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setZones(DEFAULT_ZONES);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!isLoading && !data?.data?.length) {
+      setZones(DEFAULT_ZONES);
+    }
+  }, [data, isLoading]);
 
   const updateZone = (index: number, patch: Partial<ShippingZone>) => {
     setZones((current) =>
@@ -162,6 +161,7 @@ export default function ShippingAdminPage() {
         const response = await fetch(`/api/admin/shipping-zones/${target.id}`, {
           method: "DELETE",
         });
+
         if (!response.ok) {
           throw new Error("Delete failed");
         }
@@ -175,7 +175,9 @@ export default function ShippingAdminPage() {
       }
     }
 
-    setZones((current) => current.filter((_, zoneIndex) => zoneIndex !== index));
+    const nextZones = zones.filter((_, zoneIndex) => zoneIndex !== index);
+    setZones(nextZones);
+    await mutate({ success: true, data: nextZones }, { revalidate: false });
   };
 
   const saveAll = async () => {
@@ -193,13 +195,14 @@ export default function ShippingAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ zones: payload }),
       });
-      const data = await response.json();
+      const result = (await response.json().catch(() => null)) as ShippingZonesResponse | null;
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Failed to save shipping zones");
+      if (!response.ok || !result?.data) {
+        throw new Error("Failed to save shipping zones");
       }
 
-      setZones(data.data);
+      setZones(result.data);
+      await mutate(result, { revalidate: false });
       toast({
         title: "Shipping zones saved",
         description: "County-based checkout delivery rules are now live.",
@@ -215,10 +218,17 @@ export default function ShippingAdminPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading && zones.length === 0) {
+    return <InlineLoader label="Loading shipping zones..." />;
+  }
+
+  if (error && zones.length === 0) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      <div className="rounded-[2rem] border border-dashed border-zinc-800 bg-zinc-900/40 px-6 py-16 text-center">
+        <h1 className="text-2xl font-black text-white">Could not load shipping zones</h1>
+        <p className="mt-3 text-sm text-zinc-400">
+          The editor could not refresh shipping data right now.
+        </p>
       </div>
     );
   }

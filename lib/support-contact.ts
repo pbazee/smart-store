@@ -1,4 +1,5 @@
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { getStoreSettings } from "@/lib/store-settings";
 import type { StoreSettings } from "@/types";
 
@@ -58,6 +59,10 @@ export function resolveSupportContactInfo(
 }
 
 export async function getSupportContactInfo() {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return resolveSupportContactInfo(DEFAULT_STORE_SETTINGS);
+  }
+
   const storeSettings = await getStoreSettings({
     seedIfEmpty: true,
     fallbackOnError: true,

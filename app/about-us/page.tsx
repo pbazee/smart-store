@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Learn more about Smartest Store KE and the Nairobi-first streetwear experience behind the store.",
 };
 
+export const dynamic = "force-static";
+
 const pillars = [
   {
     title: "Nairobi-first curation",

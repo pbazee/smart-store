@@ -1,5 +1,5 @@
 import { PageLoader } from "@/components/ui/ripple-loader";
 
-export default function HomeLoading() {
+export default function AdminLoading() {
   return <PageLoader />;
 }

@@ -58,7 +58,14 @@ export async function GET(request: NextRequest) {
   }
 
   const reviews = await getProductReviews(productId);
-  return NextResponse.json({ success: true, data: reviews });
+  return NextResponse.json(
+    { success: true, data: reviews },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    }
+  );
 }
 
 export async function POST(request: NextRequest) {

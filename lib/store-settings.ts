@@ -1,4 +1,5 @@
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { ensureStoreSettingsStorage } from "@/lib/runtime-schema-repair";
 import type { StoreSettings } from "@/types";
@@ -24,8 +25,22 @@ type GetStoreSettingsOptions = {
   fallbackOnError?: boolean;
 };
 
-let lastKnownStoreSettings: StoreSettings | null = null;
-const pendingStoreSettingsRequests = new Map<string, Promise<StoreSettings | null>>();
+// Use globalThis so state survives Next.js dev-mode module reloads.
+const globalForStoreSettings = globalThis as typeof globalThis & {
+  _lastKnownStoreSettings?: StoreSettings | null;
+  _pendingStoreSettingsRequests?: Map<string, Promise<StoreSettings | null>>;
+};
+if (!globalForStoreSettings._pendingStoreSettingsRequests) {
+  globalForStoreSettings._pendingStoreSettingsRequests = new Map();
+}
+
+function getLastKnownStoreSettings(): StoreSettings | null {
+  return globalForStoreSettings._lastKnownStoreSettings ?? null;
+}
+function setLastKnownStoreSettings(settings: StoreSettings | null) {
+  globalForStoreSettings._lastKnownStoreSettings = settings;
+}
+const pendingStoreSettingsRequests = globalForStoreSettings._pendingStoreSettingsRequests;
 
 function normalizeOptionalText(value?: string | null) {
   return (value ?? "").trim();
@@ -33,17 +48,21 @@ function normalizeOptionalText(value?: string | null) {
 
 function rememberStoreSettings(settings: StoreSettings | null) {
   if (settings) {
-    lastKnownStoreSettings = settings;
+    setLastKnownStoreSettings(settings);
   }
 
   return settings;
 }
 
 export function getStoreSettingsFallback() {
-  return lastKnownStoreSettings ?? DEFAULT_STORE_SETTINGS;
+  return getLastKnownStoreSettings() ?? DEFAULT_STORE_SETTINGS;
 }
 
 export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return getStoreSettingsFallback();
+  }
+
   const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;
   const requestKey = `${seedIfEmpty ? "seed" : "noseed"}:${fallbackOnError ? "fallback" : "strict"}`;
   const existingRequest = pendingStoreSettingsRequests.get(requestKey);

@@ -4,7 +4,7 @@ import { getActiveCategories } from "@/lib/category-service";
 import { getProducts } from "@/lib/data-service";
 import { popularBrands } from "@/lib/site-content";
 
-export const revalidate = 0;
+export const revalidate = 300;
 
 export default async function BrandsPage() {
   const [products, categories] = await Promise.all([getProducts(), getActiveCategories()]);

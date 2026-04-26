@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getShippingRules, upsertShippingZones } from "@/lib/shipping-rules";
+import { revalidateTag } from "next/cache";
+import { getShippingRules, SHIPPING_ZONES_CACHE_TAG, upsertShippingZones } from "@/lib/shipping-rules";
 import { requireAdmin } from "@/lib/admin-identity";
 import { z } from "zod";
 
@@ -18,7 +19,12 @@ export async function GET() {
   try {
     await requireAdmin();
     const zones = await getShippingRules();
-    return NextResponse.json({ success: true, data: zones });
+    return NextResponse.json(
+      { success: true, data: zones },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -36,7 +42,13 @@ export async function PUT(request: NextRequest) {
         id: typeof zone.id === "number" ? zone.id : undefined,
       }))
     );
-    return NextResponse.json({ success: true, data: updated });
+    revalidateTag(SHIPPING_ZONES_CACHE_TAG);
+    return NextResponse.json(
+      { success: true, data: updated },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (error) {
     console.error("Shipping zones save failed:", error);
     return NextResponse.json({ error: "Failed to save shipping zones" }, { status: 400 });

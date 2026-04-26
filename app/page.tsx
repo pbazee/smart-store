@@ -14,7 +14,7 @@ import {
   HomepageReviewsSection,
 } from "@/components/shop/homepage-sections";
 
-export const revalidate = 300;
+export const revalidate = 120;
 export default function HomePage() {
   return (
     <div>

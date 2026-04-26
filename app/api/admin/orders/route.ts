@@ -18,19 +18,26 @@ export async function GET(request: NextRequest) {
       getCountOrders(),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: orders,
-      meta: {
-        page,
-        limit,
-        filteredTotal,
-        totalOrders,
-        totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
-        search,
-        status,
+    return NextResponse.json(
+      {
+        success: true,
+        data: orders,
+        meta: {
+          page,
+          limit,
+          filteredTotal,
+          totalOrders,
+          totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
+          search,
+          status,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Admin orders fetch failed:", error);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

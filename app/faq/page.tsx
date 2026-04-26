@@ -5,6 +5,8 @@ import { getSupportContactInfo } from "@/lib/support-contact";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { buildWhatsAppHref } from "@/lib/whatsapp-service";
 
+export const dynamic = "force-static";
+
 export default async function FAQPage() {
   const [faqs, supportInfo, storefrontContactData] = await Promise.all([
     getFAQs({ onlyActive: true }),

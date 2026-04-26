@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
-import { releaseExpiredReservations } from "@/lib/order-reservations";
+import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
+import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
 import {
   buildValidCatalogProductWhere,
   resolveAdminProductCatalogAssignment,
 } from "@/lib/product-integrity";
 import { slugify } from "@/lib/utils";
-import { z } from "zod";
-import { revalidatePath } from "next/cache";
 
 const genderSchema = z.enum(["men", "women", "unisex", "children", "male", "female"]);
 
@@ -39,6 +40,28 @@ const createProductSchema = z.object({
     .min(1, "At least one variant is required"),
 });
 
+function revalidateProductSurfaces() {
+  revalidateTag(PRODUCTS_CACHE_TAG);
+  revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidatePath("/");
+  revalidatePath("/shop");
+  revalidatePath("/wishlist");
+  revalidatePath("/admin/products");
+}
+
+function buildAdminProductSearchWhere(search?: string) {
+  if (!search?.trim()) {
+    return buildValidCatalogProductWhere();
+  }
+
+  return {
+    OR: [
+      { name: { contains: search.trim(), mode: "insensitive" as const } },
+      { slug: { contains: search.trim(), mode: "insensitive" as const } },
+    ],
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const isAdmin = await requireAdminAuth();
@@ -46,15 +69,41 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await releaseExpiredReservations();
+    const search = req.nextUrl.searchParams.get("search")?.trim() || "";
+    const page = Math.max(1, Number(req.nextUrl.searchParams.get("page") || 1));
+    const limit = Math.max(1, Number(req.nextUrl.searchParams.get("limit") || 20));
+    const skip = (page - 1) * limit;
+    const where = buildAdminProductSearchWhere(search);
 
-    const products = await prisma.product.findMany({
-      where: buildValidCatalogProductWhere(),
-      include: { variants: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: { variants: true },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
 
-    return NextResponse.json({ success: true, data: products });
+    return NextResponse.json(
+      {
+        success: true,
+        data: products,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+          search,
+        },
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching admin products:", error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
@@ -84,11 +133,17 @@ export async function POST(req: NextRequest) {
       include: { variants: true },
     });
 
-    revalidatePath("/");
-    revalidatePath("/shop");
-    revalidatePath("/admin/products");
+    revalidateProductSurfaces();
 
-    return NextResponse.json({ success: true, data: product }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: product },
+      {
+        status: 201,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

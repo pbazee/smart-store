@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -12,7 +12,6 @@ import { useToast } from "@/lib/use-toast";
 import { cn, createBlurDataURL, formatKES } from "@/lib/utils";
 import type { Product } from "@/types";
 
-// Computed once at module load — same gradient for every card, never re-computed
 const CARD_BLUR_DATA_URL = createBlurDataURL({
   from: "#f5f5f5",
   to: "#e5e5e5",
@@ -51,10 +50,9 @@ function ProductCardComponent({
   const hasPrefetchedRef = useRef(false);
   const isWishlisted = useWishlistProduct(product.id);
   const { isSignedIn, toggle } = useWishlistActions();
-  // Selector instead of full store subscription — addItem is a stable reference,
-  // so this component no longer re-renders on every cart state change
   const addItem = useCartStore((state) => state.addItem);
   const { toast } = useToast();
+  const [heartAnimating, setHeartAnimating] = useState(false);
 
   const firstVariant =
     product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
@@ -93,9 +91,11 @@ function ProductCardComponent({
     });
   };
 
-  const handleWishlistToggle = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleWishlistToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    setHeartAnimating(true);
+    window.setTimeout(() => setHeartAnimating(false), 200);
 
     if (!isSignedIn) {
       const redirectPath =
@@ -112,27 +112,19 @@ function ProductCardComponent({
     }
 
     const wasSaved = isWishlisted;
-    const result = await toggle(product.id);
 
-    if (!result.ok) {
+    void toggle(product.id).then((result) => {
+      if (!result.ok) {
+        return;
+      }
+
       toast({
-        title: "Wishlist unavailable",
-        description: "Please try again in a moment.",
-        variant: "destructive",
+        title: wasSaved ? "Removed from wishlist" : "Saved to wishlist",
+        description: wasSaved
+          ? "This item has been removed from your saved list."
+          : "You can find it any time in your wishlist.",
       });
-      return;
-    }
-
-    toast({
-      title: wasSaved ? "Removed from wishlist" : "Saved to wishlist",
-      description: wasSaved
-        ? "This item has been removed from your saved list."
-        : "You can find it any time in your wishlist.",
     });
-
-    if (pathname === "/wishlist") {
-      router.refresh();
-    }
   };
 
   return (
@@ -148,9 +140,7 @@ function ProductCardComponent({
         onFocus={prefetchProduct}
         className="block"
       >
-        {/* Card container */}
         <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg">
-          {/* Image */}
           <div className="relative aspect-[3/4] overflow-hidden bg-muted">
             <Image
               src={product.images[0] || "/images/product-placeholder.png"}
@@ -165,7 +155,6 @@ function ProductCardComponent({
               sizes={sizes}
             />
 
-            {/* Badges */}
             <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
               {product.isNew && (
                 <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
@@ -179,7 +168,6 @@ function ProductCardComponent({
               )}
             </div>
 
-            {/* Wishlist heart */}
             <button
               type="button"
               onClick={handleWishlistToggle}
@@ -189,12 +177,12 @@ function ProductCardComponent({
               <Heart
                 className={cn(
                   "h-4 w-4 transition-colors",
+                  heartAnimating && "wishlist-heart-pulse",
                   isWishlisted ? "fill-red-500 text-red-500" : ""
                 )}
               />
             </button>
 
-            {/* Quick add — pure CSS slide-up, no JS state or Framer Motion */}
             {firstVariant && (
               <button
                 type="button"
@@ -207,14 +195,11 @@ function ProductCardComponent({
             )}
           </div>
 
-          {/* Info */}
           <div className="p-3.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-sm font-semibold leading-tight">{product.name}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {product.subcategory}
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{product.subcategory}</p>
               </div>
               <p className="whitespace-nowrap text-sm font-black text-orange-600">
                 {formatKES(product.basePrice)}
@@ -240,7 +225,6 @@ function ProductCardComponent({
               </div>
             </div>
 
-            {/* Mobile-only always-visible Add to Cart button */}
             {firstVariant && (
               <button
                 type="button"

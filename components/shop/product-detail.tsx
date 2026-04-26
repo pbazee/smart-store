@@ -46,6 +46,7 @@ export function ProductDetail({
   const { sessionUser } = useSessionUser();
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomed, setZoomed] = useState(false);
+  const [heartAnimating, setHeartAnimating] = useState(false);
 
   const initialVariant =
     product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
@@ -142,6 +143,9 @@ export function ProductDetail({
   };
 
   const handleWishlistToggle = async () => {
+    setHeartAnimating(true);
+    window.setTimeout(() => setHeartAnimating(false), 200);
+
     if (!isSignedIn) {
       toast({
         title: "Sign in required",
@@ -155,11 +159,6 @@ export function ProductDetail({
     const result = await toggle(product.id);
 
     if (!result.ok) {
-      toast({
-        title: "Wishlist unavailable",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -386,6 +385,7 @@ export function ProductDetail({
               <Heart
                 className={cn(
                   "h-4 w-4",
+                  heartAnimating && "wishlist-heart-pulse",
                   isWishlisted ? "fill-red-500 text-red-500" : ""
                 )}
               />

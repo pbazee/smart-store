@@ -6,8 +6,16 @@ import { prisma } from "@/lib/prisma";
 import type { WhatsAppPosition, WhatsAppSettings } from "@/types";
 
 const WHATSAPP_SETTINGS_META_PREFIX = "__smartest_store_whatsapp__";
-let lastKnownWhatsAppSettings: WhatsAppSettings | null = null;
-const pendingWhatsAppRequests = new Map<string, Promise<WhatsAppSettings | null>>();
+
+// Use globalThis so state survives Next.js dev-mode module reloads.
+const globalForWhatsApp = globalThis as typeof globalThis & {
+  _lastKnownWhatsAppSettings?: WhatsAppSettings | null;
+  _pendingWhatsAppRequests?: Map<string, Promise<WhatsAppSettings | null>>;
+};
+if (!globalForWhatsApp._pendingWhatsAppRequests) {
+  globalForWhatsApp._pendingWhatsAppRequests = new Map();
+}
+const pendingWhatsAppRequests = globalForWhatsApp._pendingWhatsAppRequests;
 
 type PersistedWhatsAppSettingsRecord = {
   id: string;
@@ -84,14 +92,14 @@ function hydrateWhatsAppSettings(
 
 function rememberWhatsAppSettings(settings: WhatsAppSettings | null) {
   if (settings) {
-    lastKnownWhatsAppSettings = settings;
+    globalForWhatsApp._lastKnownWhatsAppSettings = settings;
   }
 
   return settings;
 }
 
 export function getWhatsAppSettingsFallback() {
-  return lastKnownWhatsAppSettings ?? createDefaultWhatsAppSettings();
+  return globalForWhatsApp._lastKnownWhatsAppSettings ?? createDefaultWhatsAppSettings();
 }
 
 export function normalizeWhatsAppPhoneNumber(phoneNumber: string) {

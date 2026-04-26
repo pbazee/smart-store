@@ -16,20 +16,34 @@ export async function GET(request: NextRequest) {
     });
 
     if (result.noMatch) {
-      return NextResponse.json({ noMatch: true });
+      return NextResponse.json(
+        { noMatch: true },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        }
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        county: result.county,
-        fee: result.cost,
-        estimatedDays: result.estimatedDays,
-        freeAboveKES: result.freeAboveKES,
-        ruleId: result.ruleId,
-        ruleName: result.ruleName,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          county: result.county,
+          fee: result.cost,
+          estimatedDays: result.estimatedDays,
+          freeAboveKES: result.freeAboveKES,
+          ruleId: result.ruleId,
+          ruleName: result.ruleName,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (error) {
     console.error("Shipping calculation failed:", error);
     return NextResponse.json({ error: "Failed to calculate shipping" }, { status: 500 });

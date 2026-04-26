@@ -3,7 +3,9 @@ import { MessagesManager } from "@/app/admin/messages/messages-manager";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { getAdminContactMessages } from "@/lib/contact-message-service";
 
-export const dynamic = "force-dynamic";
+// Removed force-dynamic to allow Next.js to optimize layout segments.
+// The segment remains dynamic due to session checks, but this allows for better
+// client-side caching of the layout structure.
 
 export default async function AdminMessagesPage() {
   const isAdmin = await requireAdminAuth();

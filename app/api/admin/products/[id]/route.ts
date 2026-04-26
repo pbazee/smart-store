@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { buildAdminProductDeleteOperations } from "@/lib/admin-products";
+import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
+import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
 import {
   buildValidCatalogProductWhere,
   resolveAdminProductCatalogAssignment,
 } from "@/lib/product-integrity";
 import { slugify } from "@/lib/utils";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
 
 const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
@@ -29,6 +31,15 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+function revalidateProductSurfaces() {
+  revalidateTag(PRODUCTS_CACHE_TAG);
+  revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidatePath("/");
+  revalidatePath("/shop");
+  revalidatePath("/wishlist");
+  revalidatePath("/admin/products");
+}
+
 export async function GET(req: NextRequest, { params }: RouteContext) {
   try {
     const isAdmin = await requireAdminAuth();
@@ -46,7 +57,14 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: product });
+    return NextResponse.json(
+      { success: true, data: product },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 });
@@ -87,11 +105,16 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       include: { variants: true },
     });
 
-    revalidatePath("/");
-    revalidatePath("/shop");
-    revalidatePath("/admin/products");
+    revalidateProductSurfaces();
 
-    return NextResponse.json({ success: true, data: product });
+    return NextResponse.json(
+      { success: true, data: product },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -123,11 +146,16 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       where: operations.productWhere,
     });
 
-    revalidatePath("/");
-    revalidatePath("/shop");
-    revalidatePath("/admin/products");
+    revalidateProductSurfaces();
 
-    return NextResponse.json({ success: true, data: product });
+    return NextResponse.json(
+      { success: true, data: product },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error deleting product:", error);
     return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });

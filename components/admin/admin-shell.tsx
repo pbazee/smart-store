@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import useSWR from "swr";
 import {
   ArrowLeft,
   Bell,
@@ -33,6 +34,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
+import { jsonFetcher } from "@/lib/fetcher";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { cn } from "@/lib/utils";
@@ -231,35 +233,24 @@ export function AdminShell({
   const router = useRouter();
   const { sessionUser, signOut } = useSessionUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null | undefined>(
-    initialStoreSettings
+  const { data: storeSettingsResponse } = useSWR<{ success: boolean; data: StoreSettings }>(
+    "/api/store-settings",
+    jsonFetcher,
+    {
+      fallbackData: initialStoreSettings
+        ? { success: true, data: initialStoreSettings }
+        : undefined,
+      dedupingInterval: 300_000,
+      revalidateOnFocus: false,
+    }
   );
+  const storeSettings = storeSettingsResponse?.data ?? initialStoreSettings;
   const sessionLabel = sessionUser?.fullName || sessionUser?.email || "Admin session";
   const sessionEmail = sessionUser?.email || "Manage the storefront";
   const sessionInitials = getInitials(sessionLabel);
   const branding = getStoreLogoSetFromSettings(storeSettings);
 
   useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about"]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const response = await fetch("/api/store-settings", { cache: "no-store" });
-        const data = await response.json();
-        if (!cancelled && response.ok && data?.data) {
-          setStoreSettings(data.data as StoreSettings);
-        }
-      } catch (error) {
-        console.error("Failed to refresh admin branding:", error);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleSignOut = () => {
     void signOut().then(() => {

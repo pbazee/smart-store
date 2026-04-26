@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { ensureFAQStorage } from "@/lib/runtime-schema-repair";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import type { FAQ } from "@/types";
 
 export async function getFAQs(options: { onlyActive?: boolean } = {}) {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return [];
+  }
+
   await ensureFAQStorage();
 
   const faqs = await prisma.fAQ.findMany({

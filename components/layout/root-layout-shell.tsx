@@ -69,7 +69,7 @@ export function RootLayoutShell({
       <div ref={chromeRef} className="fixed inset-x-0 top-0 z-50">
         {storefrontChrome}
       </div>
-      <main className="min-h-screen pb-20 pt-[var(--storefront-header-height,104px)] transition-all duration-300 md:pb-0">
+      <main className="min-h-screen pb-8 pt-[var(--storefront-header-height,104px)] transition-all duration-300 md:pb-0">
         {children}
       </main>
       {storefrontFooter}

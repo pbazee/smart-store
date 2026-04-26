@@ -7,8 +7,9 @@ import {
     TableSkeleton 
 } from "@/components/admin/dashboard-skeletons";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Revalidate every 60 seconds — matches the cache TTL in getAdminDashboardStats.
+// Do NOT use force-dynamic here as it bypasses unstable_cache entirely.
+export const revalidate = 60;
 
 function DashboardLoading() {
     return (

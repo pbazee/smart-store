@@ -2,12 +2,21 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductJsonLd } from "@/components/shop/product-json-ld";
-import { getProductByIdentifier } from "@/lib/data-service";
+import { InlineLoader } from "@/components/ui/ripple-loader";
+import { getProductByIdentifier, getProducts } from "@/lib/data-service";
 import { buildProductHref } from "@/lib/product-routes";
 import { ProductRecommendations } from "./product-recommendations";
-import { ProductRecommendationsSkeleton } from "./product-recommendations-skeleton";
 
-export const revalidate = 30;
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const products = await getProducts(undefined, {
+    cacheKey: "product-static-params",
+    revalidateSeconds: 300,
+  });
+
+  return products.map((product) => ({ slug: product.slug }));
+}
 
 export default async function ProductPage({
   params,
@@ -35,7 +44,7 @@ export default async function ProductPage({
 
       <ProductDetail product={product} />
 
-      <Suspense fallback={<ProductRecommendationsSkeleton />}>
+      <Suspense fallback={<InlineLoader label="Loading recommendations..." />}>
         <ProductRecommendations product={product} />
       </Suspense>
     </div>

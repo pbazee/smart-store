@@ -1,10 +1,16 @@
-import { getSessionUser } from "@/lib/session-user";
+import { getCachedSessionUser } from "@/lib/auth-cache";
+
+/**
+ * All helpers here use getCachedSessionUser which deduplicates the DB call
+ * via React cache() — any number of callers within the same server request
+ * share a single DB round-trip.
+ */
 
 /**
  * Check if current user is authenticated
  */
 export async function isAuthenticated() {
-  const user = await getSessionUser();
+  const user = await getCachedSessionUser();
   return !!user;
 }
 
@@ -12,7 +18,7 @@ export async function isAuthenticated() {
  * Get current user ID
  */
 export async function getCurrentUserId() {
-  const user = await getSessionUser();
+  const user = await getCachedSessionUser();
   return user?.id ?? null;
 }
 
@@ -21,7 +27,7 @@ export async function getCurrentUserId() {
  * Returns true if admin, false otherwise
  */
 export async function isAdminUser() {
-  const user = await getSessionUser();
+  const user = await getCachedSessionUser();
   return user?.role === "admin";
 }
 
@@ -29,7 +35,7 @@ export async function isAdminUser() {
  * Protect a server function - throws error if not authenticated
  */
 export async function requireAuth() {
-  const user = await getSessionUser();
+  const user = await getCachedSessionUser();
   if (!user) {
     throw new Error("Unauthorized: User must be logged in");
   }
@@ -37,14 +43,13 @@ export async function requireAuth() {
 }
 
 /**
- * Check if user is admin and authenticated
- * Returns true if admin, false otherwise (handles both unauthenticated and non-admin)
+ * Check if user is admin and authenticated.
+ * Returns true if admin, false otherwise (handles both unauthenticated and non-admin).
  */
 export async function requireAdminAuth() {
-  const user = await getSessionUser();
+  const user = await getCachedSessionUser();
   if (!user) {
     return false;
   }
-
   return user.role === "admin";
 }

@@ -29,7 +29,8 @@ import type {
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
 
-const HOMEPAGE_REVALIDATE_SECONDS = 300;
+// In dev use a short 60s TTL; in prod use 120s
+const HOMEPAGE_REVALIDATE_SECONDS = process.env.NODE_ENV === "production" ? 120 : 60;
 const HOMEPAGE_PRODUCT_LIMIT = 6;
 const HOMEPAGE_SECTION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 2;
 const HOMEPAGE_RECOMMENDATION_POOL_LIMIT = HOMEPAGE_PRODUCT_LIMIT * 6;
@@ -72,8 +73,10 @@ function shouldUseBuildFallbackData() {
   return shouldSkipLiveDataDuringBuild();
 }
 
+// Always use unstable_cache (works in dev too — just with a shorter TTL above).
+// This prevents re-fetching all DB data on every navigation.
 function shouldUseProductionCache() {
-  return process.env.NODE_ENV === "production";
+  return true;
 }
 
 async function safeQuery<T>(

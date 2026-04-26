@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { CatalogBrowser } from "@/components/shop/catalog-browser";
+import { InlineLoader } from "@/components/ui/ripple-loader";
 import { buildCatalogHref } from "@/lib/catalog-routing";
 import { getCatalogPageData } from "@/lib/catalog-page-data";
 import type { CatalogQueryInput } from "@/lib/catalog-routing";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export default async function ShopPage({
   searchParams,
@@ -16,7 +17,7 @@ export default async function ShopPage({
   const browserKey = buildCatalogHref(params);
 
   return (
-    <Suspense>
+    <Suspense fallback={<InlineLoader label="Loading products..." />}>
       <CatalogBrowser
         key={browserKey}
         heading={heading}

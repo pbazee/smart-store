@@ -1,5 +1,7 @@
 import { getSupportContactInfo } from "@/lib/support-contact";
 
+export const dynamic = "force-static";
+
 export default async function PrivacyPolicyPage() {
   const { supportEmail, supportPhone } = await getSupportContactInfo();
 

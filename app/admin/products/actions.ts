@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { prisma } from "@/lib/prisma";
 import {
@@ -54,6 +55,7 @@ async function ensureAdmin() {
 }
 
 function revalidateCatalogPaths() {
+  revalidateTag(PRODUCTS_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");

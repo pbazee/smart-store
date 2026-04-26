@@ -64,7 +64,7 @@ export function CartDrawer() {
               </button>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
               {items.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                   <ShoppingCart className="h-16 w-16 text-zinc-300 dark:text-muted-foreground/30" />

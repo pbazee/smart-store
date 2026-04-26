@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Category } from "@/types";
 
 export const CATEGORY_CACHE_TAG = "categories";
-const CATEGORY_REVALIDATE_SECONDS = 60;
+const CATEGORY_REVALIDATE_SECONDS = 600;
 
 const FALLBACK_CATEGORIES: Category[] = [
   // Top-level categories
@@ -33,7 +33,13 @@ const FALLBACK_CATEGORIES: Category[] = [
   { id: "jewellery", name: "Jewellery", slug: "jewellery", parentId: "accessories", order: 5, isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
+
 async function loadActiveCategories(): Promise<Category[]> {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return FALLBACK_CATEGORIES;
+  }
+
   try {
     const categories = await prisma.category.findMany({
       where: { isActive: true },
@@ -62,9 +68,7 @@ const getCachedActiveCategories = unstable_cache(
 );
 
 export async function getActiveCategories(): Promise<Category[]> {
-  if (process.env.NODE_ENV === "production") {
-    return getCachedActiveCategories();
-  }
-
-  return loadActiveCategories();
+  // Always use the cache (works in dev too). Categories rarely change;
+  // 600s TTL avoids repeated DB queries on every shop/navbar render.
+  return getCachedActiveCategories();
 }

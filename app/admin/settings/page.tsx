@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+// Removed force-dynamic for better navigation speed
 import {
   Bell,
   MapPin,

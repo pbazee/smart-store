@@ -63,6 +63,21 @@ export async function createContactMessage(
   return message;
 }
 
+import { unstable_cache } from "next/cache";
+
+const getCachedAdminContactMessages = unstable_cache(
+  async () => {
+    return (await prisma.contactMessage.findMany({
+      orderBy: { createdAt: "desc" },
+    })) as ContactMessage[];
+  },
+  ["admin-contact-messages"],
+  {
+    revalidate: 60,
+    tags: ["contact-messages"],
+  }
+);
+
 export async function getAdminContactMessages(): Promise<ContactMessage[]> {
   if (shouldUseMockData()) {
     return [...demoContactMessages].sort(
@@ -73,9 +88,7 @@ export async function getAdminContactMessages(): Promise<ContactMessage[]> {
 
   await ensureContactMessageStorage();
 
-  return (await prisma.contactMessage.findMany({
-    orderBy: { createdAt: "desc" },
-  })) as ContactMessage[];
+  return getCachedAdminContactMessages();
 }
 
 export async function replyToContactMessage(

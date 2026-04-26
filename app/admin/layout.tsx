@@ -4,7 +4,9 @@ import { getNewsletterSubscriberCount } from "@/lib/newsletter-service";
 import { getStoreBranding } from "@/lib/store-branding";
 import { getSessionUser } from "@/lib/session-user";
 
-export const dynamic = "force-dynamic";
+// Removed force-dynamic to allow Next.js to optimize layout segments.
+// The layout remains dynamic due to session checks, but this allows for better
+// client-side caching of the layout structure.
 
 export default async function AdminLayout({
   children,

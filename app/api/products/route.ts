@@ -1,9 +1,8 @@
-import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { releaseExpiredReservations } from "@/lib/order-reservations";
-import { prisma } from "@/lib/prisma";
-import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
+import { getProducts } from "@/lib/data-service";
 import { smartSearchProducts } from "@/lib/smart-search";
+
+const PUBLIC_PRODUCTS_CACHE_HEADER = "public, s-maxage=300, stale-while-revalidate=600";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,28 +10,29 @@ export async function GET(request: Request) {
   const search = searchParams.get("search");
 
   try {
-    await releaseExpiredReservations();
-
-    const where: Prisma.ProductWhereInput = {};
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (search) {
-      where.name = { contains: search, mode: "insensitive" };
-    }
-
-    let products = await prisma.product.findMany({
-      where: buildValidCatalogProductWhere(where),
-      include: { variants: true },
-    });
+    let products = await getProducts(
+      {
+        category: category ?? undefined,
+        search: search ?? undefined,
+      },
+      {
+        cacheKey: `api-products:${category ?? "all"}:${search ?? ""}`,
+        revalidateSeconds: 300,
+      }
+    );
 
     if (search) {
       products = smartSearchProducts(products, search).results;
     }
 
-    return NextResponse.json({ products, total: products.length });
+    return NextResponse.json(
+      { products, total: products.length },
+      {
+        headers: {
+          "Cache-Control": PUBLIC_PRODUCTS_CACHE_HEADER,
+        },
+      }
+    );
   } catch (error) {
     console.error("Products API error:", error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });

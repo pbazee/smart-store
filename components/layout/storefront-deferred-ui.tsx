@@ -3,11 +3,6 @@
 import dynamic from "next/dynamic";
 import type { Popup } from "@/types";
 
-const MobileBottomNav = dynamic(
-  () =>
-    import("@/components/layout/mobile-bottom-nav").then((module) => module.MobileBottomNav),
-  { ssr: false }
-);
 const CartDrawer = dynamic(
   () => import("@/components/shop/cart-drawer").then((module) => module.CartDrawer),
   { ssr: false }
@@ -40,7 +35,6 @@ export function StorefrontDeferredUI({ popups }: { popups: Popup[] }) {
   return (
     <>
       {popups.length > 0 ? <MarketingPopupClient popups={popups} /> : null}
-      <MobileBottomNav />
       <CartDrawer />
       <CartSessionSync />
       <WishlistSessionSync />

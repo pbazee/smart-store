@@ -29,7 +29,12 @@ export async function GET() {
   try {
     await requireAdmin();
     const settings = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: true });
-    return NextResponse.json({ success: true, data: settings });
+    return NextResponse.json(
+      { success: true, data: settings },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -68,7 +73,12 @@ export async function POST(request: NextRequest) {
     }
 
     revalidateStoreSettingsViews();
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json(
+      { success: true, data: updated },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (error) {
     console.error("Store asset upload failed:", error);
     return NextResponse.json({ error: "Failed to upload asset" }, { status: 500 });
@@ -99,7 +109,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     revalidateStoreSettingsViews();
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json(
+      { success: true, data: updated },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (error) {
     console.error("Store asset removal failed:", error);
     return NextResponse.json({ error: "Failed to remove asset" }, { status: 500 });

@@ -3,7 +3,7 @@ import { NewsletterManager } from "@/app/admin/newsletter/newsletter-manager";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { getNewsletterSubscribers, isResendConfigured } from "@/lib/newsletter-service";
 
-export const dynamic = "force-dynamic";
+// Removed force-dynamic for better navigation speed
 
 export default async function AdminNewsletterPage() {
   const isAdmin = await requireAdminAuth();

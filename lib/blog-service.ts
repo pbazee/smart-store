@@ -8,8 +8,14 @@ type BlogQueryOptions = {
   fallbackOnError?: boolean;
 };
 
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
+
 export async function getBlogPosts(options: BlogQueryOptions = {}): Promise<BlogPost[]> {
   const { publishedOnly = false, take, fallbackOnError = false } = options;
+
+  if (shouldSkipLiveDataDuringBuild()) {
+    return DEFAULT_BLOG_POST_SEEDS.map((seed) => createBlogSeed(seed));
+  }
 
   try {
     const posts = await prisma.blog.findMany({

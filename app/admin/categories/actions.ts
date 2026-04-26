@@ -24,9 +24,8 @@ async function ensureAdmin() {
   }
 }
 
-export async function fetchCategoriesAction() {
-  await ensureAdmin();
-  try {
+const getCachedAllAdminCategories = unstable_cache(
+  async () => {
     const categories = await prisma.category.findMany({
       orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
     });
@@ -36,6 +35,18 @@ export async function fetchCategoriesAction() {
       return getActiveCategories();
     }
     return categories;
+  },
+  ["admin-all-categories"],
+  {
+    revalidate: 60,
+    tags: [CATEGORY_CACHE_TAG, HOMEPAGE_CACHE_TAG],
+  }
+);
+
+export async function fetchCategoriesAction() {
+  await ensureAdmin();
+  try {
+    return await getCachedAllAdminCategories();
   } catch {
     return getActiveCategories();
   }

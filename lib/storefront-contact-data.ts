@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { DEFAULT_SOCIAL_LINK_SEEDS, createSocialLinkSeed } from "@/lib/default-social-links";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { getSocialLinks } from "@/lib/social-link-service";
 import { getStoreSettings, getStoreSettingsFallback } from "@/lib/store-settings";
 import { getWhatsAppSettings, getWhatsAppSettingsFallback } from "@/lib/whatsapp-service";
@@ -24,6 +25,14 @@ function getFallbackSocialLinks(): SocialLink[] {
 }
 
 async function resolveStorefrontContactData(): Promise<StorefrontContactData> {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return {
+      socialLinks: getFallbackSocialLinks(),
+      storeSettings: getStoreSettingsFallback(),
+      whatsAppSettings: getWhatsAppSettingsFallback(),
+    };
+  }
+
   const [socialLinks, storeSettings, whatsAppSettings] = await Promise.all([
     getSocialLinks({ seedIfEmpty: true }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load social links:", error);

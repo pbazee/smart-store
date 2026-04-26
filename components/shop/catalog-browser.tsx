@@ -239,7 +239,7 @@ export function CatalogBrowser({
               className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
               onClick={() => setMobileFiltersOpen(false)}
             />
-            <div className="absolute right-0 top-0 h-full w-3/4 max-w-sm overflow-y-auto border-l border-zinc-300 bg-[#fffaf5] p-5 text-zinc-950 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
+            <div className="absolute right-0 top-0 h-full w-3/4 max-w-sm overflow-y-auto overscroll-contain border-l border-zinc-300 bg-[#fffaf5] p-5 text-zinc-950 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold">Filters</h3>

@@ -11,7 +11,7 @@ const getCachedStoreBranding = unstable_cache(
     return settings ?? DEFAULT_STORE_SETTINGS;
   },
   ["store-branding"],
-  { revalidate: 60, tags: [STORE_SETTINGS_TAG] }
+  { revalidate: 3600, tags: [STORE_SETTINGS_TAG] }
 );
 
 export async function getStoreBranding() {

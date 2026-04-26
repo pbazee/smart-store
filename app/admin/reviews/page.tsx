@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/session-user";
+import { getCachedAdminUser } from "@/lib/auth-cache";
 import { getAllReviewsAdmin } from "@/lib/reviews-service";
 import { ReviewsManager } from "./reviews-manager";
 import { MessageCircle } from "lucide-react";
 
 export default async function AdminReviewsPage() {
-    const sessionUser = await getSessionUser();
-    if (sessionUser?.role !== "admin") {
+    const adminUser = await getCachedAdminUser();
+    if (!adminUser) {
         redirect("/");
     }
+
 
     const reviews = await getAllReviewsAdmin();
 

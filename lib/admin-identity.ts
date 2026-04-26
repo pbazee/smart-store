@@ -1,5 +1,6 @@
-import { getSessionUser } from "@/lib/session-user";
+import { getCachedSessionUser } from "@/lib/auth-cache";
 import { normalizeUserRole } from "@/lib/user-role";
+
 
 const PROTECTED_ADMIN_EMAILS = new Set(["peterkinuthia726@gmail.com"]);
 
@@ -29,7 +30,7 @@ export function resolveDatabaseUserRole(input: {
 }
 
 export async function requireAdmin() {
-  const sessionUser = await getSessionUser();
+  const sessionUser = await getCachedSessionUser();
 
   if (!sessionUser) {
     throw new Error("Unauthorized");
@@ -46,3 +47,4 @@ export async function requireAdmin() {
 
   return sessionUser;
 }
+

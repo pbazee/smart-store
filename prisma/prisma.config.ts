@@ -79,9 +79,7 @@ export function getPrismaConfig() {
         url: getResolvedDatabaseUrl(),
       },
     },
-    log: (process.env.NODE_ENV === "development"
-      ? ["query", "info", "warn", "error"]
-      : ["warn", "error"]) as Prisma.LogLevel[],
+    log: ["error", "warn"] as Prisma.LogLevel[],
   };
 }
 
@@ -101,7 +99,7 @@ export function getPrismaMigrateConfig() {
 
 // Export configured PrismaClient instance with TRULY lazy initialization
 // This ensures process.env is loaded before we try to access DATABASE_URL
-const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function createPrismaClient(): PrismaClient {
   return new PrismaClient(getPrismaConfig());

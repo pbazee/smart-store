@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-identity";
-import { deleteShippingZone } from "@/lib/shipping-rules";
+import { deleteShippingZone, SHIPPING_ZONES_CACHE_TAG } from "@/lib/shipping-rules";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -17,7 +18,13 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     }
 
     await deleteShippingZone(numericId);
-    return NextResponse.json({ success: true });
+    revalidateTag(SHIPPING_ZONES_CACHE_TAG);
+    return NextResponse.json(
+      { success: true },
+      {
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (error) {
     console.error("Shipping zone delete failed:", error);
     return NextResponse.json({ error: "Failed to delete shipping zone" }, { status: 500 });

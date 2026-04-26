@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import useSWR from "swr";
 import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
+import { jsonFetcher } from "@/lib/fetcher";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
-import type { StoreSettings } from "@/types";
 import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import type { StoreSettings } from "@/types";
 
 const AccountMenu = dynamic(
   () => import("@/components/layout/account-menu").then((mod) => mod.AccountMenu),
@@ -139,7 +141,7 @@ function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | un
   if (lightLogo || darkLogo) {
     return (
       <div className="flex min-w-0 items-center gap-3">
-        <div className="relative h-10 w-[132px] shrink-0">
+        <div className="relative h-10 w-[112px] shrink-0 sm:w-[132px]">
           {lightLogo ? (
             <Image
               src={lightLogo}
@@ -161,10 +163,10 @@ function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | un
             />
           ) : null}
         </div>
-        <div className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-muted-foreground">
-                {branding.storeTagline}
-              </span>
+        <div className="hidden min-w-0 sm:block">
+          <span className="block truncate text-sm font-semibold text-muted-foreground">
+            {branding.storeTagline}
+          </span>
         </div>
       </div>
     );
@@ -176,7 +178,7 @@ function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | un
         SK
       </div>
       <div className="min-w-0">
-        <span className="block truncate font-display text-xl font-black tracking-tight">
+        <span className="block truncate font-display text-lg font-black tracking-tight sm:text-xl">
           {storeName}
         </span>
       </div>
@@ -193,9 +195,6 @@ export function Navbar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null | undefined>(
-    initialStoreSettings
-  );
   const { resolvedTheme, setTheme } = useTheme();
   const { hasHydrated, cartCount, toggleCart, closeCart } = useCartStore(
     useShallow((state) => ({
@@ -205,32 +204,24 @@ export function Navbar({
       closeCart: state.closeCart,
     }))
   );
+  const { data: storeSettingsResponse } = useSWR<{ success: boolean; data: StoreSettings }>(
+    "/api/store-settings",
+    jsonFetcher,
+    {
+      fallbackData: initialStoreSettings
+        ? { success: true, data: initialStoreSettings }
+        : undefined,
+      dedupingInterval: 300_000,
+      revalidateOnFocus: false,
+    }
+  );
+  const storeSettings = storeSettingsResponse?.data ?? initialStoreSettings;
   const count = hasHydrated ? cartCount : 0;
   const searchValue = searchParams.get("search") ?? "";
   const wishlistHref = "/wishlist";
   const accountHref = "/account";
 
   useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about", wishlistHref, accountHref]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const response = await fetch("/api/store-settings", { cache: "no-store" });
-        const data = await response.json();
-        if (!cancelled && response.ok && data?.data) {
-          setStoreSettings(data.data as StoreSettings);
-        }
-      } catch (error) {
-        console.error("Failed to refresh store settings in navbar:", error);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const submitSearch = (form: HTMLFormElement) => {
     const q = (form.elements.namedItem("q") as HTMLInputElement).value;
@@ -316,7 +307,11 @@ export function Navbar({
 
         <div className="py-3 md:hidden">
           <div className="flex items-center gap-2">
-            <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/"
+              onClick={closeCart}
+              className="flex min-w-0 max-w-[8.5rem] items-center gap-2 sm:max-w-none"
+            >
               <BrandMark storeSettings={storeSettings} />
             </Link>
 
@@ -340,7 +335,14 @@ export function Navbar({
             </HeaderIconButton>
 
             <HeaderIconButton onClick={() => setMenuOpen(true)} aria-label="Open menu">
-              <Menu className="h-5 w-5" />
+              <span className="relative block">
+                <Menu className="h-5 w-5" />
+                {count > 0 && (
+                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white">
+                    {count}
+                  </span>
+                )}
+              </span>
             </HeaderIconButton>
           </div>
         </div>

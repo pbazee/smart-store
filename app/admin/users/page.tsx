@@ -2,7 +2,7 @@ import { Users } from "lucide-react";
 import { getAllUsersAdmin } from "@/lib/admin-user-service";
 import { UsersManager } from "./users-manager";
 
-export const dynamic = "force-dynamic";
+// Removed force-dynamic for better navigation speed
 
 export default async function AdminUsersPage() {
     const users = await getAllUsersAdmin();
