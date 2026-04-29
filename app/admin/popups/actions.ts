@@ -81,8 +81,8 @@ function normalizePopupInput(input: AdminPopupInput) {
 }
 
 function revalidatePopupPaths() {
-  revalidateTag(HOMEPAGE_CACHE_TAG);
-  revalidateTag("popups");
+  revalidateTag('popups');
+  revalidateTag('homepage-shell');
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");

@@ -6,6 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import {
   deleteLandingSectionOverride,
+  LANDING_OVERRIDES_CACHE_TAG,
   listLandingOverrides,
   reorderLandingOverrides,
   upsertLandingSectionOverride,
@@ -38,6 +39,7 @@ async function ensureAdmin() {
 
 function revalidateStorefront() {
   revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidateTag(LANDING_OVERRIDES_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/admin/landing-overrides");
 }

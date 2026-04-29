@@ -11,8 +11,8 @@ import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { jsonFetcher } from "@/lib/fetcher";
-import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
-import { isNavigationLinkActive, primaryCategoryLinks } from "@/lib/navigation";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
+import { isNavigationLinkActive } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { StoreSettings } from "@/types";
@@ -25,6 +25,12 @@ const SiteMenuDrawer = dynamic(
   () => import("@/components/layout/site-menu-drawer").then((mod) => mod.SiteMenuDrawer),
   { ssr: false }
 );
+
+const storefrontNavLinks = [
+  { href: "/shop", label: "Shop" },
+  { href: "/shop?gender=men", label: "Men" },
+  { href: "/shop?gender=women", label: "Women" },
+];
 
 function DesktopNavLink({
   href,
@@ -250,7 +256,7 @@ export function Navbar({
 
           <div className="flex items-center justify-end gap-1.5">
             <nav className="hidden items-center gap-1 lg:flex">
-              {primaryCategoryLinks.map((link) => (
+              {storefrontNavLinks.map((link) => (
                 <DesktopNavLink
                   key={link.href}
                   href={link.href}

@@ -137,7 +137,7 @@ export interface WhatsAppSettings {
   phoneNumber: string;
   defaultMessage: string;
   isActive: boolean;
-  position: WhatsAppPosition;
+  position?: WhatsAppPosition;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

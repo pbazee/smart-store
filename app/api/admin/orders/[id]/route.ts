@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
+import { ADMIN_STATS_CACHE_TAG } from "@/lib/data-service";
 import { z } from "zod";
 
 const updateOrderSchema = z.object({
@@ -40,6 +42,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         },
       },
     });
+
+    // Invalidate admin dashboard stats cache after order status change
+    revalidateTag(ADMIN_STATS_CACHE_TAG);
 
     return NextResponse.json({
       success: true,

@@ -106,8 +106,7 @@ function normalizePromoBannerInput(input: AdminPromoBannerInput) {
 }
 
 function revalidatePromoBannerPaths() {
-  revalidateTag(HOMEPAGE_CACHE_TAG);
-  revalidateTag("promo-banners");
+  revalidateTag('promo-banners');
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");

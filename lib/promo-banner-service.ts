@@ -202,7 +202,7 @@ async function loadPromoBanners(options: PromoBannerQueryOptions = {}): Promise<
 }
 
 const getCachedActivePromoBanners = unstable_cache(
-  () => loadPromoBanners({ activeOnly: true, seedIfEmpty: true }),
+  () => loadPromoBanners({ activeOnly: true, seedIfEmpty: false }),
   ["promo-banners", "active"],
   {
     revalidate: PROMO_BANNER_REVALIDATE_SECONDS,
@@ -221,7 +221,7 @@ export async function getPromoBanners(options: PromoBannerQueryOptions = {}) {
 }
 
 export async function getActivePromoBanners() {
-  return getPromoBanners({ activeOnly: true, seedIfEmpty: true });
+  return getPromoBanners({ activeOnly: true, seedIfEmpty: false });
 }
 
 export async function createPromoBanner(input: PromoBannerRecordInput) {

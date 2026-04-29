@@ -1,3 +1,5 @@
+import "server-only";
+
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";

@@ -17,11 +17,11 @@ import {
 } from "lucide-react";
 import { InlineLoader } from "@/components/ui/ripple-loader";
 import { jsonFetcher } from "@/lib/fetcher";
+import type { AdminOrderListItem } from "@/lib/data-service";
 import { cn, formatKES } from "@/lib/utils";
-import type { Order } from "@/types";
 
 type OrdersTableProps = {
-  initialOrders: Order[];
+  initialOrders: AdminOrderListItem[];
   filteredTotal: number;
   totalOrders: number;
   initialSearch: string;
@@ -40,7 +40,7 @@ const STATUS_FILTERS = [
 
 type ApiResponse = {
   success: boolean;
-  data: Order[];
+  data: AdminOrderListItem[];
   meta: {
     page: number;
     limit: number;
@@ -52,7 +52,7 @@ type ApiResponse = {
   };
 };
 
-function getStatusConfig(order: Order) {
+function getStatusConfig(order: AdminOrderListItem) {
   if (order.paymentStatus === "paid" && order.status === "pending") {
     return {
       label: "paid",

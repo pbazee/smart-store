@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createSupabaseClientClient } from "@/lib/supabase-client";
 import type { SessionUser } from "@/types";
+import { AuthApiError } from "@supabase/supabase-js";
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
@@ -45,6 +46,21 @@ function buildSupabaseSessionUser(user: User): SessionUser {
   };
 }
 
+function isRecoverableSupabaseSessionError(error: unknown) {
+  if (!(error instanceof AuthApiError)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    message.includes("refresh token not found") ||
+    message.includes("invalid refresh token") ||
+    message.includes("jwt") ||
+    message.includes("session")
+  );
+}
+
 export function SupabaseProvider({
   children,
   initialSession,
@@ -61,14 +77,45 @@ export function SupabaseProvider({
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data: { session: resolvedSession } }) => {
-      if (!isMounted) {
-        return;
-      }
+    const resolveSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
 
-      setSession(resolvedSession);
-      setIsSessionResolved(true);
-    });
+        if (!isMounted) {
+          return;
+        }
+
+        if (error) {
+          if (isRecoverableSupabaseSessionError(error)) {
+            await supabase.auth.signOut({ scope: "local" });
+            setSession(null);
+          } else {
+            console.error("Failed to resolve Supabase session:", error);
+            setSession(null);
+          }
+        } else {
+          setSession(data.session);
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        if (isRecoverableSupabaseSessionError(error)) {
+          await supabase.auth.signOut({ scope: "local" });
+          setSession(null);
+        } else {
+          console.error("Unexpected Supabase session bootstrap failure:", error);
+          setSession(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsSessionResolved(true);
+        }
+      }
+    };
+
+    void resolveSession();
 
     const {
       data: { subscription },

@@ -1,14 +1,19 @@
+import { Suspense } from "react";
 import { BlogTeaserSection } from "@/components/shop/blog-teaser-section";
+import { FeaturedGrid } from "@/components/shop/featured-grid";
 import { HeroCarousel } from "@/components/shop/hero-carousel";
-import { HomeProductSections } from "@/components/shop/home-product-sections";
+import { HomepageRecommendationSection } from "@/components/shop/homepage-recommendation-section";
 import { HomepageCategoryGrid } from "@/components/shop/homepage-category-grid";
 import { LatestReviews } from "@/components/shop/latest-reviews";
+import { NewArrivalsSection } from "@/components/shop/new-arrivals-section";
+import { TrendingSection } from "@/components/shop/trending-section";
 import {
   getHomepageBlogPosts,
   getHomepageCategories,
+  getHomepageCriticalProductSectionsData,
+  getHomepageDeferredProductSectionsData,
   getHomepageHeroSlides,
   getHomepageLatestReviews,
-  getHomepageProductSectionsData,
 } from "@/lib/homepage-data";
 
 export async function HomepageHeroSection() {
@@ -24,9 +29,43 @@ export async function HomepageCategorySection() {
 }
 
 export async function HomepageProductSections() {
-  const productSections = await getHomepageProductSectionsData();
+  const productSections = await getHomepageCriticalProductSectionsData();
 
-  return <HomeProductSections data={productSections} />;
+  return (
+    <>
+      <FeaturedGrid products={productSections.featured} />
+      <TrendingSection products={productSections.trending} />
+      <Suspense fallback={<HomepageDeferredProductSectionsSkeleton />}>
+        <DeferredHomepageProductSections />
+      </Suspense>
+    </>
+  );
+}
+
+async function DeferredHomepageProductSections() {
+  const productSections = await getHomepageDeferredProductSectionsData();
+
+  return (
+    <>
+      <HomepageRecommendationSection
+        eyebrow="Smart recommendations"
+        title="Customers who bought this also bought"
+        description="A fast-moving mix of compatible silhouettes, matching price bands, and category logic that feels personal without slowing down the storefront."
+        products={productSections.alsoBought}
+        viewAllLabel="Explore Recommended"
+        viewAllHref="/shop?collection=recommended"
+      />
+      <NewArrivalsSection products={productSections.newArrivals} />
+      <HomepageRecommendationSection
+        eyebrow="Inspired by your city"
+        title="Built for Nairobi streets and late golden-hour plans"
+        description="Smart picks shaped by what the city responds to: versatile layers, confident color, and easy daily wear."
+        products={productSections.cityInspired}
+        viewAllLabel="Explore City Picks"
+        viewAllHref="/shop?collection=city-inspired"
+      />
+    </>
+  );
 }
 
 export async function HomepageReviewsSection() {
@@ -98,6 +137,16 @@ export function HomepageProductSectionsSkeleton() {
         ))}
       </div>
     </section>
+  );
+}
+
+function HomepageDeferredProductSectionsSkeleton() {
+  return (
+    <>
+      <HomepageProductSectionsSkeleton />
+      <HomepageProductSectionsSkeleton />
+      <HomepageProductSectionsSkeleton />
+    </>
   );
 }
 

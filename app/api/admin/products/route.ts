@@ -40,6 +40,39 @@ const createProductSchema = z.object({
     .min(1, "At least one variant is required"),
 });
 
+const adminProductListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  category: true,
+  subcategory: true,
+  categoryId: true,
+  gender: true,
+  tags: true,
+  basePrice: true,
+  images: true,
+  rating: true,
+  reviewCount: true,
+  isFeatured: true,
+  isNew: true,
+  isPopular: true,
+  isTrending: true,
+  isRecommended: true,
+  createdAt: true,
+  updatedAt: true,
+  variants: {
+    select: {
+      id: true,
+      color: true,
+      colorHex: true,
+      size: true,
+      stock: true,
+      price: true,
+    },
+  },
+} as const;
+
 function revalidateProductSurfaces() {
   revalidateTag(PRODUCTS_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
@@ -54,12 +87,12 @@ function buildAdminProductSearchWhere(search?: string) {
     return buildValidCatalogProductWhere();
   }
 
-  return {
+  return buildValidCatalogProductWhere({
     OR: [
       { name: { contains: search.trim(), mode: "insensitive" as const } },
       { slug: { contains: search.trim(), mode: "insensitive" as const } },
     ],
-  };
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -78,10 +111,10 @@ export async function GET(req: NextRequest) {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: { variants: true },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
+        select: adminProductListSelect,
       }),
       prisma.product.count({ where }),
     ]);
@@ -130,7 +163,7 @@ export async function POST(req: NextRequest) {
         slug: slugify(validatedData.slug || validatedData.name),
         ...catalogAssignment,
       }),
-      include: { variants: true },
+      select: adminProductListSelect,
     });
 
     revalidateProductSurfaces();

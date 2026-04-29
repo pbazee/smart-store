@@ -45,6 +45,39 @@ const adminProductSchema = z.object({
   variants: z.array(adminVariantSchema).min(1, "Add at least one variant"),
 });
 
+const adminProductListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  category: true,
+  subcategory: true,
+  categoryId: true,
+  gender: true,
+  tags: true,
+  basePrice: true,
+  images: true,
+  rating: true,
+  reviewCount: true,
+  isFeatured: true,
+  isNew: true,
+  isPopular: true,
+  isTrending: true,
+  isRecommended: true,
+  createdAt: true,
+  updatedAt: true,
+  variants: {
+    select: {
+      id: true,
+      color: true,
+      colorHex: true,
+      size: true,
+      stock: true,
+      price: true,
+    },
+  },
+} as const;
+
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
 
 async function ensureAdmin() {
@@ -55,8 +88,8 @@ async function ensureAdmin() {
 }
 
 function revalidateCatalogPaths() {
-  revalidateTag(PRODUCTS_CACHE_TAG);
-  revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidateTag('products');
+  revalidateTag('homepage-products');
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/wishlist");
@@ -94,17 +127,17 @@ export async function fetchAdminProducts(params?: { skip?: number; take?: number
 
   return (await prisma.product.findMany({
     where: search 
-      ? {
+      ? buildValidCatalogProductWhere({
           OR: [
               { name: { contains: search, mode: "insensitive" } },
               { slug: { contains: search, mode: "insensitive" } },
           ],
-        }
+        })
       : buildValidCatalogProductWhere(),
-    include: { variants: true },
     orderBy: { createdAt: "desc" },
     skip,
     take,
+    select: adminProductListSelect,
   })) as Product[];
 }
 
@@ -112,12 +145,12 @@ export async function fetchAdminProductCount(search?: string) {
     await ensureAdmin();
     return prisma.product.count({
         where: search 
-          ? {
+          ? buildValidCatalogProductWhere({
               OR: [
                   { name: { contains: search, mode: "insensitive" } },
                   { slug: { contains: search, mode: "insensitive" } },
               ],
-            }
+            })
           : buildValidCatalogProductWhere(),
     });
 }
@@ -152,7 +185,7 @@ export async function createAdminProductAction(input: AdminProductInput) {
       ...normalizedData,
       categoryId: normalizedData.categoryId ?? null,
     }),
-    include: { variants: true },
+    select: adminProductListSelect,
   });
 
   revalidateCatalogPaths();
@@ -193,7 +226,7 @@ export async function updateAdminProductAction(input: AdminProductInput) {
         })),
       },
     },
-    include: { variants: true },
+    select: adminProductListSelect,
   });
 
   revalidateCatalogPaths();

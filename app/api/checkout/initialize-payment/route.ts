@@ -21,6 +21,7 @@ import { getPaystackPublicKey } from "@/lib/paystack-config";
 import { getSessionUser } from "@/lib/session-user";
 import { getShippingQuote } from "@/lib/shipping-rules";
 import { NEWSLETTER_CACHE_TAG } from "@/lib/newsletter-service";
+import { ADMIN_STATS_CACHE_TAG } from "@/lib/data-service";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -296,6 +297,9 @@ export async function POST(req: NextRequest) {
       revalidatePath("/admin/newsletter");
       revalidatePath("/admin");
     }
+
+    // Invalidate admin dashboard stats after new order creation
+    revalidateTag(ADMIN_STATS_CACHE_TAG);
 
     let paystackTransaction;
 

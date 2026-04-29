@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CreditCard, MapPin, Shield, Smartphone } from "lucide-react";
 import { FooterNewsletterForm } from "@/components/layout/footer-newsletter-form";
 import { SocialPlatformIcon } from "@/components/layout/social-platform-icon";
-import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { resolveSupportContactInfo } from "@/lib/support-contact";
 import type { SocialLink, StoreSettings } from "@/types";
@@ -69,7 +69,7 @@ export async function Footer({
             <h4 className="mb-4 font-semibold text-white">Shop</h4>
             <ul className="space-y-2 text-sm">
               {[
-                { label: "All Products", href: "/shop" },
+                { label: "Shop", href: "/shop" },
                 { label: "Recommended", href: "/shop?sort=recommended" },
                 { label: "Popular Products", href: "/shop?sort=popular" },
                 { label: "New Arrivals", href: "/shop?collection=new-arrivals" },
@@ -137,9 +137,9 @@ export async function Footer({
           <p>&copy; 2026 Smartest Store KE. All rights reserved.</p>
           {socialLinks.length > 0 && (
             <div className="flex items-center justify-center gap-3 overflow-x-auto xl:flex-1 xl:justify-center">
-              {socialLinks.map((socialLink) => (
+              {socialLinks.map((socialLink, index) => (
                 <a
-                  key={socialLink.id}
+                  key={`${socialLink.id || socialLink.platform}-${socialLink.url}-${index}`}
                   href={socialLink.url}
                   target="_blank"
                   rel="noopener noreferrer"

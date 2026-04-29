@@ -1,5 +1,2 @@
-import { redirect } from "next/navigation";
-
-export default function AdminIndexPage() {
-  redirect("/admin/dashboard");
-}
+export { revalidate } from "@/app/admin/dashboard/page";
+export { default } from "@/app/admin/dashboard/page";

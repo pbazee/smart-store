@@ -13,7 +13,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  if (!mounted) return <>{children}</>;
+  // Return null or a skeleton until mounted to prevent hydration mismatch
+  // since wishlist data comes from localStorage
+  if (!mounted) return null;
 
   return (
     <WishlistContext.Provider value={wishlist}>

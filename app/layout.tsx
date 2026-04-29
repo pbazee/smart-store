@@ -119,14 +119,14 @@ export default async function RootLayout({
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <RootLayoutShell
                 storefrontChrome={
-                  <>
+                  <div>
                     <Suspense fallback={<AnnouncementBarFallback />}>
                       <AnnouncementBar announcements={shellData.announcements} />
                     </Suspense>
                     <Suspense fallback={<NavbarFallback />}>
                       <Navbar initialStoreSettings={shellData.storeSettings} />
                     </Suspense>
-                  </>
+                  </div>
                 }
                 storefrontFooter={
                   <Suspense fallback={<FooterFallback />}>
@@ -137,10 +137,10 @@ export default async function RootLayout({
                   </Suspense>
                 }
                 storefrontOverlays={
-                  <>
+                  <div>
                     <WhatsAppWidget settings={shellData.whatsAppSettings} />
                     <StorefrontDeferredUI popups={shellData.popups} />
-                  </>
+                  </div>
                 }
               >
                 {children}

@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/sheet";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { jsonFetcher } from "@/lib/fetcher";
-import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { cn } from "@/lib/utils";
 import type { StoreSettings } from "@/types";

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { LandingSection, LandingSectionOverride, Product } from "@/types";
@@ -8,6 +9,8 @@ export const LANDING_SECTIONS: LandingSection[] = [
   "new_arrivals",
   "recommended",
 ];
+
+export const LANDING_OVERRIDES_CACHE_TAG = "landing-overrides";
 
 type OverrideInput = {
   id?: number;
@@ -35,18 +38,10 @@ function isActive(override: LandingSectionOverride, now = new Date()) {
   return true;
 }
 
-export async function getActiveLandingOverrides(
-  section: LandingSection,
+async function loadActiveLandingOverrides(
+  section: string,
   take?: number
 ): Promise<LandingSectionOverride[]> {
-  if (shouldUseMockData()) {
-    return demoOverrides
-      .filter((override) => override.section === section)
-      .filter((override) => isActive(override))
-      .sort((a, b) => a.priority - b.priority)
-      .slice(0, take);
-  }
-
   const now = new Date();
   const overrides = await prisma.landingSectionOverride.findMany({
     where: {
@@ -66,6 +61,25 @@ export async function getActiveLandingOverrides(
   });
 
   return overrides as unknown as LandingSectionOverride[];
+}
+
+export async function getActiveLandingOverrides(
+  section: LandingSection,
+  take?: number
+): Promise<LandingSectionOverride[]> {
+  if (shouldUseMockData()) {
+    return demoOverrides
+      .filter((override) => override.section === section)
+      .filter((override) => isActive(override))
+      .sort((a, b) => a.priority - b.priority)
+      .slice(0, take);
+  }
+
+  return unstable_cache(
+    () => loadActiveLandingOverrides(section, take),
+    ["landing-overrides", section, String(take ?? "all")],
+    { revalidate: 300, tags: [LANDING_OVERRIDES_CACHE_TAG, "homepage"] }
+  )();
 }
 
 export async function listLandingOverrides(): Promise<LandingSectionOverride[]> {

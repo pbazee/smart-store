@@ -1,7 +1,8 @@
+import "server-only";
+
 import { unstable_cache } from "next/cache";
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { getStoreSettings } from "@/lib/store-settings";
-import type { StoreSettings } from "@/types";
 
 export const STORE_SETTINGS_TAG = "store-settings";
 
@@ -37,19 +38,5 @@ export async function getStoreLogoSet() {
     logoUrl: branding.logoUrl || null,
     logoDarkUrl: branding.logoDarkUrl || branding.logoUrl || null,
     faviconUrl: branding.faviconUrl || null,
-  };
-}
-
-export function getStoreLogoSetFromSettings(storeSettings?: StoreSettings | null) {
-  const resolved = storeSettings ?? DEFAULT_STORE_SETTINGS;
-  return {
-    storeName: resolved.storeName || DEFAULT_STORE_SETTINGS.storeName || "Smartest Store KE",
-    storeTagline:
-      resolved.storeTagline ||
-      DEFAULT_STORE_SETTINGS.storeTagline ||
-      "Kenya's smartest fashion destination",
-    logoUrl: resolved.logoUrl || null,
-    logoDarkUrl: resolved.logoDarkUrl || resolved.logoUrl || null,
-    faviconUrl: resolved.faviconUrl || null,
   };
 }

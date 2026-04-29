@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { LayoutDashboard, Package2, User2 } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
-import {
-  drawerCategoryLinks,
-  drawerMenuLinks,
-  isNavigationLinkActive,
-} from "@/lib/navigation";
+import { drawerCategoryLinks, isNavigationLinkActive } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useSessionUser } from "@/hooks/use-session-user";
@@ -30,6 +26,18 @@ type DrawerLinkProps = {
   active: boolean;
   onSelect: () => void;
 };
+
+const storefrontMenuLinks = [
+  { href: "/", label: "Home" },
+  { href: "/shop", label: "Shop" },
+  { href: "/shop?gender=men", label: "Men" },
+  { href: "/shop?gender=women", label: "Women" },
+  { href: "/shop?collection=new-arrivals", label: "New Arrivals" },
+  { href: "/shop?collection=trending", label: "Trending" },
+  { href: "/blog", label: "Blog" },
+  { href: "/about", label: "About Us" },
+  { href: "/contact", label: "Contact Us" },
+];
 
 function DrawerLink({ href, label, active, onSelect }: DrawerLinkProps) {
   return (
@@ -77,7 +85,7 @@ export function SiteMenuDrawer({
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-500">Navigation</p>
             <SheetTitle className="font-display text-3xl font-black tracking-tight text-foreground dark:text-white">Smartest Store KE</SheetTitle>
             <SheetDescription>
-              Products, cart, wishlist, and account tools now live here on mobile.
+              Shop, Men, Women, cart, wishlist, and account tools now live here on mobile.
             </SheetDescription>
           </SheetHeader>
 
@@ -87,7 +95,7 @@ export function SiteMenuDrawer({
                 Menu
               </h3>
               <div className="mt-3 grid gap-2">
-                {drawerMenuLinks.map((link) => (
+                {storefrontMenuLinks.map((link) => (
                   <DrawerLink
                     key={link.href}
                     href={link.href}

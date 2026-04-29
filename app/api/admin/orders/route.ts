@@ -40,6 +40,14 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Admin orders fetch failed:", error);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message === "Unauthorized" ? "Unauthorized" : "Failed to fetch orders" },
+      {
+        status: error instanceof Error && error.message === "Unauthorized" ? 401 : 500,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   }
 }

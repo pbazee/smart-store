@@ -22,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useDemoStore } from "@/lib/store";
-import { getStoreLogoSetFromSettings } from "@/lib/store-branding";
+import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
 import { useSessionUser } from "@/hooks/use-session-user";
 import type { StoreSettings } from "@/types";
 

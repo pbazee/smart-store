@@ -129,9 +129,16 @@ export function AnnouncementBarClient({
 
         <div className="relative flex-1 overflow-hidden" aria-live="polite">
           {hasMultipleAnnouncements ? (
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence
+              mode="wait"
+              initial={false}
+              key={`announcement-presence-${announcements.length}`}
+            >
               <motion.div
-                key={activeAnnouncement.id}
+                key={
+                  activeAnnouncement.id ||
+                  `${activeAnnouncement.text}-${activeAnnouncement.link ?? "no-link"}-${activeIndex}`
+                }
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}

@@ -4,14 +4,14 @@ export type NavigationLink = {
 };
 
 export const primaryCategoryLinks: NavigationLink[] = [
-  { href: "/shop", label: "Products" },
+  { href: "/shop", label: "Shop" },
   { href: "/shop?gender=men", label: "Men" },
   { href: "/shop?gender=women", label: "Women" },
 ];
 
 export const drawerMenuLinks: NavigationLink[] = [
   { href: "/", label: "Home" },
-  { href: "/shop", label: "Products" },
+  { href: "/shop", label: "Shop" },
   { href: "/shop?gender=men", label: "Men" },
   { href: "/shop?gender=women", label: "Women" },
   { href: "/shop?collection=new-arrivals", label: "New Arrivals" },

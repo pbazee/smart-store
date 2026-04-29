@@ -33,8 +33,8 @@ function normalizeOptionalPhone(phone?: string) {
 }
 
 function revalidateStorefront() {
-  revalidateTag(STORE_SETTINGS_CACHE_TAG);
-  revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidateTag('store-settings');
+  revalidateTag('homepage-shell');
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/contact");

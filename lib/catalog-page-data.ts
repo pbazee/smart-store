@@ -8,7 +8,7 @@ import {
   type CatalogQueryInput,
 } from "@/lib/catalog-routing";
 import { getProducts, type ProductQueryFilters } from "@/lib/data-service";
-import { getHomepageProductSectionsData } from "@/lib/homepage-data";
+import { getHomepageCollectionProducts } from "@/lib/homepage-data";
 import type { Category, Product } from "@/types";
 
 export type CatalogPageData = {
@@ -17,15 +17,12 @@ export type CatalogPageData = {
   categories: Category[];
 };
 
-const COLLECTION_PRODUCT_KEYS: Record<
-  CatalogCollectionKey,
-  keyof Awaited<ReturnType<typeof getHomepageProductSectionsData>>
-> = {
+const COLLECTION_PRODUCT_KEYS: Record<CatalogCollectionKey, Parameters<typeof getHomepageCollectionProducts>[0]> = {
   popular: "featured",
   trending: "trending",
-  "new-arrivals": "newArrivals",
-  recommended: "alsoBought",
-  "city-inspired": "cityInspired",
+  "new-arrivals": "new-arrivals",
+  recommended: "recommended",
+  "city-inspired": "city-inspired",
 };
 
 function buildServerFilters(query: CatalogQueryInput, categories: Category[]): ProductQueryFilters {
@@ -75,8 +72,10 @@ function buildServerFilters(query: CatalogQueryInput, categories: Category[]): P
 export async function getCatalogPageData(query: CatalogQueryInput = {}): Promise<CatalogPageData> {
   const categories = await getActiveCategories();
   const serverFilters = buildServerFilters(query, categories);
-  const products = await getProducts(serverFilters);
   const collection = normalizeCatalogCollectionKey(query.collection ?? query.filter);
+  const products = collection
+    ? await getHomepageCollectionProducts(COLLECTION_PRODUCT_KEYS[collection])
+    : await getProducts(serverFilters);
 
   return {
     heading: buildCatalogHeading(collection ? { ...query, collection } : query, categories),

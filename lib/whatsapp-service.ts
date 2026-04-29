@@ -201,7 +201,10 @@ export function serializeWhatsAppSettings(input: Pick<
 >) {
   return {
     phoneNumber: normalizeWhatsAppPhoneNumber(input.phoneNumber),
-    defaultMessage: encodePersistedWhatsAppMessage(input.defaultMessage, input.position),
+    defaultMessage: encodePersistedWhatsAppMessage(
+      input.defaultMessage,
+      normalizeWhatsAppPosition(input.position)
+    ),
     isActive: input.isActive,
   };
 }

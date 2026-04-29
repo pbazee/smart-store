@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { releaseReservationForReference } from "@/lib/order-reservations";
 import { finalizePaystackPayment, verifyPaystackTransaction } from "@/lib/paystack";
 import { sendOrderEmailsAfterPayment } from "@/lib/email/order-confirmation";
+import { ADMIN_STATS_CACHE_TAG } from "@/lib/data-service";
 import { getPaystackSecretKey } from "@/lib/paystack-config";
 import crypto from "crypto";
 
@@ -57,6 +59,8 @@ export async function POST(req: NextRequest) {
 
       if (result.state === "processed") {
         console.log(`Payment verified for order ${result.orderNumber}`);
+        // Invalidate admin dashboard stats after successful payment
+        revalidateTag(ADMIN_STATS_CACHE_TAG);
         void sendOrderEmailsAfterPayment({
           orderId: result.orderId,
           origin: req.nextUrl.origin,

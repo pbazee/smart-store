@@ -16,6 +16,19 @@ export type AdminOrderDetail = Order & {
   } | null;
 };
 
+export type AdminOrderListItem = Pick<
+  Order,
+  | "id"
+  | "orderNumber"
+  | "customerName"
+  | "customerEmail"
+  | "paymentMethod"
+  | "paymentStatus"
+  | "status"
+  | "total"
+  | "createdAt"
+>;
+
 export type ProductQueryFilters = {
   category?: string;
   subcategory?: string;
@@ -392,21 +405,44 @@ export type AdminOrdersQuery = {
   take?: number;
 };
 
+const adminOrderListSelect = {
+  id: true,
+  orderNumber: true,
+  customerName: true,
+  customerEmail: true,
+  paymentMethod: true,
+  paymentStatus: true,
+  status: true,
+  total: true,
+  createdAt: true,
+} satisfies Prisma.OrderSelect;
+
 function buildAdminOrdersWhere(query: AdminOrdersQuery = {}): Prisma.OrderWhereInput {
   const clauses: Prisma.OrderWhereInput[] = [];
   const search = query.search?.trim();
   const status = query.status?.trim().toLowerCase();
+  const normalizedSearch = search?.toLowerCase();
+  const orderStatuses = new Set(["pending", "processing", "shipped", "delivered", "cancelled"]);
+  const paymentStatuses = new Set(["pending", "paid", "failed", "refunded"]);
 
   if (search) {
+    const orClauses: Prisma.OrderWhereInput[] = [
+      { orderNumber: { contains: search, mode: "insensitive" } },
+      { customerName: { contains: search, mode: "insensitive" } },
+      { customerEmail: { contains: search, mode: "insensitive" } },
+      { paymentMethod: { contains: search, mode: "insensitive" } },
+    ];
+
+    if (normalizedSearch && orderStatuses.has(normalizedSearch)) {
+      orClauses.push({ status: normalizedSearch as Order["status"] });
+    }
+
+    if (normalizedSearch && paymentStatuses.has(normalizedSearch)) {
+      orClauses.push({ paymentStatus: normalizedSearch as Order["paymentStatus"] });
+    }
+
     clauses.push({
-      OR: [
-        { orderNumber: { contains: search, mode: "insensitive" } },
-        { customerName: { contains: search, mode: "insensitive" } },
-        { customerEmail: { contains: search, mode: "insensitive" } },
-        { paymentMethod: { contains: search, mode: "insensitive" } },
-        { status: { equals: search.toLowerCase() as never } },
-        { paymentStatus: { equals: search.toLowerCase() as never } },
-      ],
+      OR: orClauses,
     });
   }
 
@@ -435,16 +471,16 @@ function buildAdminOrdersWhere(query: AdminOrdersQuery = {}): Prisma.OrderWhereI
   return { AND: clauses };
 }
 
-export async function getAdminOrders(query: AdminOrdersQuery = {}) {
+export async function getAdminOrders(query: AdminOrdersQuery = {}): Promise<AdminOrderListItem[]> {
   const where = buildAdminOrdersWhere(query);
 
   return prisma.order.findMany({
     where,
-    include: { items: true },
     orderBy: { createdAt: "desc" },
     skip: query.skip,
     take: query.take,
-  }) as Promise<Order[]>;
+    select: adminOrderListSelect,
+  }) as Promise<AdminOrderListItem[]>;
 }
 
 export async function getAdminOrdersCount(query: AdminOrdersQuery = {}) {
@@ -495,18 +531,8 @@ async function loadAdminDashboardStats() {
 
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // All 8 queries fire simultaneously — no sequential waits
-  const [
-    paidOrders,
-    allOrderDates,
-    totalOrders,
-    totalProducts,
-    lowStockProducts,
-    recentOrders,
-    topProductsGrouped,
-    pendingOrdersCount,
-    needsAttentionCount,
-  ] = await Promise.all([
+  // All queries fire simultaneously — no sequential waits
+  const results = await Promise.allSettled([
     prisma.order.findMany({
       where: { paymentStatus: "paid" },
       select: { total: true, createdAt: true },
@@ -562,6 +588,28 @@ async function loadAdminDashboardStats() {
     }),
   ]);
 
+  const [
+    paidOrdersResult,
+    allOrderDatesResult,
+    totalOrdersResult,
+    totalProductsResult,
+    lowStockProductsResult,
+    recentOrdersResult,
+    topProductsGroupedResult,
+    pendingOrdersCountResult,
+    needsAttentionCountResult,
+  ] = results;
+
+  const paidOrders = paidOrdersResult.status === "fulfilled" ? paidOrdersResult.value : [];
+  const allOrderDates = allOrderDatesResult.status === "fulfilled" ? allOrderDatesResult.value : [];
+  const totalOrders = totalOrdersResult.status === "fulfilled" ? totalOrdersResult.value : 0;
+  const totalProducts = totalProductsResult.status === "fulfilled" ? totalProductsResult.value : 0;
+  const lowStockProducts = lowStockProductsResult.status === "fulfilled" ? lowStockProductsResult.value : [];
+  const recentOrders = recentOrdersResult.status === "fulfilled" ? recentOrdersResult.value : [];
+  const topProductsGrouped = topProductsGroupedResult.status === "fulfilled" ? topProductsGroupedResult.value : [];
+  const pendingOrdersCount = pendingOrdersCountResult.status === "fulfilled" ? pendingOrdersCountResult.value : 0;
+  const needsAttentionCount = needsAttentionCountResult.status === "fulfilled" ? needsAttentionCountResult.value : 0;
+
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
   const now = new Date();
   const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
@@ -607,19 +655,22 @@ async function loadAdminDashboardStats() {
     }
   }
 
-  const topProductDetails = await Promise.all(
-    topProductsGrouped.map(async (product) => {
-      const details = await prisma.product.findUnique({
-        where: { id: product.productId },
-        select: { name: true, images: true, basePrice: true },
-      });
+  // Optimized: Use a single findMany with where: { id: { in: ids } } to avoid N separate queries
+  const topProductIds = topProductsGrouped.map((p) => p.productId);
+  const products = await prisma.product.findMany({
+    where: { id: { in: topProductIds } },
+    select: { id: true, name: true, images: true, basePrice: true },
+  });
 
-      return {
-        ...details,
-        unitsSold: product._sum.quantity || 0,
-      };
-    })
-  );
+  const topProductDetails = topProductsGrouped.map((item) => {
+    const details = products.find((p) => p.id === item.productId);
+    return {
+      name: details?.name || "Unknown Product",
+      images: details?.images || [],
+      basePrice: details?.basePrice || 0,
+      unitsSold: item._sum.quantity || 0,
+    };
+  });
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -647,6 +698,8 @@ export async function getAdminDashboardStats() {
     tags: [ADMIN_STATS_CACHE_TAG],
   })();
 }
+
+export const getCachedAdminDashboardStats = getAdminDashboardStats;
 
 export async function getRelatedProducts(
   product: Product,
