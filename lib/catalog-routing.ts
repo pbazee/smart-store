@@ -177,6 +177,7 @@ export function resolveCatalogFilterSelections(
   if (lockedCategory) {
     return {
       category: [lockedCategory],
+      subcategory: [],
       gender: normalizeCatalogGender(query.gender) ? [normalizeCatalogGender(query.gender)!] : [],
     };
   }
@@ -186,11 +187,12 @@ export function resolveCatalogFilterSelections(
     query.category && !normalizeCatalogGender(query.category)
       ? normalizeCatalogValue(query.category)
       : "";
-  const selectedCategory =
-    matches.subcategory?.id ?? matches.topCategory?.id ?? rawCategory;
+  const selectedCategory = matches.topCategory?.id ?? rawCategory;
+  const selectedSubcategory = matches.subcategory?.id ?? "";
 
   return {
     category: selectedCategory ? [selectedCategory] : [],
+    subcategory: selectedSubcategory ? [selectedSubcategory] : [],
     gender: matches.gender ? [matches.gender] : [],
   };
 }

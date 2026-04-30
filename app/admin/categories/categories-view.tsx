@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Trash2, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { deleteCategoryAction, upsertCategoryAction } from "@/app/admin/categories/actions";
+import { jsonFetcher } from "@/lib/fetcher";
 import { slugify } from "@/lib/utils";
 import type { Category } from "@/types";
 import { useToast } from "@/lib/use-toast";
@@ -18,6 +18,10 @@ const formSchema = z.object({
   parentId: z.string().nullable().optional(),
   order: z.coerce.number().int().default(0),
   isActive: z.boolean().default(true),
+  isHomepageVisible: z.boolean().default(false),
+  homepageSubtitle: z.string().nullable().optional(),
+  homepageImageUrl: z.string().nullable().optional(),
+  homepageOrder: z.coerce.number().int().default(0),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,6 +57,11 @@ function CategoryNode({
           )}
           <span className="font-semibold">{category.name}</span>
           {!category.isActive && <span className="text-xs text-amber-400">(inactive)</span>}
+          {category.isHomepageVisible && (
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">
+              Homepage
+            </span>
+          )}
         </button>
         <div className="flex items-center gap-2">
           <button
@@ -94,6 +103,19 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const emptyValues: FormValues = {
+    id: undefined,
+    name: "",
+    slug: "",
+    description: "",
+    parentId: null,
+    isActive: true,
+    order: 0,
+    isHomepageVisible: false,
+    homepageSubtitle: null,
+    homepageImageUrl: null,
+    homepageOrder: 0,
+  };
 
   const byParent = useMemo(() => {
     const map = new Map<string | null, Category[]>();
@@ -118,24 +140,55 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { isActive: true, order: 0 },
-    values:
-      editing != null
-        ? (categories.find((c) => c.id === editing) as any)
-        : { id: undefined, name: "", slug: "", description: "", parentId: null, isActive: true, order: 0 },
+    defaultValues: emptyValues,
   });
+
+  useEffect(() => {
+    if (!editing) {
+      form.reset(emptyValues);
+      return;
+    }
+
+    const selectedCategory = categories.find((category) => category.id === editing);
+    if (!selectedCategory) {
+      form.reset(emptyValues);
+      return;
+    }
+
+    form.reset({
+      id: selectedCategory.id,
+      name: selectedCategory.name,
+      slug: selectedCategory.slug,
+      description: selectedCategory.description ?? "",
+      parentId: selectedCategory.parentId ?? null,
+      order: selectedCategory.order ?? 0,
+      isActive: selectedCategory.isActive ?? true,
+      isHomepageVisible: selectedCategory.isHomepageVisible ?? false,
+      homepageSubtitle: selectedCategory.homepageSubtitle ?? null,
+      homepageImageUrl: selectedCategory.homepageImageUrl ?? null,
+      homepageOrder: selectedCategory.homepageOrder ?? 0,
+    });
+  }, [categories, editing, form]);
 
   const handleSave = form.handleSubmit(async (values) => {
     setSaving(true);
     try {
       const payload = { ...values, slug: slugify(values.slug || values.name) };
-      const saved = await upsertCategoryAction(payload);
+      const response = await jsonFetcher<{ success: boolean; data: Category }>("/api/admin/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const saved = response.data;
       setCategories((prev) => {
         const existing = prev.find((c) => c.id === saved.id);
-        if (existing) return prev.map((c) => (c.id === saved.id ? (saved as any) : c));
-        return [...prev, saved as any];
+        if (existing) return prev.map((c) => (c.id === saved.id ? saved : c));
+        return [...prev, saved];
       });
       setEditing(null);
+      form.reset(emptyValues);
       toast({ title: "Category saved", description: saved.name });
     } catch (error) {
       toast({
@@ -151,7 +204,9 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
   const handleDelete = async (id: string) => {
     setSaving(true);
     try {
-      await deleteCategoryAction(id);
+      await jsonFetcher<{ success: boolean }>(`/api/admin/categories/${id}`, {
+        method: "DELETE",
+      });
       setCategories((prev) => prev.filter((c) => c.id !== id));
       if (editing === id) setEditing(null);
       toast({ title: "Category deleted" });
@@ -170,6 +225,9 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
     <div className="grid gap-6 lg:grid-cols-[360px,1fr]">
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
         <h2 className="font-bold mb-2">{editing ? "Edit Category" : "Add Category"}</h2>
+        <p className="mb-4 text-sm text-zinc-400">
+          This is the single source of truth for shop navigation. Parent categories and nested subcategories are managed here.
+        </p>
         <form onSubmit={handleSave} className="space-y-3">
           <div>
             <label className="text-sm text-zinc-300">Name</label>
@@ -227,12 +285,27 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
             className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Save
+            {editing ? "Save changes" : "Save"}
           </button>
+          {editing ? (
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                form.reset(emptyValues);
+              }}
+              className="ml-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200"
+            >
+              Cancel
+            </button>
+          ) : null}
         </form>
       </div>
 
       <div className="space-y-3">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm text-zinc-400">
+          Top-level categories appear first. Expand a parent to see and manage its nested subcategories.
+        </div>
         {roots.length === 0 ? (
           <p className="text-sm text-zinc-400">No categories yet.</p>
         ) : (

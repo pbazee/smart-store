@@ -4,15 +4,10 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  createAdminProductAction,
-  fetchHomepageSubcategoriesAction,
-  updateAdminProductAction,
-  type AdminProductInput,
-} from "@/app/admin/products/actions";
+import { jsonFetcher } from "@/lib/fetcher";
 import { useToast } from "@/lib/use-toast";
 import { slugify } from "@/lib/utils";
-import type { Category, HomepageCategory, Product } from "@/types";
+import type { Category, Product } from "@/types";
 
 type VariantFormState = {
   id?: string;
@@ -159,6 +154,33 @@ function toPayload(form: ProductFormState): AdminProductInput {
   };
 }
 
+type AdminProductInput = {
+  id?: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  categoryId?: string | null;
+  gender: Product["gender"];
+  basePrice: number;
+  images: string[];
+  tags: string[];
+  isFeatured: boolean;
+  isNew: boolean;
+  isPopular: boolean;
+  isTrending: boolean;
+  isRecommended: boolean;
+  variants: Array<{
+    id?: string;
+    color: string;
+    colorHex: string;
+    size: string;
+    stock: number;
+    price: number;
+  }>;
+};
+
 function normalizeProductSubcategory(value?: string | null) {
   return slugify(value || "").replace(/-/g, "");
 }
@@ -181,8 +203,6 @@ export function ProductFormDialog({
   const [form, setForm] = useState<ProductFormState>(() => createFormState(product));
   const [slugTouched, setSlugTouched] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
-  const [subcategoryOptions, setSubcategoryOptions] = useState<HomepageCategory[]>([]);
-  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
 
   const topLevelCategories = useMemo(() => {
     return categories
@@ -193,6 +213,18 @@ export function ProductFormDialog({
           : (left.order ?? 0) - (right.order ?? 0)
       );
   }, [categories]);
+
+  const subcategoryOptions = useMemo(
+    () =>
+      categories
+        .filter((category) => category.parentId === form.parentId)
+        .sort((left, right) =>
+          (left.order ?? 0) === (right.order ?? 0)
+            ? left.name.localeCompare(right.name)
+            : (left.order ?? 0) - (right.order ?? 0)
+        ),
+    [categories, form.parentId]
+  );
 
   useEffect(() => {
     const base = createFormState(product);
@@ -213,53 +245,16 @@ export function ProductFormDialog({
     setForm(base);
     setSlugTouched(false);
     setImageUrlInput("");
-    setSubcategoryOptions([]);
   }, [product, open, categories]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    if (!form.parentId) {
-      setSubcategoryOptions([]);
-      return;
-    }
-
-    let isActive = true;
-    setIsLoadingSubcategories(true);
-
-    void (async () => {
-      try {
-        const options = await fetchHomepageSubcategoriesAction(form.parentId ?? null);
-        if (isActive) {
-          setSubcategoryOptions(options);
-        }
-      } catch (error) {
-        if (isActive) {
-          setSubcategoryOptions([]);
-        }
-        console.error("Failed to load homepage subcategories:", error);
-      } finally {
-        if (isActive) {
-          setIsLoadingSubcategories(false);
-        }
-      }
-    })();
-
-    return () => {
-      isActive = false;
-    };
-  }, [form.parentId, open]);
 
   useEffect(() => {
     if (!form.parentId || form.subcategoryId || subcategoryOptions.length === 0) {
       return;
     }
 
-    const matchedOption = subcategoryOptions.find((option) => {
-      const optionToken = normalizeProductSubcategory(option.title);
-      const linkToken = normalizeProductSubcategory(option.link.split("/").filter(Boolean).at(-1));
+      const matchedOption = subcategoryOptions.find((option) => {
+      const optionToken = normalizeProductSubcategory(option.name);
+      const linkToken = normalizeProductSubcategory(option.slug);
       const currentToken = normalizeProductSubcategory(form.subcategory);
       return currentToken === optionToken || currentToken === linkToken;
     });
@@ -271,7 +266,7 @@ export function ProductFormDialog({
     setForm((current) => ({
       ...current,
       subcategoryId: matchedOption.id,
-      subcategory: matchedOption.title,
+      subcategory: matchedOption.name,
     }));
   }, [form.parentId, form.subcategory, form.subcategoryId, subcategoryOptions]);
 
@@ -295,9 +290,17 @@ export function ProductFormDialog({
       void (async () => {
         try {
           const payload = toPayload(form);
-          const savedProduct = form.id
-            ? await updateAdminProductAction(payload)
-            : await createAdminProductAction(payload);
+          const response = await jsonFetcher<{ success: boolean; data: Product }>(
+            form.id ? `/api/admin/products/${form.id}` : "/api/admin/products",
+            {
+              method: form.id ? "PATCH" : "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+          const savedProduct = response.data;
 
           onSaved(savedProduct);
           onOpenChange(false);
@@ -412,22 +415,18 @@ export function ProductFormDialog({
                   setForm((current) => ({
                     ...current,
                     subcategoryId: selectedId,
-                    subcategory: selectedSubcategory?.title || parentCategory?.name || "",
+                    subcategory: selectedSubcategory?.name || parentCategory?.name || "",
                   }));
                 }}
-                disabled={!form.parentId || isLoadingSubcategories}
+                disabled={!form.parentId}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
                 <option value="">
-                  {isLoadingSubcategories
-                    ? "Loading subcategories..."
-                    : form.parentId
-                      ? "Use parent only"
-                      : "Select category first"}
+                  {form.parentId ? "Use parent only" : "Select category first"}
                 </option>
                 {subcategoryOptions.map((subcategory) => (
                   <option key={subcategory.id} value={subcategory.id}>
-                    {subcategory.title}
+                    {subcategory.name}
                   </option>
                 ))}
               </select>

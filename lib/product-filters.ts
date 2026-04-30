@@ -17,7 +17,8 @@ export function filterProductCatalog(
   options: ProductFilterOptions
 ): Product[] {
   const { filters, tag, lockedCategory, categories } = options;
-  const selectedCategories = lockedCategory ? [lockedCategory] : filters.category;
+  const selectedParentCategory = lockedCategory || filters.category[0] || null;
+  const selectedSubcategory = filters.subcategory[0] || null;
   const selectedGenders = filters.gender.map((gender) => normalizeCatalogValue(gender)).filter(Boolean);
   let results = [...products];
   const categoryMap = new Map<string, Category>();
@@ -37,40 +38,55 @@ export function filterProductCatalog(
     results = smartSearchProducts(results, filters.search).results;
   }
 
-  if (selectedCategories.length > 0) {
-    results = results.filter((product) =>
-      selectedCategories.some((category) => {
-        const selectedCategory = categoryMap.get(category);
-        const productCategoryId = (product as any).categoryId as string | undefined;
-        const productCategory = productCategoryId ? categoryMap.get(productCategoryId) : null;
-        const parentId = productCategory?.parentId ?? null;
-        const parent = parentId ? categoryMap.get(parentId) : null;
-        const productValues = [
-          productCategoryId,
-          productCategory?.id,
-          productCategory?.slug,
-          productCategory?.name,
-          parentId,
-          parent?.id,
-          parent?.slug,
-          parent?.name,
-          product.category,
-          product.subcategory,
-        ]
-          .map((value) => normalizeCatalogValue(value))
-          .filter(Boolean);
-        const selectedValues = [
-          category,
-          selectedCategory?.id,
-          selectedCategory?.slug,
-          selectedCategory?.name,
-        ]
-          .map((value) => normalizeCatalogValue(value))
-          .filter(Boolean);
+  if (selectedParentCategory || selectedSubcategory) {
+    const selectedParent = selectedParentCategory ? categoryMap.get(selectedParentCategory) : null;
+    const selectedChild = selectedSubcategory ? categoryMap.get(selectedSubcategory) : null;
+    const selectedParentValues = [
+      selectedParentCategory,
+      selectedParent?.id,
+      selectedParent?.slug,
+      selectedParent?.name,
+    ]
+      .map((value) => normalizeCatalogValue(value))
+      .filter(Boolean);
+    const selectedChildValues = [
+      selectedSubcategory,
+      selectedChild?.id,
+      selectedChild?.slug,
+      selectedChild?.name,
+    ]
+      .map((value) => normalizeCatalogValue(value))
+      .filter(Boolean);
 
-        return selectedValues.some((value) => productValues.includes(value));
-      })
-    );
+    results = results.filter((product) => {
+      const productCategoryId = (product as any).categoryId as string | undefined;
+      const productCategory = productCategoryId ? categoryMap.get(productCategoryId) : null;
+      const productParent = productCategory?.parentId
+        ? categoryMap.get(productCategory.parentId)
+        : productCategory;
+      const productParentValues = [
+        productParent?.id,
+        productParent?.slug,
+        productParent?.name,
+        product.category,
+      ]
+        .map((value) => normalizeCatalogValue(value))
+        .filter(Boolean);
+      const productChildValues = [
+        product.subcategory,
+      ]
+        .map((value) => normalizeCatalogValue(value))
+        .filter(Boolean);
+
+      const matchesParent =
+        selectedParentValues.length === 0 ||
+        selectedParentValues.some((value) => productParentValues.includes(value));
+      const matchesChild =
+        selectedChildValues.length === 0 ||
+        selectedChildValues.some((value) => productChildValues.includes(value));
+
+      return matchesParent && matchesChild;
+    });
   }
 
   if (selectedGenders.length > 0) {

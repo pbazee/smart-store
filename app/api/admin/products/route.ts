@@ -17,19 +17,23 @@ const genderSchema = z.enum(["men", "women", "unisex", "children", "male", "fema
 const createProductSchema = z.object({
   name: z.string().min(2, "Name required"),
   slug: z.string().min(2, "Slug required"),
-  description: z.string().min(1, "Description required"),
+  description: z.string().min(10, "Description required"),
   category: z.string().optional(),
   categoryId: z.string().min(1, "Category required"),
-  subcategory: z.string().min(1, "Subcategory required"),
+  subcategory: z.string().min(2, "Subcategory required"),
   gender: genderSchema,
   basePrice: z.number().int().positive("Price must be positive"),
   images: z.array(z.string().min(1, "Image required")).min(1, "At least one image is required"),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().optional(),
   isNew: z.boolean().optional(),
+  isPopular: z.boolean().optional(),
+  isTrending: z.boolean().optional(),
+  isRecommended: z.boolean().optional(),
   variants: z
     .array(
       z.object({
+        id: z.string().optional(),
         color: z.string().min(1, "Color required"),
         colorHex: z.string().min(1, "Color hex required"),
         size: z.string().min(1, "Size required"),

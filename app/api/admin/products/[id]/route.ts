@@ -13,18 +13,33 @@ import { slugify } from "@/lib/utils";
 import { z } from "zod";
 
 const updateProductSchema = z.object({
-  name: z.string().min(2).optional(),
-  slug: z.string().min(2).optional(),
-  description: z.string().min(10).optional(),
+  name: z.string().min(2),
+  slug: z.string().min(2),
+  description: z.string().min(10),
   category: z.string().optional(),
-  categoryId: z.string().min(1).optional().nullable(),
-  subcategory: z.string().min(2).optional(),
-  gender: z.enum(["men", "women", "unisex", "children", "male", "female"]).optional(),
-  basePrice: z.number().int().positive().optional(),
-  images: z.array(z.string().min(1)).optional(),
-  tags: z.array(z.string()).optional(),
+  categoryId: z.string().min(1).nullable(),
+  subcategory: z.string().min(2),
+  gender: z.enum(["men", "women", "unisex", "children", "male", "female"]),
+  basePrice: z.number().int().positive(),
+  images: z.array(z.string().min(1)).min(1),
+  tags: z.array(z.string()).default([]),
   isFeatured: z.boolean().optional(),
   isNew: z.boolean().optional(),
+  isPopular: z.boolean().optional(),
+  isTrending: z.boolean().optional(),
+  isRecommended: z.boolean().optional(),
+  variants: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        color: z.string().min(1),
+        colorHex: z.string().min(1),
+        size: z.string().min(1),
+        stock: z.number().int().nonnegative(),
+        price: z.number().int().positive(),
+      })
+    )
+    .min(1),
 });
 
 type RouteContext = {
@@ -92,15 +107,35 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
     const catalogAssignment = await resolveAdminProductCatalogAssignment({
       categoryId: validatedData.categoryId ?? existingProduct.categoryId ?? null,
-      subcategory: validatedData.subcategory ?? existingProduct.subcategory,
+      subcategory: validatedData.subcategory,
     });
 
     const product = await prisma.product.update({
       where: { id },
       data: {
-        ...validatedData,
-        slug: slugify(validatedData.slug ?? validatedData.name ?? existingProduct.slug),
+        name: validatedData.name,
+        slug: slugify(validatedData.slug || validatedData.name || existingProduct.slug),
+        description: validatedData.description,
+        gender: validatedData.gender,
+        basePrice: validatedData.basePrice,
+        images: validatedData.images,
+        tags: validatedData.tags,
+        isFeatured: validatedData.isFeatured ?? false,
+        isNew: validatedData.isNew ?? false,
+        isPopular: validatedData.isPopular ?? false,
+        isTrending: validatedData.isTrending ?? false,
+        isRecommended: validatedData.isRecommended ?? false,
         ...catalogAssignment,
+        variants: {
+          deleteMany: {},
+          create: validatedData.variants.map((variant) => ({
+            color: variant.color,
+            colorHex: variant.colorHex,
+            size: variant.size,
+            stock: variant.stock,
+            price: variant.price,
+          })),
+        },
       },
       include: { variants: true },
     });

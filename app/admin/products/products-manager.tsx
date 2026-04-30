@@ -12,7 +12,6 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { deleteAdminProductsAction } from "@/app/admin/products/actions";
 import { ProductFormDialog } from "@/app/admin/products/product-form-dialog";
 import { InlineLoader } from "@/components/ui/ripple-loader";
 import { jsonFetcher } from "@/lib/fetcher";
@@ -161,7 +160,13 @@ export function ProductsManager({
 
     startTransition(async () => {
       try {
-        await deleteAdminProductsAction(ids);
+        await Promise.all(
+          ids.map((id) =>
+            jsonFetcher<{ success: boolean }>(`/api/admin/products/${id}`, {
+              method: "DELETE",
+            })
+          )
+        );
         setRowSelection({});
         await mutate();
         toast({ title: "Deleted", description: `${ids.length} item(s) removed.` });

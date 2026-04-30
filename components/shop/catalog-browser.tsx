@@ -2,11 +2,11 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Check, SlidersHorizontal, X } from "lucide-react";
 import { ProductCard } from "@/components/shop/product-card";
 import { ShopFilters } from "@/components/shop/shop-filters";
-import { resolveCatalogFilterSelections } from "@/lib/catalog-routing";
+import { buildCatalogHref, resolveCatalogFilterSelections } from "@/lib/catalog-routing";
 import { filterProductCatalog } from "@/lib/product-filters";
 import { cn } from "@/lib/utils";
 import type { Category, FilterState, Product } from "@/types";
@@ -63,6 +63,7 @@ function buildFilterState(
 
   return {
     category: selections.category,
+    subcategory: selections.subcategory,
     gender: selections.gender,
     colors: [],
     sizes: [],
@@ -72,12 +73,40 @@ function buildFilterState(
   };
 }
 
+function buildCatalogUrlFromFilters(
+  filters: FilterState,
+  categories: Category[],
+  pathname: string,
+  lockedCategory?: string
+) {
+  const selectedParentId = lockedCategory || filters.category[0] || null;
+  const selectedSubcategoryId = filters.subcategory[0] || null;
+  const selectedParent = selectedParentId
+    ? categories.find((category) => category.id === selectedParentId) ?? null
+    : null;
+  const selectedSubcategory = selectedSubcategoryId
+    ? categories.find((category) => category.id === selectedSubcategoryId) ?? null
+    : null;
+
+  return buildCatalogHref(
+    {
+      category: selectedParent?.slug ?? null,
+      subcategory: selectedSubcategory?.slug ?? null,
+      gender: filters.gender[0] ?? null,
+      search: filters.search || null,
+    },
+    pathname === "/products" ? "/products" : "/shop"
+  );
+}
+
 export function CatalogBrowser({
   heading,
   products,
   categories,
   lockedCategory,
 }: CatalogBrowserProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -108,6 +137,15 @@ export function CatalogBrowser({
   useEffect(() => {
     setFilters(filterStateFromUrl);
   }, [filterStateFromUrl]);
+
+  useEffect(() => {
+    const nextHref = buildCatalogUrlFromFilters(filters, categories, pathname, lockedCategory);
+    const currentHref = searchParamsKey ? `${pathname}?${searchParamsKey}` : pathname;
+
+    if (nextHref !== currentHref) {
+      router.replace(nextHref, { scroll: false });
+    }
+  }, [categories, filters, lockedCategory, pathname, router, searchParamsKey]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {

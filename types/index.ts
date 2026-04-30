@@ -176,6 +176,10 @@ export interface Category {
   parentId?: string | null;
   order?: number;
   isActive?: boolean;
+  isHomepageVisible?: boolean;
+  homepageSubtitle?: string | null;
+  homepageImageUrl?: string | null;
+  homepageOrder?: number;
   children?: Category[];
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -327,6 +331,7 @@ export interface ShippingRule {
 
 export interface FilterState {
   category: string[];
+  subcategory: string[];
   gender: string[];
   colors: string[];
   sizes: string[];

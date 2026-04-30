@@ -92,6 +92,7 @@ interface FilterStore {
 
 const defaultFilters: FilterState = {
   category: [],
+  subcategory: [],
   gender: [],
   colors: [],
   sizes: [],

@@ -167,10 +167,38 @@ export function ShopFilters({
 
   const toggle = (key: "category" | "gender" | "colors" | "sizes", value: string) => {
     const current = filters[key] as string[];
-    const next = current.includes(value)
-      ? current.filter((entry) => entry !== value)
-      : [...current, value];
+    const next =
+      key === "category"
+        ? current.includes(value)
+          ? []
+          : [value]
+        : current.includes(value)
+          ? current.filter((entry) => entry !== value)
+          : [...current, value];
     onChange({ ...filters, [key]: next });
+  };
+
+  const selectedParentId = lockedCategory || filters.category[0] || "";
+  const selectedSubcategoryId = filters.subcategory[0] || "";
+
+  const setParentCategory = (parentId: string) => {
+    const nextParentId = selectedParentId === parentId && !lockedCategory ? "" : parentId;
+    onChange({
+      ...filters,
+      category: nextParentId ? [nextParentId] : [],
+      subcategory: [],
+    });
+  };
+
+  const setSubcategory = (parentId: string, subcategoryId: string) => {
+    const isSameSelection =
+      selectedParentId === parentId && selectedSubcategoryId === subcategoryId;
+
+    onChange({
+      ...filters,
+      category: [parentId],
+      subcategory: isSameSelection ? [] : [subcategoryId],
+    });
   };
 
   return (
@@ -191,6 +219,7 @@ export function ShopFilters({
           onClick={() =>
             onChange({
               category: lockedCategory ? [lockedCategory] : [],
+              subcategory: [],
               gender: [],
               colors: [],
               sizes: [],
@@ -220,6 +249,10 @@ export function ShopFilters({
           <div className="space-y-3">
             {topLevelCategories.map((category) => {
               const children = byParent.get(category.id) || [];
+              const isParentSelected = selectedParentId === category.id;
+              const visibleChildren =
+                isParentSelected ||
+                children.some((child) => child.id === selectedSubcategoryId);
 
               return (
                 <div
@@ -234,13 +267,14 @@ export function ShopFilters({
                   <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     <input
                       type="checkbox"
-                      checked={filters.category.includes(category.id)}
-                      onChange={() => toggle("category", category.id)}
+                      checked={isParentSelected}
+                      onChange={() => setParentCategory(category.id)}
+                      disabled={Boolean(lockedCategory)}
                       className="h-4 w-4 rounded border-zinc-300 text-brand-500 focus:ring-brand-500 dark:border-zinc-600"
                     />
                     {category.name}
                   </label>
-                  {children.length > 0 ? (
+                  {children.length > 0 && visibleChildren ? (
                     <div className="mt-2 space-y-1 pl-5">
                       {children.map((child) => (
                         <label
@@ -249,8 +283,8 @@ export function ShopFilters({
                         >
                           <input
                             type="checkbox"
-                            checked={filters.category.includes(child.id)}
-                            onChange={() => toggle("category", child.id)}
+                            checked={selectedSubcategoryId === child.id}
+                            onChange={() => setSubcategory(category.id, child.id)}
                             className="h-4 w-4 rounded border-zinc-300 text-brand-500 focus:ring-brand-500 dark:border-zinc-600"
                           />
                           {child.name}
