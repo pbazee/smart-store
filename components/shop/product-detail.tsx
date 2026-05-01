@@ -156,18 +156,18 @@ export function ProductDetail({
     }
 
     const wasSaved = isWishlisted;
-    const result = await toggle(product.id);
-
-    if (!result.ok) {
-      return;
-    }
-
     toast({
       title: wasSaved ? "Removed from wishlist" : "Saved to wishlist",
       description: wasSaved
         ? "This product has been removed from your saved list."
         : "You can find this piece in your wishlist at any time.",
     });
+
+    const result = await toggle(product.id);
+
+    if (!result.ok) {
+      return;
+    }
   };
 
   return (

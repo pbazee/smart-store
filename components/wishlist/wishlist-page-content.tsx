@@ -30,7 +30,7 @@ async function fetchWishlistProducts(productIds: string[]) {
 type RemovingState = Record<string, boolean>;
 
 export default function WishlistPageClient() {
-  const { productIds, isLoading, isLoaded, isSignedIn, ensureLoaded, toggle } = useWishlist();
+  const { productIds, isLoading, isLoaded, isSignedIn, isSyncing, ensureLoaded, toggle } = useWishlist();
   const { toast } = useToast();
   const productIdsKey = productIds.join(",");
 
@@ -153,7 +153,7 @@ export default function WishlistPageClient() {
         </div>
       </div>
 
-      {isLoadingProducts ? (
+      {isLoadingProducts && displayProducts.length === 0 && isSyncing ? (
         <InlineLoader label="Loading wishlist..." />
       ) : error ? (
         <div className="rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950 px-6 py-16 text-center">

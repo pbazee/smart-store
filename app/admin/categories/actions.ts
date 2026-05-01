@@ -5,7 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { CATEGORY_CACHE_TAG, getActiveCategories } from "@/lib/category-service";
+import { CATEGORY_CACHE_TAG, getActiveCategories, getAllCategories } from "@/lib/category-service";
+import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 
 const categorySchema = z.object({
   id: z.string().optional(),
@@ -15,6 +16,10 @@ const categorySchema = z.object({
   parentId: z.string().nullable().optional(),
   order: z.number().int().optional().default(0),
   isActive: z.boolean().optional().default(true),
+  isHomepageVisible: z.boolean().optional().default(false),
+  homepageSubtitle: z.string().optional().nullable(),
+  homepageImageUrl: z.string().optional().nullable(),
+  homepageOrder: z.number().int().optional().default(0),
 });
 
 async function ensureAdmin() {
@@ -26,9 +31,7 @@ async function ensureAdmin() {
 
 const getCachedAllAdminCategories = unstable_cache(
   async () => {
-    const categories = await prisma.category.findMany({
-      orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
-    });
+    const categories = await getAllCategories();
     // If the DB has no child categories yet, fall back to the seeded defaults
     const hasChildren = categories.some((c) => c.parentId !== null);
     if (!hasChildren) {
@@ -82,6 +85,7 @@ export async function fetchTopLevelCategoriesAction() {
 
 export async function upsertCategoryAction(input: z.infer<typeof categorySchema>) {
   await ensureAdmin();
+  await ensureCategoryHomepageFields();
   const data = categorySchema.parse(input);
   const category = await prisma.category.upsert({
     where: { id: data.id ?? "" },
@@ -92,6 +96,10 @@ export async function upsertCategoryAction(input: z.infer<typeof categorySchema>
       parentId: data.parentId ?? null,
       order: data.order ?? 0,
       isActive: data.isActive ?? true,
+      isHomepageVisible: data.isHomepageVisible ?? false,
+      homepageSubtitle: data.homepageSubtitle ?? null,
+      homepageImageUrl: data.homepageImageUrl ?? null,
+      homepageOrder: data.homepageOrder ?? 0,
     },
     create: {
       name: data.name,
@@ -100,6 +108,10 @@ export async function upsertCategoryAction(input: z.infer<typeof categorySchema>
       parentId: data.parentId ?? null,
       order: data.order ?? 0,
       isActive: data.isActive ?? true,
+      isHomepageVisible: data.isHomepageVisible ?? false,
+      homepageSubtitle: data.homepageSubtitle ?? null,
+      homepageImageUrl: data.homepageImageUrl ?? null,
+      homepageOrder: data.homepageOrder ?? 0,
     },
   });
 

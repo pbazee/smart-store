@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { SWRConfig } from "swr";
 import { jsonFetcher } from "@/lib/fetcher";
 
@@ -20,7 +21,10 @@ export function ProvidersClient({ children }: { children: React.ReactNode }) {
         shouldRetryOnError: false,
       }}
     >
-      <WishlistProvider>{children}</WishlistProvider>
+      <WishlistProvider>
+        {children}
+        <MobileBottomNav />
+      </WishlistProvider>
     </SWRConfig>
   );
 }

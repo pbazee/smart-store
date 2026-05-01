@@ -13,27 +13,45 @@ import {
   HomepageProductSectionsSkeleton,
   HomepageReviewsSection,
 } from "@/components/shop/homepage-sections";
+import {
+  getHomepageBlogPosts,
+  getHomepageCategories,
+  getHomepageCriticalProductSectionsData,
+  getHomepageDeferredProductSectionsData,
+  getHomepageHeroSlides,
+  getHomepageLatestReviews,
+} from "@/lib/homepage-data";
 
 export const revalidate = 120;
-export default function HomePage() {
+export default async function HomePage() {
+  const heroSlidesPromise = getHomepageHeroSlides();
+  const homepageCategoriesPromise = getHomepageCategories();
+  const homepageCriticalProductsPromise = getHomepageCriticalProductSectionsData();
+  const homepageDeferredProductsPromise = getHomepageDeferredProductSectionsData();
+  const latestReviewsPromise = getHomepageLatestReviews();
+  const blogPostsPromise = getHomepageBlogPosts();
+
   return (
     <div>
       <Suspense fallback={<HomepageHeroSkeleton />}>
-        <HomepageHeroSection />
+        <HomepageHeroSection slidesPromise={heroSlidesPromise} />
       </Suspense>
       <PromoCards />
       <TrustBar />
       <Suspense fallback={<HomepageCategorySkeleton />}>
-        <HomepageCategorySection />
+        <HomepageCategorySection categoriesPromise={homepageCategoriesPromise} />
       </Suspense>
       <Suspense fallback={<HomepageProductSectionsSkeleton />}>
-        <HomepageProductSections />
+        <HomepageProductSections
+          criticalProductsPromise={homepageCriticalProductsPromise}
+          deferredProductsPromise={homepageDeferredProductsPromise}
+        />
       </Suspense>
       <Suspense fallback={<HomepageLatestReviewsSkeleton />}>
-        <HomepageReviewsSection />
+        <HomepageReviewsSection latestReviewsPromise={latestReviewsPromise} />
       </Suspense>
       <Suspense fallback={<HomepageBlogSkeleton />}>
-        <HomepageBlogSection />
+        <HomepageBlogSection blogPostsPromise={blogPostsPromise} />
       </Suspense>
     </div>
   );

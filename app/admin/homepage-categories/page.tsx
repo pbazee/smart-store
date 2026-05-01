@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { HomepageCategoriesManager } from "@/app/admin/homepage-categories/homepage-categories-manager";
 import { fetchAdminHomepageCategories } from "@/app/admin/homepage-categories/actions";
-import { fetchTopLevelCategoriesAction } from "@/app/admin/categories/actions";
+import { fetchCategoriesAction } from "@/app/admin/categories/actions";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import type { Category, HomepageCategory } from "@/types";
 
@@ -19,7 +19,7 @@ export default async function AdminHomepageCategoriesPage() {
   try {
     [homepageCategories, categories] = await Promise.all([
       fetchAdminHomepageCategories(),
-      fetchTopLevelCategoriesAction(),
+      fetchCategoriesAction(),
     ]);
   } catch (error) {
     console.error("[AdminHomepageCategoriesPage] Failed to load page data:", error);
@@ -38,7 +38,7 @@ export default async function AdminHomepageCategoriesPage() {
 
       <HomepageCategoriesManager
         initialCategories={homepageCategories}
-        topLevelCategories={categories}
+        topLevelCategories={categories.filter((category) => !category.parentId)}
       />
     </div>
   );

@@ -282,6 +282,7 @@ export function useWishlist() {
       isSignedIn,
       isLoading:
         !hasHydrated || (!!currentUserId && isSyncing && productIds.length === 0 && !isSynced),
+      isSyncing,
       productIds,
       capWarning,
       dismissCapWarning: () => setCapWarning(false),

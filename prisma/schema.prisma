@@ -59,22 +59,36 @@ model Product {
   wishlists     WishlistItem[]
 
   @@index([categoryId])
+  @@index([updatedAt, createdAt])
+  @@index([isFeatured, updatedAt, createdAt])
+  @@index([isTrending, updatedAt, createdAt])
+  @@index([isRecommended, updatedAt, createdAt])
+  @@index([isPopular, rating, reviewCount, updatedAt])
+  @@index([isNew, createdAt])
+  @@index([category, gender, updatedAt])
 }
 
 model Category {
-  id                 String     @id @default(cuid())
-  name               String
-  slug               String     @unique
-  description        String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-  order              Int        @default(0)
-  isActive           Boolean    @default(true)
-  parentId           String?
-  parent             Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children           Category[] @relation("CategoryHierarchy")
+  id                String     @id @default(cuid())
+  name              String
+  slug              String     @unique
+  description       String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  order             Int        @default(0)
+  isActive          Boolean    @default(true)
+  parentId          String?
+  isHomepageVisible Boolean    @default(false)
+  homepageSubtitle  String?
+  homepageImageUrl  String?
+  homepageOrder     Int        @default(0)
+  parent            Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children          Category[] @relation("CategoryHierarchy")
   homepageCategories HomepageCategory[] @relation("HomepageCategoryParent")
-  products           Product[]
+  products          Product[]
+
+  @@index([isActive, parentId, order, name])
+  @@index([isHomepageVisible, homepageOrder])
 }
 
 model AnnouncementMessage {
@@ -135,6 +149,8 @@ model SocialLink {
   icon      String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+
+  @@index([createdAt])
 }
 
 model WhatsAppSettings {
@@ -160,6 +176,8 @@ model StoreSettings {
   footerContactPhone     String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+
+  @@index([id])
 }
 
 model FAQ {
@@ -220,6 +238,7 @@ model Blog {
   updatedAt   DateTime  @updatedAt
 
   @@index([isPublished, publishedAt])
+  @@index([isPublished, createdAt])
 }
 
 model Coupon {
@@ -287,6 +306,8 @@ model Order {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([paymentStatus, createdAt])
   @@index([reservationExpiresAt])
   @@index([couponCode])
   @@index([shippingRuleId])
@@ -309,6 +330,8 @@ model ShippingRule {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   orders         Order[]
+
+  @@index([isActive, priority, updatedAt])
 }
 
 model OrderItem {
@@ -342,6 +365,7 @@ model Review {
   product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, createdAt])
+  @@index([isApproved, createdAt])
   @@index([userId])
 }
 

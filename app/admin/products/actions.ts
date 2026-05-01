@@ -13,8 +13,8 @@ import {
   resolveAdminProductCatalogAssignment,
 } from "@/lib/product-integrity";
 import { slugify } from "@/lib/utils";
-import { getHomepageSubcategoriesForCategory } from "@/lib/homepage-category-service";
-import type { HomepageCategory, Product } from "@/types";
+import { getChildCategories } from "@/lib/category-service";
+import type { Category, Product } from "@/types";
 
 const adminVariantSchema = z.object({
   id: z.string().optional(),
@@ -165,14 +165,14 @@ export async function fetchInvalidAdminProductCount() {
 
 export async function fetchHomepageSubcategoriesAction(
   parentCategoryId: string | null
-): Promise<HomepageCategory[]> {
+): Promise<Category[]> {
   await ensureAdmin();
 
   if (!parentCategoryId) {
     return [];
   }
 
-  return getHomepageSubcategoriesForCategory(parentCategoryId);
+  return getChildCategories(parentCategoryId);
 }
 
 export async function createAdminProductAction(input: AdminProductInput) {

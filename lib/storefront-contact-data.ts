@@ -1,3 +1,5 @@
+import "server-only";
+
 import { unstable_cache } from "next/cache";
 import { DEFAULT_SOCIAL_LINK_SEEDS, createSocialLinkSeed } from "@/lib/default-social-links";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";

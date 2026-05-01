@@ -26,6 +26,18 @@ export async function register() {
     return;
   }
 
+  // Runtime schema repair is expensive against pooled Postgres connections.
+  // Keep dev/startup fast and predictable unless it is explicitly requested.
+  if (process.env.ENABLE_RUNTIME_SCHEMA_REPAIR !== "true") {
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "[Instrumentation] Runtime schema repair is disabled. Set ENABLE_RUNTIME_SCHEMA_REPAIR=true to run startup repairs."
+      );
+    }
+
+    return;
+  }
+
   try {
     const {
       ensureStoreSettingsStorage,

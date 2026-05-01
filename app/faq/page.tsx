@@ -3,7 +3,7 @@ import { MessageCircleMore, NotebookText, Phone } from "lucide-react";
 import { getFAQs } from "@/lib/faq-service";
 import { getSupportContactInfo } from "@/lib/support-contact";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
-import { buildWhatsAppHref } from "@/lib/whatsapp-service";
+import { buildWhatsAppHref } from "@/lib/whatsapp-shared";
 
 export const dynamic = "force-static";
 

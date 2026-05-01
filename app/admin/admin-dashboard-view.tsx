@@ -54,6 +54,7 @@ export type AdminDashboardStats = {
     basePrice: number;
     unitsSold: number;
   }>;
+  ordersTrend: Array<{ day: string; orders: number }>;
   todayOrders: number;
   pendingOrdersCount: number;
   needsAttentionCount: number;
@@ -161,7 +162,7 @@ function StatCard({
 export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashboardStats }) {
   const { data, error, mutate } = useSWR<AdminDashboardStatsResponse>("/api/admin/stats", fetcher, {
     fallbackData: { data: initialStats },
-    refreshInterval: 60000,
+    refreshInterval: 0,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     revalidateIfStale: false,
@@ -171,38 +172,24 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
   });
   const stats = data?.data ?? initialStats;
   const monthlyRevenueData = useMemo(
-    () => [
-      { month: "Nov", revenue: 180_000 },
-      { month: "Dec", revenue: 235_000 },
-      { month: "Jan", revenue: 210_000 },
-      { month: "Feb", revenue: 268_000 },
-      { month: "Mar", revenue: 294_000 },
-      { month: "Apr", revenue: 338_000 },
-    ],
-    []
+    () => stats.revenueByMonth,
+    [stats.revenueByMonth]
   );
   const topProductsBreakdown = useMemo(
-    () => [
-      { name: "Dinner Dress", value: 34, color: "#f97316" },
-      { name: "Red Bodycon Dress", value: 24, color: "#fb7185" },
-      { name: "Classic Heels", value: 18, color: "#38bdf8" },
-      { name: "Black Handbag", value: 14, color: "#22c55e" },
-      { name: "Summer Maxi", value: 10, color: "#a855f7" },
-    ],
-    []
+    () => {
+      const palette = ["#f97316", "#fb7185", "#38bdf8", "#22c55e", "#a855f7", "#eab308"];
+      const totalUnits = stats.topProducts.reduce((sum, item) => sum + item.unitsSold, 0) || 1;
+
+      return stats.topProducts.map((product, index) => ({
+        name: product.name,
+        value: Number(((product.unitsSold / totalUnits) * 100).toFixed(1)),
+        unitsSold: product.unitsSold,
+        color: palette[index % palette.length],
+      }));
+    },
+    [stats.topProducts]
   );
-  const ordersTrendData = useMemo(
-    () => [
-      { day: "Mon", orders: 12 },
-      { day: "Tue", orders: 18 },
-      { day: "Wed", orders: 15 },
-      { day: "Thu", orders: 22 },
-      { day: "Fri", orders: 27 },
-      { day: "Sat", orders: 24 },
-      { day: "Sun", orders: 19 },
-    ],
-    []
-  );
+  const ordersTrendData = useMemo(() => stats.ordersTrend, [stats.ordersTrend]);
 
   const quickActions = [
     { label: "Add Product", icon: Plus, href: "/admin/products?action=add" },
@@ -363,6 +350,7 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                     stroke="#fb923c"
                     strokeWidth={3}
                     fill="url(#monthlyRevenueFill)"
+                    isAnimationActive={false}
                     activeDot={{ r: 6, fill: "#f97316", stroke: "#18181b", strokeWidth: 2 }}
                   />
                 </AreaChart>
@@ -384,8 +372,8 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px]">
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                     <th className="pb-4">Order</th>
@@ -434,6 +422,39 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                 </tbody>
               </table>
             </div>
+            <div className="space-y-3 md:hidden">
+              {stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order) => (
+                  <div key={order.id} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold text-white">#{order.orderNumber}</p>
+                        <p className="truncate text-sm text-zinc-400">
+                          {order.customerName || "Member"}
+                        </p>
+                        <p className="truncate text-xs text-zinc-500">
+                          {order.customerEmail || "No email"}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-sm">
+                      <span className="font-bold text-orange-400">{formatKES(order.total)}</span>
+                      <span className="text-zinc-500" suppressHydrationWarning>
+                        {new Date(order.createdAt).toLocaleDateString("en-KE", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-500">No recent orders yet.</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -472,6 +493,7 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                     name="Orders"
                     stroke="#38bdf8"
                     strokeWidth={3}
+                    isAnimationActive={false}
                     dot={{ r: 4, fill: "#38bdf8", stroke: "#09090b", strokeWidth: 2 }}
                     activeDot={{ r: 6, fill: "#38bdf8", stroke: "#09090b", strokeWidth: 2 }}
                   />
@@ -497,6 +519,7 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                     innerRadius={68}
                     outerRadius={106}
                     paddingAngle={3}
+                    isAnimationActive={false}
                   >
                     {topProductsBreakdown.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} stroke="#18181b" strokeWidth={2} />
@@ -505,7 +528,10 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                   <Tooltip
                     content={
                       <ChartTooltip
-                        formatter={(_name, value) => `${value}% of top sales`}
+                        formatter={(name, value) => {
+                          const matchedProduct = topProductsBreakdown.find((entry) => entry.name === name);
+                          return `${value}% (${matchedProduct?.unitsSold ?? 0} sold)`;
+                        }}
                       />
                     }
                   />
@@ -521,9 +547,13 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Leading Product</p>
-                  <p className="mt-1 text-lg font-black text-white">{topProductsBreakdown[0]?.name}</p>
+                  <p className="mt-1 text-lg font-black text-white">
+                    {topProductsBreakdown[0]?.name ?? "No sales data yet"}
+                  </p>
                 </div>
-                <p className="text-sm font-bold text-orange-400">{topProductsBreakdown[0]?.value ?? 0}% share</p>
+                <p className="text-sm font-bold text-orange-400">
+                  {topProductsBreakdown[0]?.value ?? 0}% share
+                </p>
               </div>
             </div>
           </div>

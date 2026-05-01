@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ImagePlus, Loader2, Plus, Save, X } from "lucide-react";
+import { ImagePlus, Loader2, Save } from "lucide-react";
 import {
   cleanupHeroSlideImageAction,
   createAdminHeroSlideAction,
@@ -25,9 +25,6 @@ type HeroSlideFormState = {
   subtitle: string;
   imageUrl: string;
   ctaText: string;
-  ctaLink: string;
-  moodTags: string[];
-  locationBadge: string;
   isActive: boolean;
   order: string;
 };
@@ -38,9 +35,6 @@ function createEmptyFormState(): HeroSlideFormState {
     subtitle: "",
     imageUrl: "",
     ctaText: "Shop the Edit",
-    ctaLink: "/shop?collection=new-arrivals",
-    moodTags: [],
-    locationBadge: "",
     isActive: true,
     order: "0",
   };
@@ -57,9 +51,6 @@ function createFormState(slide?: HeroSlide | null): HeroSlideFormState {
     subtitle: slide.subtitle,
     imageUrl: slide.imageUrl,
     ctaText: slide.ctaText,
-    ctaLink: slide.ctaLink,
-    moodTags: slide.moodTags,
-    locationBadge: slide.locationBadge,
     isActive: slide.isActive,
     order: String(slide.order),
   };
@@ -72,9 +63,9 @@ function toPayload(form: HeroSlideFormState, imageUrl: string): AdminHeroSlideIn
     subtitle: form.subtitle.trim(),
     imageUrl,
     ctaText: form.ctaText.trim(),
-    ctaLink: form.ctaLink.trim(),
-    moodTags: form.moodTags,
-    locationBadge: form.locationBadge.trim(),
+    ctaLink: "/shop",
+    moodTags: [],
+    locationBadge: "",
     isActive: form.isActive,
     order: Number(form.order || 0),
   };
@@ -96,14 +87,12 @@ export function HeroFormDialog({
   const [form, setForm] = useState<HeroSlideFormState>(() => createFormState(slide));
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(form.imageUrl);
-  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     const nextForm = createFormState(slide);
     setForm(nextForm);
     setSelectedFile(null);
     setPreviewUrl(nextForm.imageUrl);
-    setTagInput("");
   }, [slide, open]);
 
   useEffect(() => {
@@ -118,24 +107,6 @@ export function HeroFormDialog({
       URL.revokeObjectURL(objectUrl);
     };
   }, [selectedFile]);
-
-  const addMoodTag = () => {
-    const normalized = tagInput.trim();
-    if (!normalized || form.moodTags.includes(normalized)) {
-      setTagInput("");
-      return;
-    }
-
-    setForm((current) => ({ ...current, moodTags: [...current.moodTags, normalized] }));
-    setTagInput("");
-  };
-
-  const removeMoodTag = (tagToRemove: string) => {
-    setForm((current) => ({
-      ...current,
-      moodTags: current.moodTags.filter((tag) => tag !== tagToRemove),
-    }));
-  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -196,7 +167,7 @@ export function HeroFormDialog({
         <DialogHeader>
           <DialogTitle>{slide ? "Edit hero slide" : "Add new hero slide"}</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Manage the homepage hero headline, image, CTA, and mood cues without changing code.
+            Manage the homepage hero headline, image, CTA text, and slide order without changing code.
           </DialogDescription>
         </DialogHeader>
 
@@ -252,74 +223,6 @@ export function HeroFormDialog({
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
             </label>
-
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">CTA link</span>
-              <input
-                required
-                value={form.ctaLink}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, ctaLink: event.target.value }))
-                }
-                placeholder="/shop?collection=new-arrivals"
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Location badge</span>
-              <input
-                required
-                value={form.locationBadge}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, locationBadge: event.target.value }))
-                }
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
-
-            <div className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Mood tags</span>
-              <div className="flex flex-wrap gap-2 rounded-[1.5rem] border border-zinc-800 bg-black/60 p-3">
-                {form.moodTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-200"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeMoodTag(tag)}
-                      className="text-zinc-500 transition-colors hover:text-white"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-                <div className="flex min-w-[220px] flex-1 items-center gap-2">
-                  <input
-                    value={tagInput}
-                    onChange={(event) => setTagInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addMoodTag();
-                      }
-                    }}
-                    placeholder="Add a mood tag"
-                    className="h-10 flex-1 rounded-full border border-zinc-800 bg-black px-4 text-zinc-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={addMoodTag}
-                    className="inline-flex h-10 items-center gap-2 rounded-full border border-zinc-700 px-4 text-xs font-semibold text-zinc-200 transition-colors hover:border-brand-400 hover:text-white"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
 
             <div className="space-y-2 text-sm md:col-span-2">
               <span className="font-medium text-zinc-300">Image upload</span>
@@ -382,30 +285,7 @@ export function HeroFormDialog({
               <div className="space-y-4 text-sm text-zinc-400">
                 <div>
                   <p className="font-medium text-zinc-300">CTA</p>
-                  <p className="mt-1">
-                    {form.ctaText || "Shop the Edit"} -&gt; {form.ctaLink || "/products"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium text-zinc-300">Location badge</p>
-                  <p className="mt-1">{form.locationBadge || "Set a location badge"}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-zinc-300">Mood tags</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {form.moodTags.length > 0 ? (
-                      form.moodTags.map((tag) => (
-                        <span
-                          key={`preview-${tag}`}
-                          className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs font-semibold text-zinc-200"
-                        >
-                          {tag}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-zinc-500">Add tags for the right-side hero panel.</span>
-                    )}
-                  </div>
+                  <p className="mt-1">{form.ctaText || "Shop the Edit"}</p>
                 </div>
                 <div>
                   <p className="font-medium text-zinc-300">Visibility</p>

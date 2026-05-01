@@ -9,12 +9,13 @@ import { prisma } from "@/lib/prisma";
 import { deleteHeroSlideImage, uploadHeroSlideImage } from "@/lib/supabase-storage";
 import type { HeroSlide } from "@/types";
 
-const requiredLinkSchema = z
+const optionalLinkSchema = z
   .string()
   .trim()
-  .min(1, "Link is required")
+  .optional()
   .refine(
     (value) => {
+      if (!value) return true;
       if (value.startsWith("/")) return true;
       try { new URL(value); return true; } catch { return false; }
     },
@@ -39,9 +40,9 @@ const adminHeroSlideSchema = z.object({
   subtitle: z.string().trim().min(12, "Subtitle is required").max(280, "Keep it under 280 characters"),
   imageUrl: imageUrlSchema,
   ctaText: z.string().trim().min(2, "CTA text is required").max(40, "Keep it under 40 characters"),
-  ctaLink: requiredLinkSchema,
+  ctaLink: optionalLinkSchema,
   moodTags: z.array(z.string().trim().min(1).max(24)).max(6).default([]),
-  locationBadge: z.string().trim().min(3, "Location badge is required").max(80, "Keep it under 80 characters"),
+  locationBadge: z.string().trim().max(80, "Keep it under 80 characters").default(""),
   isActive: z.boolean().default(true),
   order: z.number().int().min(0).default(0),
 });
@@ -65,7 +66,7 @@ function normalizeHeroSlideInput(input: AdminHeroSlideInput) {
     subtitle: data.subtitle.trim(),
     imageUrl: data.imageUrl.trim(),
     ctaText: data.ctaText.trim(),
-    ctaLink: data.ctaLink.trim(),
+    ctaLink: data.ctaLink?.trim() || "/shop",
     moodTags: data.moodTags.map((tag) => tag.trim()).filter(Boolean),
     locationBadge: data.locationBadge.trim(),
     isActive: data.isActive,

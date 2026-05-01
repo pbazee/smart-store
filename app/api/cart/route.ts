@@ -22,6 +22,24 @@ function buildNoStoreResponse(body: unknown, init?: ResponseInit) {
   });
 }
 
+function isAbortedRequestError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return error.message.toLowerCase().includes("aborted") || error.message.includes("ECONNRESET");
+}
+
+async function readJsonBodySafely(request: NextRequest) {
+  const rawBody = await request.text();
+
+  if (!rawBody.trim()) {
+    return null;
+  }
+
+  return JSON.parse(rawBody) as unknown;
+}
+
 export async function GET() {
   try {
     const sessionUser = await requireSessionUser();
@@ -38,7 +56,9 @@ export async function GET() {
       return buildNoStoreResponse({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.error("[Cart] Failed to load saved cart:", error);
+    if (!isAbortedRequestError(error)) {
+      console.error("[Cart] Failed to load saved cart:", error);
+    }
     return buildNoStoreResponse({ error: "Failed to load cart" }, { status: 500 });
   }
 }
@@ -46,8 +66,8 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const sessionUser = await requireSessionUser();
-    const body = await request.json();
-    const { items } = saveCartSchema.parse(body);
+    const body = await readJsonBodySafely(request);
+    const { items } = saveCartSchema.parse(body ?? { items: [] });
     const savedItems = await saveSavedCartItems(sessionUser, items);
 
     return buildNoStoreResponse({
@@ -68,7 +88,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.error("[Cart] Failed to save cart:", error);
+    if (error instanceof SyntaxError) {
+      return buildNoStoreResponse({ error: "Invalid cart payload" }, { status: 400 });
+    }
+
+    if (!isAbortedRequestError(error)) {
+      console.error("[Cart] Failed to save cart:", error);
+    }
     return buildNoStoreResponse({ error: "Failed to save cart" }, { status: 500 });
   }
 }

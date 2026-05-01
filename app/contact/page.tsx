@@ -1,6 +1,6 @@
 import { Clock3, Mail, MapPin, MessageCircleMore, Phone } from "lucide-react";
 import { getSupportContactInfo } from "@/lib/support-contact";
-import { buildWhatsAppHref } from "@/lib/whatsapp-service";
+import { buildWhatsAppHref } from "@/lib/whatsapp-shared";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
 import { ContactFormCard } from "./contact-form-card";
 

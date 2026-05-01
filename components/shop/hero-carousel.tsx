@@ -5,7 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
 import { cn, createBlurDataURL } from "@/lib/utils";
 import type { HeroSlide } from "@/types";
@@ -115,7 +115,7 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.15),transparent_30%)]" />
 
                   <div className="relative z-10 mx-auto flex min-h-[70vh] max-w-7xl items-end px-4 pb-20 pt-24 sm:px-6 lg:min-h-[78vh] lg:px-8">
-                    <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-end">
+                    <div className="w-full">
                       <div
                         className={cn(
                           "max-w-3xl transition-[opacity,transform] duration-500 ease-out",
@@ -133,10 +133,6 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                         <p className="overlay-readable-text mt-5 max-w-2xl text-base sm:text-lg">
                           {slide.subtitle}
                         </p>
-                        <div className="overlay-readable-text mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
-                          <MapPin className="h-3.5 w-3.5 text-orange-300" />
-                          <span>{slide.locationBadge}</span>
-                        </div>
                         <div className="mt-8 flex flex-wrap items-center gap-3">
                           <Link
                             href={ctaHref}
@@ -146,62 +142,6 @@ export function HeroCarousel({ slides = [] }: { slides?: HeroSlide[] }) {
                             {slide.ctaText}
                             <ArrowRight className="h-5 w-5" />
                           </Link>
-                          {slide.moodTags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {slide.moodTags.slice(0, 3).map((tag) => (
-                                <span
-                                  key={`${slide.id}-${tag}`}
-                                  className="overlay-readable-text rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div
-                        className={cn(
-                          "overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/60 p-5 transition-[opacity,transform] duration-500 ease-out lg:block",
-                          selectedIndex === index
-                            ? "translate-y-0 opacity-100"
-                            : "translate-y-[18px] opacity-[0.55]"
-                        )}
-                      >
-                        <p className="text-xs font-bold uppercase tracking-[0.28em]">
-                          Hero details
-                        </p>
-                        <div className="mt-6 space-y-5">
-                          <div>
-                            <p className="text-3xl font-black">{String(index + 1).padStart(2, "0")}</p>
-                            <p className="mt-1 text-sm">Current slide</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold">CTA destination</p>
-                            <p className="mt-1 text-sm">{ctaHref}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold">Mood tags</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {slide.moodTags.length > 0 ? (
-                                slide.moodTags.map((tag) => (
-                                  <span
-                                    key={`${slide.id}-panel-${tag}`}
-                                    className="rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs font-semibold"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-sm">No tags configured</span>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold">Location badge</p>
-                            <p className="mt-1 text-sm">{slide.locationBadge}</p>
-                          </div>
                         </div>
                       </div>
                     </div>

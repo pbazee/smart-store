@@ -14,36 +14,56 @@ import {
   getHomepageDeferredProductSectionsData,
   getHomepageHeroSlides,
   getHomepageLatestReviews,
+  type HomepageCriticalProductSectionsData,
+  type HomepageDeferredProductSectionsData,
 } from "@/lib/homepage-data";
 
-export async function HomepageHeroSection() {
-  const heroSlides = await getHomepageHeroSlides();
+export async function HomepageHeroSection({
+  slidesPromise,
+}: {
+  slidesPromise: Promise<Awaited<ReturnType<typeof getHomepageHeroSlides>>>;
+}) {
+  const heroSlides = await slidesPromise;
 
   return <HeroCarousel slides={heroSlides} />;
 }
 
-export async function HomepageCategorySection() {
-  const categories = await getHomepageCategories();
+export async function HomepageCategorySection({
+  categoriesPromise,
+}: {
+  categoriesPromise: Promise<Awaited<ReturnType<typeof getHomepageCategories>>>;
+}) {
+  const categories = await categoriesPromise;
 
   return <HomepageCategoryGrid categories={categories} />;
 }
 
-export async function HomepageProductSections() {
-  const productSections = await getHomepageCriticalProductSectionsData();
+export async function HomepageProductSections({
+  criticalProductsPromise,
+  deferredProductsPromise,
+}: {
+  criticalProductsPromise: Promise<HomepageCriticalProductSectionsData>;
+  deferredProductsPromise: Promise<HomepageDeferredProductSectionsData>;
+}) {
+  const productSections = await criticalProductsPromise;
 
   return (
     <>
       <FeaturedGrid products={productSections.featured} />
       <TrendingSection products={productSections.trending} />
       <Suspense fallback={<HomepageDeferredProductSectionsSkeleton />}>
-        <DeferredHomepageProductSections />
+        <DeferredHomepageProductSections deferredProductsPromise={deferredProductsPromise} />
       </Suspense>
     </>
   );
 }
 
-async function DeferredHomepageProductSections() {
-  const productSections = await getHomepageDeferredProductSectionsData();
+async function DeferredHomepageProductSections({
+  deferredProductsPromise,
+}: {
+  deferredProductsPromise: Promise<HomepageDeferredProductSectionsData>;
+}) {
+  const productSections = await deferredProductsPromise;
 
   return (
     <>
@@ -68,14 +88,22 @@ async function DeferredHomepageProductSections() {
   );
 }
 
-export async function HomepageReviewsSection() {
-  const latestReviews = await getHomepageLatestReviews();
+export async function HomepageReviewsSection({
+  latestReviewsPromise,
+}: {
+  latestReviewsPromise: Promise<Awaited<ReturnType<typeof getHomepageLatestReviews>>>;
+}) {
+  const latestReviews = await latestReviewsPromise;
 
   return <LatestReviews reviews={latestReviews} />;
 }
 
-export async function HomepageBlogSection() {
-  const blogPosts = await getHomepageBlogPosts();
+export async function HomepageBlogSection({
+  blogPostsPromise,
+}: {
+  blogPostsPromise: Promise<Awaited<ReturnType<typeof getHomepageBlogPosts>>>;
+}) {
+  const blogPosts = await blogPostsPromise;
 
   return <BlogTeaserSection posts={blogPosts} />;
 }

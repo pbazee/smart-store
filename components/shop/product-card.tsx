@@ -113,17 +113,17 @@ function ProductCardComponent({
 
     const wasSaved = isWishlisted;
 
+    toast({
+      title: wasSaved ? "Removed from wishlist" : "Saved to wishlist",
+      description: wasSaved
+        ? "This item has been removed from your saved list."
+        : "You can find it any time in your wishlist.",
+    });
+
     void toggle(product.id).then((result) => {
       if (!result.ok) {
         return;
       }
-
-      toast({
-        title: wasSaved ? "Removed from wishlist" : "Saved to wishlist",
-        description: wasSaved
-          ? "This item has been removed from your saved list."
-          : "You can find it any time in your wishlist.",
-      });
     });
   };
 

@@ -6,11 +6,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import useSWR from "swr";
 import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
-import { jsonFetcher } from "@/lib/fetcher";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
 import { isNavigationLinkActive } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
@@ -46,6 +44,7 @@ function DesktopNavLink({
   return (
     <Link
       href={href}
+      prefetch
       onClick={onClick}
       className={cn(
         "rounded-full px-3 py-2 text-sm font-semibold transition-colors",
@@ -210,24 +209,23 @@ export function Navbar({
       closeCart: state.closeCart,
     }))
   );
-  const { data: storeSettingsResponse } = useSWR<{ success: boolean; data: StoreSettings }>(
-    "/api/store-settings",
-    jsonFetcher,
-    {
-      fallbackData: initialStoreSettings
-        ? { success: true, data: initialStoreSettings }
-        : undefined,
-      dedupingInterval: 300_000,
-      revalidateOnFocus: false,
-    }
-  );
-  const storeSettings = storeSettingsResponse?.data ?? initialStoreSettings;
   const count = hasHydrated ? cartCount : 0;
   const searchValue = searchParams.get("search") ?? "";
   const wishlistHref = "/wishlist";
   const accountHref = "/account";
+  const storeSettings = initialStoreSettings;
 
-  useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about", wishlistHref, accountHref]);
+  useRoutePrefetch([
+    "/",
+    "/shop?gender=women",
+    "/shop?gender=men",
+    "/shop",
+    wishlistHref,
+    accountHref,
+    "/contact",
+    "/faq",
+    "/about",
+  ]);
 
   const submitSearch = (form: HTMLFormElement) => {
     const q = (form.elements.namedItem("q") as HTMLInputElement).value;
@@ -316,12 +314,12 @@ export function Navbar({
             <Link
               href="/"
               onClick={closeCart}
-              className="flex min-w-0 max-w-[8.5rem] items-center gap-2 sm:max-w-none"
+              className="mr-auto flex min-w-0 max-w-[8.5rem] items-center gap-2 sm:max-w-none"
             >
               <BrandMark storeSettings={storeSettings} />
             </Link>
 
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <SearchForm
                 defaultValue={searchValue}
                 onSubmit={submitSearch}

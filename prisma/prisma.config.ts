@@ -3,18 +3,28 @@ import { PrismaClient, Prisma } from "@prisma/client";
 // Prisma 7+ configuration
 // Database connection URLs are configured here instead of schema.prisma
 
-function getDatabaseUrl(): string {
+const BUILD_TIME_DATABASE_PLACEHOLDER =
+  "postgresql://placeholder:placeholder@localhost:5432/placeholder";
+
+export function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL;
 
-  if (!url) {
-    console.error("[Prisma] DATABASE_URL environment variable is not set");
-    // Return a placeholder that will fail gracefully or use a fallback
-    throw new Error(
-      "DATABASE_URL is required. Please set it in your .env.local file or environment variables."
-    );
+  if (url) {
+    return url;
   }
 
-  return url;
+  const isBuildLikePhase =
+    process.env.NODE_ENV === "production" ||
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.NEXT_RUNTIME === "edge";
+
+  if (isBuildLikePhase || typeof window !== "undefined") {
+    return BUILD_TIME_DATABASE_PLACEHOLDER;
+  }
+
+  throw new Error(
+    "DATABASE_URL environment variable is not set. Please add it to your .env file."
+  );
 }
 
 function getDirectUrl(): string | undefined {
@@ -57,7 +67,7 @@ function resolveDatabaseUrl(rawUrl: string): string {
 let resolvedDatabaseUrl: string | undefined;
 let resolvedDirectUrl: string | undefined;
 
-function getResolvedDatabaseUrl(): string {
+export function getResolvedDatabaseUrl(): string {
   if (!resolvedDatabaseUrl) {
     resolvedDatabaseUrl = resolveDatabaseUrl(getDatabaseUrl());
   }

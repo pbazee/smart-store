@@ -1,7 +1,7 @@
 import type { SessionUser } from "@/types";
 import { resolveAuthenticatedRole } from "@/lib/admin-identity";
 import { getLocalAuthSession } from "@/lib/local-auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { normalizeUserRole } from "@/lib/user-role";
 
@@ -43,14 +43,16 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   // Check database for role if not admin
   if (role !== "admin" && userEmail) {
     try {
-      const persistedUser = await prisma.user.findUnique({
-        where: {
-          email: userEmail,
-        },
-        select: {
-          role: true,
-        },
-      });
+      const persistedUser = await withPrismaRetry("getSessionUser persisted role", () =>
+        prisma.user.findUnique({
+          where: {
+            email: userEmail,
+          },
+          select: {
+            role: true,
+          },
+        })
+      );
 
       if (persistedUser?.role) {
         role = normalizeUserRole(persistedUser.role);

@@ -14,6 +14,16 @@ const toggleWishlistSchema = z.object({
   productId: z.string().min(1),
 });
 
+async function readJsonBodySafely(request: NextRequest) {
+  const rawBody = await request.text();
+
+  if (!rawBody.trim()) {
+    return null;
+  }
+
+  return JSON.parse(rawBody) as unknown;
+}
+
 // GET — returns only product IDs (never full objects) to minimise initial payload
 export async function GET() {
   try {
@@ -36,7 +46,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser();
-    const body = await request.json();
+    const body = await readJsonBodySafely(request);
     const { productId } = toggleWishlistSchema.parse(body);
 
     const currentCount = await getWishlistCount(user.id);
@@ -64,7 +74,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const user = await requireSessionUser();
-    const body = await request.json();
+    const body = await readJsonBodySafely(request);
     const { productId } = toggleWishlistSchema.parse(body);
 
     await removeWishlistProduct(user.id, productId);

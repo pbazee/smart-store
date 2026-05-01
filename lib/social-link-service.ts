@@ -1,22 +1,28 @@
+import "server-only";
+
 import {
   DEFAULT_SOCIAL_LINK_SEEDS,
 } from "@/lib/default-social-links";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 import type { SocialLink } from "@/types";
 
 let lastKnownSocialLinks: SocialLink[] | null = null;
 const pendingSocialLinkRequests = new Map<string, Promise<SocialLink[]>>();
 
 async function ensureSocialLinksSeeded() {
-  const existingCount = await prisma.socialLink.count();
+  const existingCount = await withPrismaRetry("ensureSocialLinksSeeded count", () =>
+    prisma.socialLink.count()
+  );
   if (existingCount > 0) {
     return;
   }
 
-  await prisma.socialLink.createMany({
-    data: DEFAULT_SOCIAL_LINK_SEEDS,
-    skipDuplicates: true,
-  });
+  await withPrismaRetry("ensureSocialLinksSeeded createMany", () =>
+    prisma.socialLink.createMany({
+      data: DEFAULT_SOCIAL_LINK_SEEDS,
+      skipDuplicates: true,
+    })
+  );
 }
 
 export async function getSocialLinks(options: { seedIfEmpty?: boolean } = {}) {
@@ -33,9 +39,11 @@ export async function getSocialLinks(options: { seedIfEmpty?: boolean } = {}) {
       await ensureSocialLinksSeeded();
     }
 
-    const links = await prisma.socialLink.findMany({
-      orderBy: { createdAt: "asc" },
-    });
+    const links = await withPrismaRetry("getSocialLinks", () =>
+      prisma.socialLink.findMany({
+        orderBy: { createdAt: "asc" },
+      })
+    );
 
     lastKnownSocialLinks = links as SocialLink[];
 

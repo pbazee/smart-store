@@ -116,7 +116,7 @@ export function AnnouncementBarClient({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-0.5 px-2 py-1.5 sm:px-4 sm:py-2">
+      <div className="mx-auto flex max-w-7xl items-center gap-0.5 px-2 py-1 sm:px-4 sm:py-1.5">
         <button
           type="button"
           onClick={goToPrevious}
@@ -143,13 +143,13 @@ export function AnnouncementBarClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="flex min-h-8 items-center justify-center px-2 text-center text-[12px] font-normal leading-tight sm:text-[13px] md:text-sm"
+                className="flex min-h-7 items-center justify-center px-2 text-center text-[12px] font-normal leading-tight sm:text-[13px] md:text-sm"
               >
                 <AnnouncementCopy announcement={activeAnnouncement} />
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="flex min-h-8 items-center justify-center px-2 text-center text-[12px] font-normal leading-tight sm:text-[13px] md:text-sm">
+            <div className="flex min-h-7 items-center justify-center px-2 text-center text-[12px] font-normal leading-tight sm:text-[13px] md:text-sm">
               <AnnouncementCopy announcement={activeAnnouncement} />
             </div>
           )}

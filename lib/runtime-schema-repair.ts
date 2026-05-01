@@ -1,5 +1,5 @@
 import { shouldUseMockData } from "@/lib/live-data-mode";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 
 // Use globalThis so the Map survives Next.js dev-mode module reloads.
 // Without this, every new route compilation resets the Map and re-runs
@@ -12,8 +12,12 @@ if (!globalForSchemaRepair._schemaRepairTasks) {
 }
 const schemaRepairTasks = globalForSchemaRepair._schemaRepairTasks;
 
+function isRuntimeSchemaRepairEnabled() {
+  return process.env.ENABLE_RUNTIME_SCHEMA_REPAIR === "true";
+}
+
 async function runSchemaRepair(key: string, repair: () => Promise<void>) {
-  if (shouldUseMockData()) {
+  if (shouldUseMockData() || !isRuntimeSchemaRepairEnabled()) {
     return;
   }
 
@@ -31,7 +35,10 @@ async function runSchemaRepair(key: string, repair: () => Promise<void>) {
 
 async function executeRepairStatements(statements: string[]) {
   for (const statement of statements) {
-    await prisma.$executeRawUnsafe(statement);
+    await withPrismaRetry("schema repair statement", () => prisma.$executeRawUnsafe(statement), {
+      retries: 3,
+      retryDelayMs: 500,
+    });
   }
 }
 
@@ -191,6 +198,18 @@ export async function ensureHomepageCategoryStorage() {
       `ALTER TABLE "HomepageCategory" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`,
       `CREATE INDEX IF NOT EXISTS "HomepageCategory_isActive_order_idx" ON "HomepageCategory" ("isActive", "order");`,
       `CREATE INDEX IF NOT EXISTS "HomepageCategory_parentCategoryId_idx" ON "HomepageCategory" ("parentCategoryId");`,
+    ]);
+  });
+}
+
+export async function ensureCategoryHomepageFields() {
+  await runSchemaRepair("category-homepage-fields", async () => {
+    await executeRepairStatements([
+      `ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "isHomepageVisible" BOOLEAN NOT NULL DEFAULT FALSE;`,
+      `ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "homepageSubtitle" TEXT;`,
+      `ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "homepageImageUrl" TEXT;`,
+      `ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "homepageOrder" INTEGER NOT NULL DEFAULT 0;`,
+      `CREATE INDEX IF NOT EXISTS "Category_isHomepageVisible_homepageOrder_idx" ON "Category" ("isHomepageVisible", "homepageOrder");`,
     ]);
   });
 }

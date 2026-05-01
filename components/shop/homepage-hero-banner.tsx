@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { resolveCatalogListingHref } from "@/lib/catalog-routing";
 import { createBlurDataURL } from "@/lib/utils";
 import type { HeroSlide } from "@/types";
@@ -58,7 +58,7 @@ export function HomepageHeroBanner({ slides = [] }: { slides?: HeroSlide[] }) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.15),transparent_30%)]" />
 
         <div className="relative z-10 mx-auto flex min-h-[70vh] max-w-7xl items-end px-4 pb-20 pt-24 sm:px-6 lg:min-h-[78vh] lg:px-8">
-          <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-end">
+          <div className="w-full">
             <div className="max-w-3xl">
               <span className="overlay-readable-text mb-4 inline-flex rounded-full border border-white/15 bg-black/55 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.28em]">
                 Smartest edit
@@ -69,10 +69,6 @@ export function HomepageHeroBanner({ slides = [] }: { slides?: HeroSlide[] }) {
               <p className="overlay-readable-text mt-5 max-w-2xl text-base sm:text-lg">
                 {primarySlide.subtitle}
               </p>
-              <div className="overlay-readable-text mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
-                <MapPin className="h-3.5 w-3.5 text-orange-300" />
-                <span>{primarySlide.locationBadge}</span>
-              </div>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link
                   href={ctaHref}
@@ -82,39 +78,8 @@ export function HomepageHeroBanner({ slides = [] }: { slides?: HeroSlide[] }) {
                   {primarySlide.ctaText}
                   <ArrowRight className="h-5 w-5" />
                 </Link>
-                {primarySlide.moodTags.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {primarySlide.moodTags.slice(0, 3).map((tag) => (
-                      <span
-                        key={`${primarySlide.id}-${tag}`}
-                        className="overlay-readable-text rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             </div>
-
-            {resolvedSlides.length > 1 ? (
-              <div className="overlay-readable-surface hidden rounded-[2rem] border border-white/12 bg-black/60 p-5 lg:block">
-                <p className="text-xs font-bold uppercase tracking-[0.28em]">
-                  More campaign drops
-                </p>
-                <div className="mt-6 space-y-4">
-                  {resolvedSlides.slice(1, 4).map((slide, index) => (
-                    <div key={slide.id} className="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
-                      <p className="text-xs font-bold uppercase tracking-[0.28em] text-orange-300">
-                        {String(index + 2).padStart(2, "0")}
-                      </p>
-                      <p className="mt-2 text-sm font-semibold">{slide.title}</p>
-                      <p className="mt-1 text-sm text-white/70">{slide.locationBadge}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>

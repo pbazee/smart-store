@@ -104,7 +104,7 @@ export function HomepageCategoriesManager({
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">Homepage Categories</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Manage the category cards, links, imagery, and product grouping that appear on the landing page.
+            Manage which master shop categories appear on the landing page, plus their imagery and support copy.
           </p>
         </div>
 
@@ -117,7 +117,7 @@ export function HomepageCategoriesManager({
           className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
         >
           <Plus className="h-4 w-4" />
-          Add New Category
+          Add Homepage Category
         </button>
       </div>
 
@@ -142,7 +142,7 @@ export function HomepageCategoriesManager({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by title, subtitle, or link"
+            placeholder="Search by title or subtitle"
             className="h-12 w-full rounded-full border border-zinc-800 bg-zinc-900 pl-11 pr-4 text-sm text-zinc-100 placeholder:text-zinc-600"
           />
         </div>
@@ -177,12 +177,6 @@ export function HomepageCategoriesManager({
                   Title
                 </th>
                 <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
-                  Parent
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
-                  Link
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
                   Active?
                 </th>
                 <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -196,7 +190,7 @@ export function HomepageCategoriesManager({
             <tbody>
               {visibleCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-zinc-400">
+                  <td colSpan={5} className="px-6 py-16 text-center text-zinc-400">
                     No homepage categories match the current filters.
                   </td>
                 </tr>
@@ -219,16 +213,6 @@ export function HomepageCategoriesManager({
                           <p className="mt-1 text-xs text-zinc-500">{category.subtitle}</p>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-4 align-middle">
-                      <p className="text-sm text-zinc-300">
-                        {category.parentCategoryId
-                          ? topLevelCategoryMap.get(category.parentCategoryId) || "Unmapped"
-                          : "Unmapped"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 align-middle">
-                      <p className="max-w-xs break-all text-sm text-zinc-300">{category.link}</p>
                     </td>
                     <td className="px-4 py-4 align-middle">
                       <span
@@ -286,13 +270,13 @@ export function HomepageCategoriesManager({
           <div className="space-y-1 text-sm text-zinc-400">
             <p className="font-semibold text-zinc-100">Homepage behavior</p>
             <p>
-              Cards render in ascending order, inactive rows stay out of the landing page, and the
-              grid refreshes after every create, edit, and delete.
+              Cards now come directly from the master category table. Toggling a row on here updates
+              the homepage without creating duplicate category records.
             </p>
             <p className="inline-flex items-center gap-2 text-zinc-500">
               <ImagePlus className="h-4 w-4" />
-              Mapping a homepage category to a parent category also makes it available inside the
-              product form subcategory dropdown.
+              Images and subtitles here are homepage-only presentation fields layered on top of the
+              shop navigation category.
             </p>
           </div>
         </div>

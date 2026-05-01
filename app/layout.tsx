@@ -119,7 +119,7 @@ export default async function RootLayout({
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <RootLayoutShell
                 storefrontChrome={
-                  <div>
+                  <div key="storefront-chrome">
                     <Suspense fallback={<AnnouncementBarFallback />}>
                       <AnnouncementBar announcements={shellData.announcements} />
                     </Suspense>
@@ -129,7 +129,7 @@ export default async function RootLayout({
                   </div>
                 }
                 storefrontFooter={
-                  <Suspense fallback={<FooterFallback />}>
+                  <Suspense key="storefront-footer" fallback={<FooterFallback />}>
                     <Footer
                       socialLinks={shellData.socialLinks}
                       storeSettings={shellData.storeSettings}
@@ -137,7 +137,7 @@ export default async function RootLayout({
                   </Suspense>
                 }
                 storefrontOverlays={
-                  <div>
+                  <div key="storefront-overlays">
                     <WhatsAppWidget settings={shellData.whatsAppSettings} />
                     <StorefrontDeferredUI popups={shellData.popups} />
                   </div>

@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { getDefaultPromoBanners, DEFAULT_PROMO_BANNER_SEEDS } from "@/lib/default-promo-banners";
 import { shouldUseMockData } from "@/lib/live-data-mode";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 import { ensurePromoBannerStorage } from "@/lib/runtime-schema-repair";
 import type { PromoBanner } from "@/types";
 
@@ -101,7 +101,7 @@ function normalizeInput(input: PromoBannerRecordInput): PromoBannerRecordInput {
 
 async function queryPromoBanners(activeOnly: boolean) {
   if (activeOnly) {
-    return prisma.$queryRaw<PromoBannerRecord[]>`
+    return withPrismaRetry("queryPromoBanners active", () => prisma.$queryRaw<PromoBannerRecord[]>`
       SELECT
         id::text,
         badge_text,
@@ -117,10 +117,10 @@ async function queryPromoBanners(activeOnly: boolean) {
       FROM "promo_banners"
       WHERE is_active = TRUE
       ORDER BY position ASC, created_at ASC
-    `;
+    `);
   }
 
-  return prisma.$queryRaw<PromoBannerRecord[]>`
+  return withPrismaRetry("queryPromoBanners all", () => prisma.$queryRaw<PromoBannerRecord[]>`
     SELECT
       id::text,
       badge_text,
@@ -135,14 +135,14 @@ async function queryPromoBanners(activeOnly: boolean) {
       created_at
     FROM "promo_banners"
     ORDER BY position ASC, created_at ASC
-  `;
+  `);
 }
 
 async function seedPromoBannersIfEmpty() {
-  const existingCountRows = await prisma.$queryRaw<Array<{ count: bigint }>>`
+  const existingCountRows = await withPrismaRetry("seedPromoBannersIfEmpty count", () => prisma.$queryRaw<Array<{ count: bigint }>>`
     SELECT COUNT(*)::bigint AS count
     FROM "promo_banners"
-  `;
+  `);
   const existingCount = Number(existingCountRows[0]?.count ?? 0);
 
   if (existingCount > 0) {
@@ -150,7 +150,7 @@ async function seedPromoBannersIfEmpty() {
   }
 
   for (const banner of DEFAULT_PROMO_BANNER_SEEDS) {
-    await prisma.$executeRaw`
+    await withPrismaRetry("seedPromoBannersIfEmpty insert", () => prisma.$executeRaw`
       INSERT INTO "promo_banners" (
         badge_text,
         title,
@@ -173,7 +173,7 @@ async function seedPromoBannersIfEmpty() {
         ${banner.position},
         ${banner.isActive}
       )
-    `;
+    `);
   }
 }
 

@@ -58,13 +58,13 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
+    { href: "/admin/homepage-categories", label: "Shop Navigation", icon: LayoutGrid },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/messages", label: "Messages", icon: Mail },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
     { href: "/admin/promo-banners", label: "Promotional Banners", icon: ImagePlus },
     { href: "/admin/announcements", label: "Announcements", icon: Bell },
-    { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
     { href: "/admin/blogs", label: "Blogs", icon: NotebookText },
     { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
     { href: "/admin/shipping-rules", label: "Shipping Rules", icon: MapPin },
@@ -250,7 +250,14 @@ export function AdminShell({
   const sessionInitials = getInitials(sessionLabel);
   const branding = getStoreLogoSetFromSettings(storeSettings);
 
-  useRoutePrefetch(["/", "/shop", "/contact", "/faq", "/about"]);
+  useRoutePrefetch([
+    "/admin/dashboard",
+    "/admin/orders",
+    "/admin/products",
+    "/admin/settings",
+    "/",
+    "/shop",
+  ]);
 
   const handleSignOut = () => {
     void signOut().then(() => {
@@ -345,7 +352,7 @@ export function AdminShell({
             </div>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>

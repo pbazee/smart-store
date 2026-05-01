@@ -1,97 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Heart, ShoppingCart, Store, User2 } from "lucide-react";
+import { Heart, Home, ShoppingBag, ShoppingCart, User } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useShallow } from "zustand/react/shallow";
-import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { cn } from "@/lib/utils";
-import { useCartStore } from "@/lib/store";
 
-const navItems = [
+const links = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/shop", label: "Shop", icon: Store },
-];
+  { href: "/shop", label: "Shop", icon: ShoppingBag },
+  { href: "/cart", label: "Cart", icon: ShoppingCart },
+  { href: "/wishlist", label: "Wishlist", icon: Heart },
+  { href: "/account", label: "Account", icon: User },
+] as const;
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { hasHydrated, cartCount, toggleCart, closeCart } = useCartStore(
-    useShallow((state) => ({
-      hasHydrated: state.hasHydrated,
-      cartCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
-      toggleCart: state.toggleCart,
-      closeCart: state.closeCart,
-    }))
-  );
-  const wishlistHref = "/wishlist";
-  const accountHref = "/account";
-  const resolvedCartCount = hasHydrated ? cartCount : 0;
 
-  useRoutePrefetch([...navItems.map((item) => item.href), wishlistHref, accountHref]);
-
-  const handleCartClick = () => {
-    toggleCart();
-  };
+  if (
+    pathname?.startsWith("/admin") ||
+    pathname === "/sign-in" ||
+    pathname === "/sign-up" ||
+    pathname?.startsWith("/auth/")
+  ) {
+    return null;
+  }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/60 bg-background/98 backdrop-blur-xl md:hidden dark:bg-[#121212] dark:border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
-      <div className="grid grid-cols-5">
-        {navItems.map((item) => (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-xl md:hidden">
+      <div
+        className="grid grid-cols-5 items-center px-2 py-2"
+        style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))" }}
+      >
+        {links.map(({ href, label, icon: Icon }) => {
+          const isActive =
+            pathname === href ||
+            (href === "/shop" && pathname?.startsWith("/shop")) ||
+            (href === "/account" && pathname?.startsWith("/account")) ||
+            (href === "/wishlist" && pathname?.startsWith("/wishlist")) ||
+            (href === "/cart" && pathname?.startsWith("/cart"));
+
+          return (
           <Link
-            key={item.href}
-            href={item.href}
+            key={href}
+            href={href}
             prefetch
-            onClick={closeCart}
             className={cn(
-              "flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground transition-colors",
-              pathname === item.href && "text-brand-600"
+              "flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1 transition-colors",
+              isActive ? "text-orange-500" : "text-muted-foreground"
             )}
           >
-            <item.icon className="h-4 w-4" />
-            {item.label}
+            <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+            <span className="text-[10px] font-medium">{label}</span>
           </Link>
-        ))}
-
-        <button
-          type="button"
-          onClick={handleCartClick}
-          className="relative flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground"
-        >
-          <ShoppingCart className="h-4 w-4" />
-          Cart
-          {resolvedCartCount > 0 && (
-            <span className="absolute right-5 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] text-white">
-              {resolvedCartCount}
-            </span>
-          )}
-        </button>
-
-        <Link
-          href={wishlistHref}
-          prefetch
-          onClick={closeCart}
-          className={cn(
-            "flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground transition-colors",
-            pathname === "/wishlist" && "text-brand-600"
-          )}
-        >
-          <Heart className="h-4 w-4" />
-          Wishlist
-        </Link>
-
-        <Link
-          href={accountHref}
-          prefetch
-          onClick={closeCart}
-          className={cn(
-            "flex flex-col items-center gap-1 px-2 py-3 text-[11px] font-semibold text-muted-foreground transition-colors",
-            pathname === "/account" && "text-brand-600"
-          )}
-        >
-          <User2 className="h-4 w-4" />
-          Account
-        </Link>
+          );
+        })}
       </div>
-    </div>
+    </nav>
   );
 }

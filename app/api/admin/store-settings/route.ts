@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const assetUrl = await uploadStoreAsset(file, String(slot));
-    const existing = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: true });
+    const existing = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: false });
     const updated = await upsertStoreSettings({
       storeName: existing?.storeName,
       storeTagline: existing?.storeTagline,
@@ -90,7 +90,7 @@ export async function DELETE(request: NextRequest) {
     await requireAdmin();
 
     const payload = deleteSchema.parse(await request.json());
-    const existing = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: true });
+    const existing = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: false });
     const updated = await upsertStoreSettings({
       storeName: existing?.storeName,
       storeTagline: existing?.storeTagline,

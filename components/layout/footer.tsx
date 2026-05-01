@@ -139,7 +139,7 @@ export async function Footer({
             <div className="flex items-center justify-center gap-3 overflow-x-auto xl:flex-1 xl:justify-center">
               {socialLinks.map((socialLink, index) => (
                 <a
-                  key={`${socialLink.id || socialLink.platform}-${socialLink.url}-${index}`}
+                  key={socialLink.id ?? `${socialLink.platform}-${socialLink.url}-${index}`}
                   href={socialLink.url}
                   target="_blank"
                   rel="noopener noreferrer"

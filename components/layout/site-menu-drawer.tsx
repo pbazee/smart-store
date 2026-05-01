@@ -43,6 +43,7 @@ function DrawerLink({ href, label, active, onSelect }: DrawerLinkProps) {
   return (
     <Link
       href={href}
+      prefetch
       onClick={onSelect}
       className={cn(
         "rounded-2xl border px-4 py-3 text-sm font-semibold transition-all shadow-sm",

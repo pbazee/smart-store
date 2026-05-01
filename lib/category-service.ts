@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 import type { Category } from "@/types";
 
 export const CATEGORY_CACHE_TAG = "categories";
@@ -41,6 +42,8 @@ async function loadActiveCategories(): Promise<Category[]> {
   }
 
   try {
+    await ensureCategoryHomepageFields();
+
     const categories = await prisma.category.findMany({
       where: { isActive: true },
       orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
@@ -71,4 +74,23 @@ export async function getActiveCategories(): Promise<Category[]> {
   // Always use the cache (works in dev too). Categories rarely change;
   // 600s TTL avoids repeated DB queries on every shop/navbar render.
   return getCachedActiveCategories();
+}
+
+export async function getAllCategories(): Promise<Category[]> {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return FALLBACK_CATEGORIES;
+  }
+
+  await ensureCategoryHomepageFields();
+
+  const categories = await prisma.category.findMany({
+    orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
+  });
+
+  return categories as Category[];
+}
+
+export async function getChildCategories(parentCategoryId: string) {
+  const categories = await getActiveCategories();
+  return categories.filter((category) => category.parentId === parentCategoryId);
 }

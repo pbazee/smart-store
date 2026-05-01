@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import type { Order, Product } from "@/types";
 
@@ -280,13 +280,15 @@ async function loadProductsFromDb(
   return withLiveData(
     "getProducts",
     async () =>
-      (await prisma.product.findMany({
-        where: buildProductWhere(filters),
-        include: { variants: true },
-        orderBy: productOrderBy,
-        take: filters.take,
-        skip: filters.skip,
-      })) as Product[],
+      withPrismaRetry("getProducts", async () =>
+        (await prisma.product.findMany({
+          where: buildProductWhere(filters),
+          include: { variants: true },
+          orderBy: productOrderBy,
+          take: filters.take,
+          skip: filters.skip,
+        })) as Product[]
+      ),
     options
   );
 }
@@ -370,9 +372,11 @@ export async function getCountProducts(filters?: ProductQueryFilters) {
       withLiveData(
         "getCountProducts",
         async () =>
-          prisma.product.count({
-            where: buildProductWhere(normalizedFilters),
-          })
+          withPrismaRetry("getCountProducts", () =>
+            prisma.product.count({
+              where: buildProductWhere(normalizedFilters),
+            })
+          )
       ),
     ["product-count", JSON.stringify(normalizedFilters)],
     {
@@ -522,6 +526,7 @@ async function loadAdminDashboardStats() {
       revenueByMonth: [],
       recentOrders: [],
       topProducts: [],
+      ordersTrend: [],
       todayOrders: 0,
       pendingOrdersCount: 0,
       needsAttentionCount: 0,
@@ -530,6 +535,10 @@ async function loadAdminDashboardStats() {
   }
 
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const lastSevenDaysStart = new Date(startOfToday);
+  lastSevenDaysStart.setDate(lastSevenDaysStart.getDate() - 6);
 
   // All queries fire simultaneously — no sequential waits
   const results = await Promise.allSettled([
@@ -540,6 +549,15 @@ async function loadAdminDashboardStats() {
     }),
     prisma.order.findMany({
       select: { createdAt: true },
+    }),
+    prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: lastSevenDaysStart,
+        },
+      },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
     }),
     prisma.order.count(),
     prisma.product.count({
@@ -591,6 +609,7 @@ async function loadAdminDashboardStats() {
   const [
     paidOrdersResult,
     allOrderDatesResult,
+    weeklyOrdersResult,
     totalOrdersResult,
     totalProductsResult,
     lowStockProductsResult,
@@ -602,6 +621,7 @@ async function loadAdminDashboardStats() {
 
   const paidOrders = paidOrdersResult.status === "fulfilled" ? paidOrdersResult.value : [];
   const allOrderDates = allOrderDatesResult.status === "fulfilled" ? allOrderDatesResult.value : [];
+  const weeklyOrders = weeklyOrdersResult.status === "fulfilled" ? weeklyOrdersResult.value : [];
   const totalOrders = totalOrdersResult.status === "fulfilled" ? totalOrdersResult.value : 0;
   const totalProducts = totalProductsResult.status === "fulfilled" ? totalProductsResult.value : 0;
   const lowStockProducts = lowStockProductsResult.status === "fulfilled" ? lowStockProductsResult.value : [];
@@ -672,9 +692,30 @@ async function loadAdminDashboardStats() {
     };
   });
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayOrders = allOrderDates.filter((order) => order.createdAt >= todayStart).length;
+  const ordersTrendBuckets = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(lastSevenDaysStart);
+    date.setDate(lastSevenDaysStart.getDate() + index);
+    const key = date.toISOString().slice(0, 10);
+
+    return {
+      key,
+      day: date.toLocaleDateString("en-KE", {
+        weekday: "short",
+      }),
+      orders: 0,
+    };
+  });
+  const ordersTrendMap = new Map(ordersTrendBuckets.map((bucket) => [bucket.key, bucket]));
+
+  for (const order of weeklyOrders) {
+    const key = order.createdAt.toISOString().slice(0, 10);
+    const bucket = ordersTrendMap.get(key);
+    if (bucket) {
+      bucket.orders += 1;
+    }
+  }
+
+  const todayOrders = allOrderDates.filter((order) => order.createdAt >= startOfToday).length;
 
   return {
     totalRevenue,
@@ -685,6 +726,7 @@ async function loadAdminDashboardStats() {
     revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
     recentOrders,
     topProducts: topProductDetails,
+    ordersTrend: ordersTrendBuckets.map(({ key: _key, ...bucket }) => bucket),
     todayOrders,
     pendingOrdersCount,
     needsAttentionCount,

@@ -97,14 +97,14 @@ export function ReviewsManager({ initialReviews }: { initialReviews: ReviewWithP
                 <div className="relative flex items-center gap-2">
                     <Filter className="h-4 w-4 text-muted-foreground" />
                     <select
-                        className="relative z-50 rounded-xl border border-border bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:ring-2 focus:ring-orange-500/20 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                        className="relative z-50 rounded-xl border border-border bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:ring-2 focus:ring-orange-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                         style={{ colorScheme: "auto" }}
                         value={filter}
                         onChange={(e) => setFilter(e.target.value as any)}
                     >
-                        <option value="all">All Reviews</option>
-                        <option value="pending">Pending Only</option>
-                        <option value="approved">Approved Only</option>
+                        <option value="all" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">All Reviews</option>
+                        <option value="pending" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Pending Only</option>
+                        <option value="approved" className="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">Approved Only</option>
                     </select>
                 </div>
 

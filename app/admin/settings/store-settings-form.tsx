@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import {
   type AdminStoreSettingsInput,
-  updateAdminStoreSettingsAction,
+  submitAdminStoreSettingsFormAction,
+  type SaveSettingsFormState,
 } from "@/app/admin/settings/actions";
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { useToast } from "@/lib/use-toast";
@@ -59,8 +60,8 @@ function buildInitialForm(settings: StoreSettings | null): AdminStoreSettingsInp
   const resolvedSettings = settings ?? DEFAULT_STORE_SETTINGS;
 
   return {
-    storeName: resolvedSettings.storeName || DEFAULT_STORE_SETTINGS.storeName || "",
-    storeTagline: resolvedSettings.storeTagline || DEFAULT_STORE_SETTINGS.storeTagline || "",
+    storeName: resolvedSettings.storeName ?? DEFAULT_STORE_SETTINGS.storeName ?? "",
+    storeTagline: resolvedSettings.storeTagline ?? DEFAULT_STORE_SETTINGS.storeTagline ?? "",
     logoUrl: resolvedSettings.logoUrl || "",
     logoDarkUrl: resolvedSettings.logoDarkUrl || "",
     faviconUrl: resolvedSettings.faviconUrl || "",
@@ -84,6 +85,10 @@ export function StoreSettingsForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<AdminStoreSettingsInput>(() => buildInitialForm(initialSettings));
+  const [actionState, formAction] = useActionState<SaveSettingsFormState, FormData>(
+    submitAdminStoreSettingsFormAction,
+    { success: false, error: null, data: null }
+  );
   const [uploadingSlot, setUploadingSlot] = useState<BrandingSlot | null>(null);
   const [removingSlot, setRemovingSlot] = useState<BrandingSlot | null>(null);
   const fileInputRefs = useRef<Record<BrandingSlot, HTMLInputElement | null>>({
@@ -96,30 +101,33 @@ export function StoreSettingsForm({
     setForm((current) => ({ ...current, ...patch }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (!actionState.data && !actionState.error) {
+      return;
+    }
 
-    startTransition(() => {
-      void (async () => {
-        const result = await updateAdminStoreSettingsAction(form);
-        if (result.success) {
-          setForm(buildInitialForm(result.data));
-          router.refresh();
-          toast({
-            title: "Store settings saved",
-            description: "Branding, support details, and storefront labels are now updated.",
-          });
-          return;
-        }
+    if (actionState.success && actionState.data) {
+      setForm(buildInitialForm(actionState.data));
+      router.refresh();
+      toast({
+        title: "Store settings saved",
+        description: "Branding, support details, and storefront labels are now updated.",
+      });
+      return;
+    }
 
-        toast({
-          title: "Save failed",
-          description: result.error || "Please try again.",
-          variant: "destructive",
-        });
-      })();
-    });
-  };
+    if (actionState.error) {
+      toast({
+        title: "Save failed",
+        description: actionState.error,
+        variant: "destructive",
+      });
+    }
+  }, [actionState, router, toast]);
+
+  useEffect(() => {
+    setForm(buildInitialForm(initialSettings));
+  }, [initialSettings]);
 
   const handleUpload = async (slot: BrandingSlot, file?: File | null) => {
     if (!file) {
@@ -216,7 +224,7 @@ export function StoreSettingsForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr),340px]">
+      <form action={formAction} className="grid gap-6 lg:grid-cols-[minmax(0,1fr),340px]">
         <div className="space-y-6">
           <section className="rounded-[1.75rem] border border-zinc-800 bg-zinc-900 p-6">
             <div className="mb-6 flex items-start gap-3">
@@ -329,6 +337,7 @@ export function StoreSettingsForm({
               </span>
               <input
                 required
+                name="storeName"
                 value={form.storeName}
                 onChange={(event) => updateForm({ storeName: event.target.value })}
                 placeholder="Smartest Store KE"
@@ -343,6 +352,7 @@ export function StoreSettingsForm({
               </span>
               <input
                 required
+                name="storeTagline"
                 value={form.storeTagline}
                 onChange={(event) => updateForm({ storeTagline: event.target.value })}
                 placeholder="Kenya's smartest fashion destination"
@@ -350,7 +360,10 @@ export function StoreSettingsForm({
               />
             </label>
 
-            <input type="hidden" value={form.contactPhone} readOnly />
+            <input type="hidden" name="logoUrl" value={form.logoUrl || ""} readOnly />
+            <input type="hidden" name="logoDarkUrl" value={form.logoDarkUrl || ""} readOnly />
+            <input type="hidden" name="faviconUrl" value={form.faviconUrl || ""} readOnly />
+            <input type="hidden" name="contactPhone" value={form.contactPhone || ""} readOnly />
 
             <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300 flex items-center gap-2">
@@ -360,6 +373,7 @@ export function StoreSettingsForm({
               <input
                 required
                 type="email"
+                name="supportEmail"
                 value={form.supportEmail}
                 onChange={(event) => updateForm({ supportEmail: event.target.value })}
                 placeholder="support@smarteststore.ke"
@@ -374,6 +388,7 @@ export function StoreSettingsForm({
               </span>
               <input
                 required
+                name="supportPhone"
                 value={form.supportPhone}
                 onChange={(event) =>
                   updateForm({
@@ -394,6 +409,7 @@ export function StoreSettingsForm({
               <input
                 required
                 type="email"
+                name="adminNotificationEmail"
                 value={form.adminNotificationEmail}
                 onChange={(event) => updateForm({ adminNotificationEmail: event.target.value })}
                 placeholder="orders@smarteststore.ke"
@@ -407,6 +423,7 @@ export function StoreSettingsForm({
                 Footer Contact Phone
               </span>
               <input
+                name="footerContactPhone"
                 value={form.footerContactPhone}
                 onChange={(event) => updateForm({ footerContactPhone: event.target.value })}
                 placeholder="+254 700 123 456"

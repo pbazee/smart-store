@@ -36,9 +36,10 @@ export function HomepageCategoryGrid({
           const href = resolveCatalogListingHref(category.link);
 
           return (
-            <article
+            <Link
               key={category.id}
-              className="group relative isolate aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-neutral-900 shadow-[0_32px_80px_rgba(0,0,0,0.22)]"
+              href={href}
+              className="group relative isolate block aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-neutral-900 shadow-[0_32px_80px_rgba(0,0,0,0.22)]"
             >
               <Image
                 src={category.imageUrl}
@@ -64,19 +65,16 @@ export function HomepageCategoryGrid({
                     </p>
                   )}
                   <div className="mt-6 flex items-center gap-2 overflow-hidden">
-                    <Link
-                      href={href}
-                      className="group-link flex items-center gap-2 text-sm font-black uppercase tracking-[0.15em] text-white"
-                    >
+                    <span className="group-link flex items-center gap-2 text-sm font-black uppercase tracking-[0.15em] text-white">
                       Explore Now
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-white shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition-transform group-hover:translate-x-1">
                         <ArrowRight className="h-4 w-4" />
                       </div>
-                    </Link>
+                    </span>
                   </div>
                 </div>
               </div>
-            </article>
+            </Link>
           );
         })}
       </div>

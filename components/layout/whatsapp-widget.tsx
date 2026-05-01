@@ -1,6 +1,6 @@
 import { MessageCircleMore } from "lucide-react";
 import { getStorefrontContactData } from "@/lib/storefront-contact-data";
-import { buildWhatsAppHref } from "@/lib/whatsapp-service";
+import { buildWhatsAppHref } from "@/lib/whatsapp-shared";
 import { cn } from "@/lib/utils";
 import type { WhatsAppSettings } from "@/types";
 

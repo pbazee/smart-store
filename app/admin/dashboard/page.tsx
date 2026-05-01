@@ -20,6 +20,7 @@ export default async function AdminDashboardPage() {
       revenueByMonth: [],
       recentOrders: [],
       topProducts: [],
+      ordersTrend: [],
       todayOrders: 0,
       pendingOrdersCount: 0,
       needsAttentionCount: 0,

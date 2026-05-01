@@ -20,31 +20,32 @@ import { useToast } from "@/lib/use-toast";
 import type { Category, HomepageCategory } from "@/types";
 
 type HomepageCategoryFormState = {
-  id?: string;
+  id: string;
   title: string;
   subtitle: string;
   imageUrl: string;
-  link: string;
-  parentCategoryId: string;
   isActive: boolean;
   order: string;
 };
 
-function createEmptyFormState(): HomepageCategoryFormState {
+function createEmptyFormState(categories: Category[]): HomepageCategoryFormState {
+  const firstCategory = categories[0];
   return {
-    title: "",
+    id: firstCategory?.id || "",
+    title: firstCategory?.name || "",
     subtitle: "",
     imageUrl: "",
-    link: "/shop",
-    parentCategoryId: "",
     isActive: true,
     order: "0",
   };
 }
 
-function createFormState(category?: HomepageCategory | null): HomepageCategoryFormState {
+function createFormState(
+  category: HomepageCategory | null | undefined,
+  categories: Category[]
+): HomepageCategoryFormState {
   if (!category) {
-    return createEmptyFormState();
+    return createEmptyFormState(categories);
   }
 
   return {
@@ -52,8 +53,6 @@ function createFormState(category?: HomepageCategory | null): HomepageCategoryFo
     title: category.title,
     subtitle: category.subtitle || "",
     imageUrl: category.imageUrl,
-    link: category.link,
-    parentCategoryId: category.parentCategoryId || "",
     isActive: category.isActive,
     order: String(category.order),
   };
@@ -62,11 +61,8 @@ function createFormState(category?: HomepageCategory | null): HomepageCategoryFo
 function toPayload(form: HomepageCategoryFormState, imageUrl: string): AdminHomepageCategoryInput {
   return {
     id: form.id,
-    title: form.title.trim(),
     subtitle: form.subtitle.trim(),
     imageUrl,
-    link: form.link.trim(),
-    parentCategoryId: form.parentCategoryId || null,
     isActive: form.isActive,
     order: Number(form.order || 0),
   };
@@ -88,17 +84,17 @@ export function HomepageCategoryFormDialog({
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<HomepageCategoryFormState>(() =>
-    createFormState(category)
+    createFormState(category, topLevelCategories)
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(form.imageUrl);
 
   useEffect(() => {
-    const nextForm = createFormState(category);
+    const nextForm = createFormState(category, topLevelCategories);
     setForm(nextForm);
     setSelectedFile(null);
     setPreviewUrl(nextForm.imageUrl);
-  }, [category, open]);
+  }, [category, open, topLevelCategories]);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -170,25 +166,53 @@ export function HomepageCategoryFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto border-zinc-800 bg-zinc-950 text-zinc-100">
         <DialogHeader>
-          <DialogTitle>{category ? "Edit homepage category" : "Add new homepage category"}</DialogTitle>
+          <DialogTitle>{category ? "Edit homepage category" : "Add homepage category"}</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Control the landing page cards without changing code.
+            Choose an existing shop category, then control how it appears on the homepage.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2 text-sm">
-              <span className="font-medium text-zinc-300">Title</span>
-              <input
-                required
-                value={form.title}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, title: event.target.value }))
-                }
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
+            {!category ? (
+              <label className="space-y-2 text-sm">
+                <span className="font-medium text-zinc-300">Category</span>
+                <select
+                  required
+                  value={form.id}
+                  onChange={(event) => {
+                    const selected = topLevelCategories.find((item) => item.id === event.target.value);
+                    setForm((current) => ({
+                      ...current,
+                      id: selected?.id || "",
+                      title: selected?.name || "",
+                      subtitle: selected?.homepageSubtitle || selected?.description || "",
+                      imageUrl: selected?.homepageImageUrl || "",
+                      isActive: selected?.isHomepageVisible ?? true,
+                      order: String(selected?.homepageOrder ?? selected?.order ?? 0),
+                    }));
+                    setPreviewUrl(selected?.homepageImageUrl || "");
+                  }}
+                  className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                >
+                  <option value="">Select a master category</option>
+                  {topLevelCategories.map((topLevelCategory) => (
+                    <option key={topLevelCategory.id} value={topLevelCategory.id}>
+                      {topLevelCategory.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label className="space-y-2 text-sm">
+                <span className="font-medium text-zinc-300">Category</span>
+                <input
+                  value={form.title}
+                  readOnly
+                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-zinc-100"
+                />
+              </label>
+            )}
 
             <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Order</span>
@@ -200,37 +224,6 @@ export function HomepageCategoryFormDialog({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, order: event.target.value }))
                 }
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm">
-              <span className="font-medium text-zinc-300">Parent Category</span>
-              <select
-                value={form.parentCategoryId}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, parentCategoryId: event.target.value }))
-                }
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              >
-                <option value="">Leave unmapped</option>
-                {topLevelCategories.map((topLevelCategory) => (
-                  <option key={topLevelCategory.id} value={topLevelCategory.id}>
-                    {topLevelCategory.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-2 text-sm">
-              <span className="font-medium text-zinc-300">Link</span>
-              <input
-                required
-                value={form.link}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, link: event.target.value }))
-                }
-                placeholder="/category/jeans"
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
             </label>
@@ -303,15 +296,8 @@ export function HomepageCategoryFormDialog({
 
               <div className="space-y-3 text-sm text-zinc-400">
                 <div>
-                  <p className="font-medium text-zinc-300">Saved link</p>
-                  <p className="mt-1 break-all">{form.link || "/shop"}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-zinc-300">Parent category</p>
-                  <p className="mt-1">
-                    {topLevelCategories.find((item) => item.id === form.parentCategoryId)?.name ||
-                      "Unmapped"}
-                  </p>
+                  <p className="font-medium text-zinc-300">Master category</p>
+                  <p className="mt-1">{form.title || "Choose a category"}</p>
                 </div>
                 <div>
                   <p className="font-medium text-zinc-300">Subtitle</p>

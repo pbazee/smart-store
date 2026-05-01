@@ -1,8 +1,13 @@
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { ensureReviewStorage } from "@/lib/runtime-schema-repair";
 import type { ProductReview } from "@/types";
 
 export async function getProductReviews(productId: string) {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return [];
+  }
+
   await ensureReviewStorage();
 
   return await prisma.review.findMany({
@@ -12,6 +17,10 @@ export async function getProductReviews(productId: string) {
 }
 
 export async function getLatestApprovedReviews(limit: number = 6) {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return [];
+  }
+
   await ensureReviewStorage();
 
   return await prisma.review.findMany({
@@ -30,6 +39,10 @@ export async function getLatestApprovedReviews(limit: number = 6) {
 }
 
 export async function getAllReviewsAdmin() {
+  if (shouldSkipLiveDataDuringBuild()) {
+    return [];
+  }
+
   await ensureReviewStorage();
 
   return await prisma.review.findMany({

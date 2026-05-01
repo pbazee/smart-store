@@ -7,7 +7,6 @@ import {
   Grip,
   ImagePlus,
   Loader2,
-  MapPin,
   Pencil,
   Plus,
   Search,
@@ -67,9 +66,6 @@ export function HeroSlidesManager({
         slide.title,
         slide.subtitle,
         slide.ctaText,
-        slide.ctaLink,
-        slide.locationBadge,
-        slide.moodTags.join(" "),
       ]
         .join(" ")
         .toLowerCase();
@@ -231,7 +227,7 @@ export function HeroSlidesManager({
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">Hero Slides</h1>
           <p className="mt-2 max-w-3xl text-sm text-zinc-400">
-            Manage the homepage carousel headline, imagery, CTA, and mood cues. Drag slides into
+            Manage the homepage carousel headline, imagery, and CTA copy. Drag slides into
             sequence and publish only the ones that should go live.
           </p>
         </div>
@@ -336,11 +332,7 @@ export function HeroSlidesManager({
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-5">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 backdrop-blur">
-                      <MapPin className="h-3.5 w-3.5 text-brand-300" />
-                      {slide.locationBadge}
-                    </div>
-                    <h2 className="mt-3 text-2xl font-black text-white">{slide.title}</h2>
+                    <h2 className="text-2xl font-black text-white">{slide.title}</h2>
                     <p className="mt-2 text-sm text-white/75">{slide.subtitle}</p>
                   </div>
                 </div>
@@ -403,32 +395,12 @@ export function HeroSlidesManager({
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 md:grid-cols-1">
                     <div className="rounded-[1.5rem] border border-zinc-800 bg-black/30 p-4">
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
                         CTA
                       </p>
                       <p className="mt-2 text-sm font-semibold text-white">{slide.ctaText}</p>
-                      <p className="mt-1 break-all text-sm text-zinc-400">{slide.ctaLink}</p>
-                    </div>
-                    <div className="rounded-[1.5rem] border border-zinc-800 bg-black/30 p-4 md:col-span-2">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
-                        Mood tags
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {slide.moodTags.length > 0 ? (
-                          slide.moodTags.map((tag) => (
-                            <span
-                              key={`${slide.id}-${tag}`}
-                              className="rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs font-semibold text-zinc-200"
-                            >
-                              {tag}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-sm text-zinc-500">No mood tags configured.</span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>

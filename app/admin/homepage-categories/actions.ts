@@ -1,26 +1,15 @@
 "use server";
 
-import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { getHomepageCategories } from "@/lib/homepage-category-service";
+import { getActiveCategories } from "@/lib/category-service";
 import { prisma } from "@/lib/prisma";
-import { ensureHomepageCategoryStorage } from "@/lib/runtime-schema-repair";
+import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 import { deleteHomepageCategoryImage, uploadHomepageCategoryImage } from "@/lib/supabase-storage";
-import type { HomepageCategory } from "@/types";
-
-const requiredLinkSchema = z
-  .string()
-  .trim()
-  .min(1, "Link is required")
-  .refine(
-    (value) => {
-      if (value.startsWith("/")) return true;
-      try { new URL(value); return true; } catch { return false; }
-    },
-    { message: "Link must be a valid URL or start with /" }
-  );
+import { slugify } from "@/lib/utils";
+import type { Category, HomepageCategory } from "@/types";
 
 const imageUrlSchema = z
   .string()
@@ -35,12 +24,9 @@ const imageUrlSchema = z
   );
 
 const adminHomepageCategorySchema = z.object({
-  id: z.string().optional(),
-  title: z.string().trim().min(2, "Title is required").max(80, "Keep it under 80 characters"),
+  id: z.string().min(1),
   subtitle: z.string().trim().max(120, "Keep it under 120 characters").optional().or(z.literal("")),
   imageUrl: imageUrlSchema,
-  link: requiredLinkSchema,
-  parentCategoryId: z.string().trim().optional().nullable(),
   isActive: z.boolean().default(true),
   order: z.number().int().min(0).default(0),
 });
@@ -56,11 +42,8 @@ function normalizeHomepageCategoryInput(input: AdminHomepageCategoryInput) {
   const data = adminHomepageCategorySchema.parse(input);
   return {
     id: data.id,
-    title: data.title.trim(),
     subtitle: data.subtitle?.trim() || null,
     imageUrl: data.imageUrl.trim(),
-    link: data.link.trim(),
-    parentCategoryId: data.parentCategoryId?.trim() || null,
     isActive: data.isActive,
     order: data.order,
   };
@@ -74,20 +57,33 @@ function revalidateHomepageCategoryPaths() {
   revalidatePath("/admin/homepage-categories");
 }
 
-const getCachedAdminHomepageCategories = unstable_cache(
-  () => getHomepageCategories(),
-  ["admin-homepage-categories"],
-  {
-    revalidate: 60,
-    tags: [HOMEPAGE_CACHE_TAG],
-  }
-);
+function toHomepageCategory(category: Category): HomepageCategory {
+  return {
+    id: category.id,
+    title: category.name,
+    subtitle: category.homepageSubtitle?.trim() || category.description?.trim() || null,
+    imageUrl: category.homepageImageUrl || "/images/product-placeholder.png",
+    link: category.parentId
+      ? `/shop?category=${encodeURIComponent(category.parentId)}&subcategory=${encodeURIComponent(category.slug)}`
+      : `/shop?category=${encodeURIComponent(category.slug)}`,
+    parentCategoryId: category.parentId ?? null,
+    order: category.homepageOrder ?? category.order ?? 0,
+    isActive: category.isHomepageVisible ?? false,
+    createdAt: category.createdAt,
+    updatedAt: category.updatedAt,
+  };
+}
 
 export async function fetchAdminHomepageCategories() {
   await ensureAdmin();
+  await ensureCategoryHomepageFields();
 
   try {
-    return await getCachedAdminHomepageCategories();
+    const categories = await getActiveCategories();
+    return categories
+      .filter((category) => !category.parentId || category.parentId)
+      .map(toHomepageCategory)
+      .sort((left, right) => left.order - right.order || left.title.localeCompare(right.title));
   } catch (error) {
     console.error("[AdminHomepageCategories] Failed to load categories:", error);
     return [];
@@ -111,70 +107,56 @@ export async function cleanupHomepageCategoryImageAction(imageUrl: string) {
 }
 
 export async function createAdminHomepageCategoryAction(input: AdminHomepageCategoryInput) {
-  await ensureAdmin();
-  const data = normalizeHomepageCategoryInput(input);
-
-  await ensureHomepageCategoryStorage();
-
-  const category = await prisma.homepageCategory.create({
-    data: {
-      title: data.title,
-      subtitle: data.subtitle,
-      imageUrl: data.imageUrl,
-      link: data.link,
-      parentCategoryId: data.parentCategoryId,
-      isActive: data.isActive,
-      order: data.order,
-    },
-  });
-
-  revalidateHomepageCategoryPaths();
-  return category as HomepageCategory;
+  return updateAdminHomepageCategoryAction(input);
 }
 
 export async function updateAdminHomepageCategoryAction(input: AdminHomepageCategoryInput) {
   await ensureAdmin();
-  const data = adminHomepageCategorySchema.extend({ id: z.string().min(1) }).parse(input);
+  await ensureCategoryHomepageFields();
+  const data = adminHomepageCategorySchema.parse(input);
   const normalized = normalizeHomepageCategoryInput(data);
+  const existingCategory = await prisma.category.findUnique({ where: { id: data.id } });
+  if (!existingCategory) throw new Error("Category not found.");
 
-  await ensureHomepageCategoryStorage();
-
-  const existingCategory = await prisma.homepageCategory.findUnique({ where: { id: data.id } });
-  if (!existingCategory) throw new Error("Homepage category not found.");
-
-  const category = await prisma.homepageCategory.update({
+  const category = await prisma.category.update({
     where: { id: data.id },
     data: {
-      title: normalized.title,
-      subtitle: normalized.subtitle,
-      imageUrl: normalized.imageUrl,
-      link: normalized.link,
-      parentCategoryId: normalized.parentCategoryId,
-      isActive: normalized.isActive,
-      order: normalized.order,
+      isHomepageVisible: normalized.isActive,
+      homepageSubtitle: normalized.subtitle,
+      homepageImageUrl: normalized.imageUrl,
+      homepageOrder: normalized.order,
     },
   });
 
-  if (existingCategory.imageUrl !== normalized.imageUrl) {
-    await deleteHomepageCategoryImage(existingCategory.imageUrl);
+  if (existingCategory.homepageImageUrl && existingCategory.homepageImageUrl !== normalized.imageUrl) {
+    await deleteHomepageCategoryImage(existingCategory.homepageImageUrl);
   }
 
   revalidateHomepageCategoryPaths();
-  return category as HomepageCategory;
+  return toHomepageCategory(category as Category);
 }
 
 export async function deleteAdminHomepageCategoryAction(categoryId: string) {
   await ensureAdmin();
+  await ensureCategoryHomepageFields();
   const id = z.string().min(1).parse(categoryId);
+  const existingCategory = await prisma.category.findUnique({ where: { id } });
+  if (!existingCategory) {
+    throw new Error("Category not found.");
+  }
 
-  await ensureHomepageCategoryStorage();
+  await prisma.category.update({
+    where: { id },
+    data: {
+      isHomepageVisible: false,
+      homepageSubtitle: null,
+      homepageImageUrl: null,
+      homepageOrder: 0,
+    },
+  });
 
-  const existingCategory = await prisma.homepageCategory.findUnique({ where: { id } });
-
-  await prisma.homepageCategory.delete({ where: { id } });
-
-  if (existingCategory?.imageUrl) {
-    await deleteHomepageCategoryImage(existingCategory.imageUrl);
+  if (existingCategory.homepageImageUrl) {
+    await deleteHomepageCategoryImage(existingCategory.homepageImageUrl);
   }
 
   revalidateHomepageCategoryPaths();

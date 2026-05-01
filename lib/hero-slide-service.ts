@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { DEFAULT_HERO_SLIDE_SEEDS, createHeroSlideSeed } from "@/lib/default-hero-slides";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 import type { HeroSlide } from "@/types";
 
 type HeroSlideQueryOptions = {
@@ -56,10 +56,12 @@ export function getDefaultHeroSlides() {
 export async function getHeroSlides(options: HeroSlideQueryOptions = {}): Promise<HeroSlide[]> {
   const { activeOnly = false } = options;
   const loadSlides = async () => {
-    const slides = await prisma.heroSlide.findMany({
-      where: activeOnly ? { isActive: true } : undefined,
-      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-    });
+    const slides = await withPrismaRetry("getHeroSlides", () =>
+      prisma.heroSlide.findMany({
+        where: activeOnly ? { isActive: true } : undefined,
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      })
+    );
 
     return slides.map((slide) => normalizeHeroSlideRecord(slide));
   };

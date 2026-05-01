@@ -2,7 +2,7 @@ import {
   DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS,
   createFallbackAnnouncementMessage,
 } from "@/lib/default-announcements";
-import { prisma } from "@/lib/prisma";
+import { prisma, withPrismaRetry } from "@/lib/prisma";
 import type { AnnouncementMessage } from "@/types";
 
 type AnnouncementQueryOptions = {
@@ -12,18 +12,22 @@ type AnnouncementQueryOptions = {
 };
 
 async function ensureAnnouncementMessagesSeeded() {
-  const existingCount = await prisma.announcementMessage.count();
+  const existingCount = await withPrismaRetry("ensureAnnouncementMessagesSeeded count", () =>
+    prisma.announcementMessage.count()
+  );
   if (existingCount > 0) {
-    console.log(`[Announcements] Database has ${existingCount} existing announcements, skipping seed`);
+    if (process.env.NODE_ENV === "development" && process.env.DEBUG_ANNOUNCEMENTS === "true") {
+      console.log(`[Announcements] Database has ${existingCount} existing announcements, skipping seed`);
+    }
     return;
   }
 
-  console.log("[Announcements] Database is empty, seeding default announcements...");
-  await prisma.announcementMessage.createMany({
-    data: DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS,
-    skipDuplicates: true,
-  });
-  console.log(`[Announcements] Seeded ${DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS.length} announcements`);
+  await withPrismaRetry("ensureAnnouncementMessagesSeeded createMany", () =>
+    prisma.announcementMessage.createMany({
+      data: DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS,
+      skipDuplicates: true,
+    })
+  );
 }
 
 export async function getAnnouncementMessages(
@@ -36,12 +40,16 @@ export async function getAnnouncementMessages(
       await ensureAnnouncementMessagesSeeded();
     }
 
-    const messages = await prisma.announcementMessage.findMany({
-      where: activeOnly ? { isActive: true } : undefined,
-      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-    });
+    const messages = await withPrismaRetry("getAnnouncementMessages", () =>
+      prisma.announcementMessage.findMany({
+        where: activeOnly ? { isActive: true } : undefined,
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      })
+    );
 
-    console.log(`[Announcements] Loaded ${messages.length} announcements from database${activeOnly ? " (active only)" : ""}`);
+    if (process.env.NODE_ENV === "development" && process.env.DEBUG_ANNOUNCEMENTS === "true") {
+      console.log(`[Announcements] Loaded ${messages.length} announcements from database${activeOnly ? " (active only)" : ""}`);
+    }
     return messages as AnnouncementMessage[];
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -52,7 +60,6 @@ export async function getAnnouncementMessages(
     });
 
     if (fallbackOnError) {
-      console.warn("[Announcements] Falling back to single fallback announcement");
       return [createFallbackAnnouncementMessage()];
     }
 

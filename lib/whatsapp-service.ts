@@ -1,11 +1,17 @@
+import "server-only";
+
 import {
   DEFAULT_WHATSAPP_SETTINGS,
-  createDefaultWhatsAppSettings,
 } from "@/lib/default-whatsapp-settings";
 import { prisma } from "@/lib/prisma";
-import type { WhatsAppPosition, WhatsAppSettings } from "@/types";
-
-const WHATSAPP_SETTINGS_META_PREFIX = "__smartest_store_whatsapp__";
+import {
+  encodePersistedWhatsAppMessage,
+  getWhatsAppSettingsFallback as getSharedWhatsAppSettingsFallback,
+  hydrateWhatsAppSettings,
+  normalizeWhatsAppPhoneNumber,
+  normalizeWhatsAppPosition,
+} from "@/lib/whatsapp-shared";
+import type { WhatsAppSettings } from "@/types";
 
 // Use globalThis so state survives Next.js dev-mode module reloads.
 const globalForWhatsApp = globalThis as typeof globalThis & {
@@ -16,6 +22,8 @@ if (!globalForWhatsApp._pendingWhatsAppRequests) {
   globalForWhatsApp._pendingWhatsAppRequests = new Map();
 }
 const pendingWhatsAppRequests = globalForWhatsApp._pendingWhatsAppRequests;
+const shouldLogWhatsAppSettings =
+  process.env.NODE_ENV === "development" && process.env.DEBUG_WHATSAPP_SETTINGS === "true";
 
 type PersistedWhatsAppSettingsRecord = {
   id: string;
@@ -26,70 +34,6 @@ type PersistedWhatsAppSettingsRecord = {
   updatedAt: Date;
 };
 
-type PersistedWhatsAppMetadata = {
-  message: string;
-  position?: WhatsAppPosition;
-};
-
-function normalizeWhatsAppPosition(position?: string | null): WhatsAppPosition {
-  return position === "left" ? "left" : "right";
-}
-
-function decodePersistedWhatsAppMessage(defaultMessage: string) {
-  if (!defaultMessage.startsWith(WHATSAPP_SETTINGS_META_PREFIX)) {
-    return {
-      defaultMessage,
-      position: DEFAULT_WHATSAPP_SETTINGS.position,
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(
-      defaultMessage.slice(WHATSAPP_SETTINGS_META_PREFIX.length)
-    ) as PersistedWhatsAppMetadata;
-
-    return {
-      defaultMessage: parsed.message || DEFAULT_WHATSAPP_SETTINGS.defaultMessage,
-      position: normalizeWhatsAppPosition(parsed.position),
-    };
-  } catch (error) {
-    console.error("[WhatsAppSettings] Failed to parse persisted metadata:", error);
-
-    return {
-      defaultMessage: DEFAULT_WHATSAPP_SETTINGS.defaultMessage,
-      position: DEFAULT_WHATSAPP_SETTINGS.position,
-    };
-  }
-}
-
-function encodePersistedWhatsAppMessage(
-  defaultMessage: string,
-  position: WhatsAppPosition
-) {
-  const trimmedMessage = defaultMessage.trim();
-
-  if (position === DEFAULT_WHATSAPP_SETTINGS.position) {
-    return trimmedMessage;
-  }
-
-  return `${WHATSAPP_SETTINGS_META_PREFIX}${JSON.stringify({
-    message: trimmedMessage,
-    position,
-  })}`;
-}
-
-function hydrateWhatsAppSettings(
-  settings: PersistedWhatsAppSettingsRecord | WhatsAppSettings
-): WhatsAppSettings {
-  const decoded = decodePersistedWhatsAppMessage(settings.defaultMessage);
-
-  return {
-    ...settings,
-    defaultMessage: decoded.defaultMessage,
-    position: "position" in settings ? normalizeWhatsAppPosition(settings.position) : decoded.position,
-  };
-}
-
 function rememberWhatsAppSettings(settings: WhatsAppSettings | null) {
   if (settings) {
     globalForWhatsApp._lastKnownWhatsAppSettings = settings;
@@ -99,17 +43,7 @@ function rememberWhatsAppSettings(settings: WhatsAppSettings | null) {
 }
 
 export function getWhatsAppSettingsFallback() {
-  return globalForWhatsApp._lastKnownWhatsAppSettings ?? createDefaultWhatsAppSettings();
-}
-
-export function normalizeWhatsAppPhoneNumber(phoneNumber: string) {
-  return phoneNumber.trim();
-}
-
-export function buildWhatsAppHref(phoneNumber: string, defaultMessage: string) {
-  const normalizedPhone = phoneNumber.replace(/[^\d]/g, "");
-  const message = encodeURIComponent(defaultMessage);
-  return `https://wa.me/${normalizedPhone}?text=${message}`;
+  return globalForWhatsApp._lastKnownWhatsAppSettings ?? getSharedWhatsAppSettingsFallback();
 }
 
 async function ensureWhatsAppSettingsSeeded() {
@@ -118,11 +52,15 @@ async function ensureWhatsAppSettingsSeeded() {
   });
 
   if (existingSettings) {
-    console.log("[WhatsAppSettings] Settings already exist in database, skipping seed");
+    if (shouldLogWhatsAppSettings) {
+      console.log("[WhatsAppSettings] Settings already exist in database, skipping seed");
+    }
     return;
   }
 
-  console.log("[WhatsAppSettings] No settings found, seeding defaults...");
+  if (shouldLogWhatsAppSettings) {
+    console.log("[WhatsAppSettings] No settings found, seeding defaults...");
+  }
   const serializedDefaults = serializeWhatsAppSettings(DEFAULT_WHATSAPP_SETTINGS);
   await prisma.whatsAppSettings.create({
     data: {
@@ -132,7 +70,9 @@ async function ensureWhatsAppSettingsSeeded() {
       isActive: serializedDefaults.isActive,
     },
   });
-  console.log("[WhatsAppSettings] Seeded successfully");
+  if (shouldLogWhatsAppSettings) {
+    console.log("[WhatsAppSettings] Seeded successfully");
+  }
 }
 
 export async function getWhatsAppSettings(options: {
@@ -157,14 +97,14 @@ export async function getWhatsAppSettings(options: {
         where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
       });
 
-      if (settings) {
+      if (settings && shouldLogWhatsAppSettings) {
         console.log("[WhatsAppSettings] Loaded from database:", { phone: settings.phoneNumber });
-      } else {
+      } else if (shouldLogWhatsAppSettings) {
         console.log("[WhatsAppSettings] Not found in database, returning null");
       }
 
       if (!settings && seedIfEmpty) {
-        return rememberWhatsAppSettings(createDefaultWhatsAppSettings());
+        return rememberWhatsAppSettings(getWhatsAppSettingsFallback());
       }
 
       return settings

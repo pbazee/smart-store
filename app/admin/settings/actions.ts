@@ -27,6 +27,12 @@ export type SaveSettingsResult =
   | { success: true; data: StoreSettings }
   | { success: false; error: string };
 
+export type SaveSettingsFormState = {
+  success: boolean;
+  error: string | null;
+  data: StoreSettings | null;
+};
+
 function normalizeOptionalPhone(phone?: string) {
   const trimmed = phone?.trim() ?? "";
   return trimmed ? normalizeCheckoutPhoneNumber(trimmed) : "";
@@ -101,4 +107,36 @@ export async function updateAdminStoreSettingsAction(
       error: err?.message || "Failed to save settings. Please check your database connection and try again.",
     };
   }
+}
+
+export async function submitAdminStoreSettingsFormAction(
+  _previousState: SaveSettingsFormState,
+  formData: FormData
+): Promise<SaveSettingsFormState> {
+  const result = await updateAdminStoreSettingsAction({
+    storeName: String(formData.get("storeName") ?? ""),
+    storeTagline: String(formData.get("storeTagline") ?? ""),
+    logoUrl: String(formData.get("logoUrl") ?? ""),
+    logoDarkUrl: String(formData.get("logoDarkUrl") ?? ""),
+    faviconUrl: String(formData.get("faviconUrl") ?? ""),
+    supportEmail: String(formData.get("supportEmail") ?? ""),
+    supportPhone: String(formData.get("supportPhone") ?? ""),
+    adminNotificationEmail: String(formData.get("adminNotificationEmail") ?? ""),
+    contactPhone: String(formData.get("contactPhone") ?? ""),
+    footerContactPhone: String(formData.get("footerContactPhone") ?? ""),
+  });
+
+  if (result.success) {
+    return {
+      success: true,
+      error: null,
+      data: result.data,
+    };
+  }
+
+  return {
+    success: false,
+    error: result.error,
+    data: null,
+  };
 }

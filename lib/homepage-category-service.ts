@@ -1,9 +1,6 @@
 import { unstable_cache } from "next/cache";
-import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
-import { KNOWN_SUBCATEGORY_PARENT_SLUGS } from "@/lib/catalog-config";
-import { getActiveCategories } from "@/lib/category-service";
-import { prisma } from "@/lib/prisma";
-import { ensureHomepageCategoryStorage } from "@/lib/runtime-schema-repair";
+import { getActiveCategories, getChildCategories } from "@/lib/category-service";
+import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 import { slugify } from "@/lib/utils";
 import type { Category, HomepageCategory } from "@/types";
 
@@ -14,175 +11,42 @@ type HomepageCategoryQueryOptions = {
 const HOMEPAGE_REVALIDATE_SECONDS = 60;
 const HOMEPAGE_CATEGORY_FALLBACK_LIMIT = 6;
 
-function normalizeCategoryToken(value?: string | null) {
-  return slugify(value || "")
-    .replace(/-/g, "")
-    .toLowerCase();
-}
+function toHomepageCategory(category: Category, index: number): HomepageCategory {
+  const hasParent = Boolean(category.parentId);
+  const categorySlug = slugify(category.slug || category.name);
 
-function extractCategorySlugFromLink(link: string) {
-  const pathname = link.split("?")[0];
-  const segments = pathname.split("/").filter(Boolean);
-  return segments.at(-1) ?? "";
-}
-
-export function resolveHomepageCategoryParentCategoryId(
-  homepageCategory: HomepageCategory,
-  categories: Category[]
-) {
-  if (homepageCategory.parentCategoryId) {
-    return homepageCategory.parentCategoryId;
-  }
-
-  const topLevelCategories = categories.filter((category) => !category.parentId);
-  const tokens = Array.from(
-    new Set(
-      [extractCategorySlugFromLink(homepageCategory.link), homepageCategory.title]
-        .map((value) => normalizeCategoryToken(value))
-        .filter(Boolean)
-    )
-  );
-
-  for (const token of tokens) {
-    const directParent = topLevelCategories.find(
-      (category) =>
-        normalizeCategoryToken(category.slug) === token ||
-        normalizeCategoryToken(category.name) === token
-    );
-    if (directParent) {
-      return directParent.id;
-    }
-
-    const mappedParentSlug = KNOWN_SUBCATEGORY_PARENT_SLUGS[token];
-    if (!mappedParentSlug) {
-      continue;
-    }
-
-    const mappedParent = topLevelCategories.find(
-      (category) =>
-        normalizeCategoryToken(category.slug) === normalizeCategoryToken(mappedParentSlug) ||
-        normalizeCategoryToken(category.name) === normalizeCategoryToken(mappedParentSlug)
-    );
-
-    if (mappedParent) {
-      return mappedParent.id;
-    }
-  }
-
-  return null;
-}
-
-function matchesHomepageFallbackCategory(
-  homepageCategory: Pick<HomepageCategory, "title" | "link">,
-  category: Pick<Category, "name" | "slug">
-) {
-  const categoryTokens = new Set(
-    [category.slug, category.name].map((value) => normalizeCategoryToken(value)).filter(Boolean)
-  );
-  const homepageTokens = [
-    homepageCategory.title,
-    extractCategorySlugFromLink(homepageCategory.link),
-  ]
-    .map((value) => normalizeCategoryToken(value))
-    .filter(Boolean);
-
-  return homepageTokens.some((token) => categoryTokens.has(token));
+  return {
+    id: category.id,
+    title: category.name,
+    subtitle: category.homepageSubtitle?.trim() || category.description?.trim() || null,
+    imageUrl: category.homepageImageUrl || "/images/product-placeholder.png",
+    link: hasParent
+      ? `/shop?category=${encodeURIComponent(category.parentId || "")}&subcategory=${encodeURIComponent(categorySlug)}`
+      : `/shop?category=${encodeURIComponent(categorySlug)}`,
+    parentCategoryId: category.parentId ?? null,
+    order: category.homepageOrder ?? category.order ?? index,
+    isActive: category.isHomepageVisible ?? false,
+    createdAt: category.createdAt,
+    updatedAt: category.updatedAt,
+  };
 }
 
 async function getCatalogBackedHomepageCategories(): Promise<HomepageCategory[]> {
   const categories = await getActiveCategories();
-  const topLevelCategories = categories
-    .filter((category) => !category.parentId)
+  const homepageCategories = categories
+    .filter((category) => category.isHomepageVisible)
     .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
     .slice(0, HOMEPAGE_CATEGORY_FALLBACK_LIMIT);
 
-  if (topLevelCategories.length === 0) {
-    return [];
+  if (homepageCategories.length > 0) {
+    return homepageCategories.map((category, index) => toHomepageCategory(category, index));
   }
 
-  const categoryProducts = await prisma.product.findMany({
-    where: buildValidCatalogProductWhere({
-      OR: topLevelCategories.flatMap((category) => [
-        { categoryId: category.id },
-        {
-          category: {
-            equals: category.slug,
-            mode: "insensitive",
-          },
-        },
-        {
-          category: {
-            equals: category.name,
-            mode: "insensitive",
-          },
-        },
-      ]),
-    }),
-    select: {
-      categoryId: true,
-      category: true,
-      images: true,
-      updatedAt: true,
-    },
-    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-    take: Math.max(topLevelCategories.length * 8, 24),
-  });
-
-  return topLevelCategories.flatMap((category, index) => {
-    const matchingProduct = categoryProducts.find((product) => {
-      if (product.categoryId === category.id && product.images.some(Boolean)) {
-        return true;
-      }
-
-      return (
-        product.images.some(Boolean) &&
-        matchesHomepageFallbackCategory(
-          {
-            title: category.name,
-            link: `/shop?category=${encodeURIComponent(category.slug)}`,
-          },
-          {
-            name: product.category,
-            slug: product.category,
-          }
-        )
-      );
-    });
-
-    const imageUrl = matchingProduct?.images.find(Boolean);
-    if (!imageUrl) {
-      return [];
-    }
-
-    if (!matchingProduct) {
-      return [];
-    }
-
-    return [
-      {
-        id: `catalog-homepage-category-${category.id}`,
-        title: category.name,
-        subtitle: category.description?.trim() || null,
-        imageUrl,
-        link: `/shop?category=${encodeURIComponent(category.slug)}`,
-        parentCategoryId: category.id,
-        order: index,
-        isActive: true,
-        createdAt: category.createdAt,
-        updatedAt: matchingProduct.updatedAt,
-      } satisfies HomepageCategory,
-    ];
-  });
-}
-
-async function hydrateHomepageCategoryParentIds(categories: HomepageCategory[]) {
-  const topLevelCategories = await getActiveCategories();
-
-  return categories.map((category) => ({
-    ...category,
-    parentCategoryId:
-      category.parentCategoryId ?? resolveHomepageCategoryParentCategoryId(category, topLevelCategories),
-  }));
+  return categories
+    .filter((category) => !category.parentId)
+    .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+    .slice(0, HOMEPAGE_CATEGORY_FALLBACK_LIMIT)
+    .map((category, index) => toHomepageCategory(category, index));
 }
 
 export async function getHomepageCategories(
@@ -191,22 +55,22 @@ export async function getHomepageCategories(
   const { activeOnly = false } = options;
   const loadCategories = async () => {
     try {
-      await ensureHomepageCategoryStorage();
+      await ensureCategoryHomepageFields();
 
-      const categories = await prisma.homepageCategory.findMany({
-        where: activeOnly ? { isActive: true } : undefined,
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      });
+      const categories = await getActiveCategories();
+      const homepageCategories = categories
+        .filter((category) => (activeOnly ? category.isHomepageVisible : true))
+        .sort(
+          (left, right) =>
+            (left.homepageOrder ?? left.order ?? 0) - (right.homepageOrder ?? right.order ?? 0) ||
+            left.name.localeCompare(right.name)
+        );
 
-      const hydratedCategories = await hydrateHomepageCategoryParentIds(
-        categories as HomepageCategory[]
-      );
-
-      if (activeOnly && hydratedCategories.length === 0) {
+      if (activeOnly && homepageCategories.length === 0) {
         return getCatalogBackedHomepageCategories();
       }
 
-      return hydratedCategories;
+      return homepageCategories.map((category, index) => toHomepageCategory(category, index));
     } catch (error) {
       if (!activeOnly) {
         throw error;
@@ -228,8 +92,8 @@ export async function getHomepageCategories(
 }
 
 export async function getHomepageSubcategoriesForCategory(parentCategoryId: string) {
-  const categories = await getHomepageCategories();
-  return categories.filter((category) => category.parentCategoryId === parentCategoryId);
+  const categories = await getChildCategories(parentCategoryId);
+  return categories.map((category, index) => toHomepageCategory(category, index));
 }
 
 export async function getActiveHomepageCategories() {

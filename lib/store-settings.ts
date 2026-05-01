@@ -43,6 +43,7 @@ function setLastKnownStoreSettings(settings: StoreSettings | null) {
   globalForStoreSettings._lastKnownStoreSettings = settings;
 }
 const pendingStoreSettingsRequests = globalForStoreSettings._pendingStoreSettingsRequests;
+const shouldLogStoreSettings = process.env.NODE_ENV === "development" && process.env.DEBUG_STORE_SETTINGS === "true";
 
 function normalizeOptionalText(value?: string | null) {
   return (value ?? "").trim();
@@ -82,7 +83,9 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
       });
 
       if (!settings && seedIfEmpty) {
-        console.log("[StoreSettings] No settings found in database, seeding with defaults...");
+        if (shouldLogStoreSettings) {
+          console.log("[StoreSettings] No settings found in database, seeding with defaults...");
+        }
         const seeded = await prisma.storeSettings.create({
           data: {
             storeName: DEFAULT_STORE_SETTINGS.storeName,
@@ -97,18 +100,20 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
             footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
           },
         });
-        console.log("[StoreSettings] Seeded successfully");
+        if (shouldLogStoreSettings) {
+          console.log("[StoreSettings] Seeded successfully");
+        }
         return rememberStoreSettings(seeded as StoreSettings);
       }
 
-      if (settings) {
+      if (settings && shouldLogStoreSettings) {
         console.log("[StoreSettings] Loaded from database:", {
           storeName: settings.storeName,
           email: settings.supportEmail,
           phone: settings.supportPhone,
           footerPhone: settings.footerContactPhone,
         });
-      } else {
+      } else if (shouldLogStoreSettings) {
         console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
       }
 
