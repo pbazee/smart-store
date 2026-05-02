@@ -14,22 +14,18 @@ import {
   HomepageReviewsSection,
 } from "@/components/shop/homepage-sections";
 import {
-  getHomepageBlogPosts,
-  getHomepageCategories,
-  getHomepageCriticalProductSectionsData,
-  getHomepageDeferredProductSectionsData,
-  getHomepageHeroSlides,
-  getHomepageLatestReviews,
+  getHomepagePageData,
 } from "@/lib/homepage-data";
 
 export const revalidate = 120;
 export default async function HomePage() {
-  const heroSlidesPromise = getHomepageHeroSlides();
-  const homepageCategoriesPromise = getHomepageCategories();
-  const homepageCriticalProductsPromise = getHomepageCriticalProductSectionsData();
-  const homepageDeferredProductsPromise = getHomepageDeferredProductSectionsData();
-  const latestReviewsPromise = getHomepageLatestReviews();
-  const blogPostsPromise = getHomepageBlogPosts();
+  const homepageDataPromise = getHomepagePageData();
+  const heroSlidesPromise = homepageDataPromise.then((data) => data.heroSlides);
+  const homepageCategoriesPromise = homepageDataPromise.then((data) => data.categories);
+  const homepageCriticalProductsPromise = homepageDataPromise.then((data) => data.criticalProducts);
+  const homepageDeferredProductsPromise = homepageDataPromise.then((data) => data.deferredProducts);
+  const latestReviewsPromise = homepageDataPromise.then((data) => data.latestReviews);
+  const blogPostsPromise = homepageDataPromise.then((data) => data.blogPosts);
 
   return (
     <div>

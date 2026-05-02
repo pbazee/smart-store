@@ -9,6 +9,20 @@ import { useToast } from "@/lib/use-toast";
 
 const WISHLIST_CAP = 50;
 
+function isRecoverableNetworkError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === "AbortError" ||
+    error.message.includes("Failed to fetch") ||
+    error.message.includes("NetworkError") ||
+    error.message.includes("timeout") ||
+    error.message.includes("ECHECKOUTTIMEOUT")
+  );
+}
+
 type WishlistState = {
   hasHydrated: boolean;
   productIdsByUser: Record<string, string[]>;
@@ -93,22 +107,21 @@ async function fetchWishlistIds(
 
   try {
     const response = await fetch("/api/wishlist", { cache: "no-store" });
-    const payload = (await response.json().catch(() => null)) as
-      | { data?: { productIds?: string[] }; error?: string }
-      | null;
 
     if (!response.ok) {
       if (response.status === 401) {
         resetForUser(userId);
-        return;
       }
-
-      throw new Error(payload?.error || "Failed to load wishlist");
+      return;
     }
 
-    setWishlistForUser(payload?.data?.productIds ?? [], userId, true);
-  } catch (error) {
-    console.error("Failed to load wishlist:", error);
+    const payload = (await response.json().catch(() => null)) as
+      | { data?: { productIds?: string[]; ids?: string[] } }
+      | null;
+
+    setWishlistForUser(payload?.data?.productIds ?? payload?.data?.ids ?? [], userId, true);
+  } catch {
+    return;
   } finally {
     setSyncingForUser(userId, false);
   }
@@ -173,11 +186,20 @@ async function toggleWishlistItem({
       state: wasInWishlist ? ("removed" as const) : ("added" as const),
     };
   } catch (error) {
-    console.error("Wishlist update failed:", error);
+    const isRecoverableError = isRecoverableNetworkError(error);
+
+    if (isRecoverableError) {
+      console.warn("Wishlist update temporarily unavailable:", error);
+    } else {
+      console.error("Wishlist update failed:", error);
+    }
+
     setWishlistForUser(currentIds, userId, true);
     toast({
       title: "Wishlist unavailable",
-      description: "Could not update wishlist. Please try again.",
+      description: isRecoverableError
+        ? "Connection timed out. Your wishlist is safe locally, and you can try again in a moment."
+        : "Could not update wishlist. Please try again.",
       variant: "destructive",
     });
     return { ok: false, reason: "error" as const };

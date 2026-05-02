@@ -8,11 +8,16 @@ import { useCartStore } from "@/lib/store";
 import type { CartItem } from "@/types";
 
 async function readCartItems(response: Response) {
-  const payload = (await response.json().catch(() => null)) as
-    | { data?: { items?: CartItem[] } }
-    | null;
+  try {
+    const payload = (await response.json().catch(() => null)) as
+      | { data?: { items?: CartItem[] } }
+      | null;
 
-  return payload?.data?.items ?? [];
+    return payload?.data?.items ?? [];
+  } catch (error) {
+    console.error("[CartSync] Failed to read cart payload:", error);
+    return [];
+  }
 }
 
 function getCartSignature(items: CartItem[]) {
@@ -70,7 +75,8 @@ export function CartSessionSync() {
       });
 
       if (!response.ok) {
-        throw new Error(`Cart sync failed with status ${response.status}`);
+        console.warn("[Cart] Sync failed silently:", response.status);
+        return;
       }
 
       const savedItems = await readCartItems(response);
@@ -99,8 +105,7 @@ export function CartSessionSync() {
       if (requestId !== syncRequestIdRef.current) {
         return;
       }
-
-      console.error("[CartSync] Failed to sync cart update:", error);
+      console.warn("[Cart] Sync unavailable:", error);
     } finally {
       if (syncRequestControllerRef.current === controller) {
         syncRequestControllerRef.current = null;
@@ -154,15 +159,17 @@ export function CartSessionSync() {
           signal: controller.signal,
         });
 
-        if (response.ok) {
-          serverItems = await readCartItems(response);
+        if (!response.ok) {
+          console.warn("[Cart] Merge failed silently:", response.status);
+          return;
         }
+
+        serverItems = await readCartItems(response);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
-
-        console.error("[CartSync] Failed to load saved cart:", error);
+        console.warn("[Cart] Merge unavailable:", error);
       } finally {
         if (bootstrapRequestControllerRef.current === controller) {
           bootstrapRequestControllerRef.current = null;

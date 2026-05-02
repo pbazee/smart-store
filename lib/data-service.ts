@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
-import { prisma, withPrismaRetry } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import type { Order, Product } from "@/types";
 
@@ -207,6 +207,46 @@ const productOrderBy: Prisma.ProductOrderByWithRelationInput[] = [
   { createdAt: "desc" },
 ];
 
+const CATALOG_VARIANT_SELECT = {
+  id: true,
+  color: true,
+  colorHex: true,
+  size: true,
+  stock: true,
+  price: true,
+} satisfies Prisma.VariantSelect;
+
+const CATALOG_PRODUCT_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  category: true,
+  subcategory: true,
+  categoryId: true,
+  gender: true,
+  tags: true,
+  basePrice: true,
+  images: true,
+  rating: true,
+  reviewCount: true,
+  isFeatured: true,
+  isNew: true,
+  isPopular: true,
+  isTrending: true,
+  isRecommended: true,
+  createdAt: true,
+  updatedAt: true,
+  variants: {
+    select: CATALOG_VARIANT_SELECT,
+    orderBy: [{ stock: "desc" }, { price: "asc" }],
+  },
+} satisfies Prisma.ProductSelect;
+
+type CatalogProductRow = Prisma.ProductGetPayload<{
+  select: typeof CATALOG_PRODUCT_SELECT;
+}>;
+
 function getLiveDataTimeoutMs() {
   const rawValue = process.env.LIVE_DATA_TIMEOUT_MS;
   if (process.env.NODE_ENV === "development" && rawValue === "0") {
@@ -269,6 +309,13 @@ function buildProductCacheTags(cacheKey: string, extraTags: string[] = []) {
   return Array.from(tags);
 }
 
+function toCatalogProduct(product: CatalogProductRow): Product {
+  return {
+    ...product,
+    gender: product.gender as Product["gender"],
+  };
+}
+
 async function loadProductsFromDb(
   filters: ProductQueryFilters,
   options: LiveDataQueryOptions = {}
@@ -280,15 +327,13 @@ async function loadProductsFromDb(
   return withLiveData(
     "getProducts",
     async () =>
-      withPrismaRetry("getProducts", async () =>
-        (await prisma.product.findMany({
-          where: buildProductWhere(filters),
-          include: { variants: true },
-          orderBy: productOrderBy,
-          take: filters.take,
-          skip: filters.skip,
-        })) as Product[]
-      ),
+      (await prisma.product.findMany({
+        where: buildProductWhere(filters),
+        select: CATALOG_PRODUCT_SELECT,
+        orderBy: productOrderBy,
+        take: filters.take,
+        skip: filters.skip,
+      })).map(toCatalogProduct),
     options
   );
 }
@@ -372,11 +417,9 @@ export async function getCountProducts(filters?: ProductQueryFilters) {
       withLiveData(
         "getCountProducts",
         async () =>
-          withPrismaRetry("getCountProducts", () =>
-            prisma.product.count({
-              where: buildProductWhere(normalizedFilters),
-            })
-          )
+          prisma.product.count({
+            where: buildProductWhere(normalizedFilters),
+          })
       ),
     ["product-count", JSON.stringify(normalizedFilters)],
     {

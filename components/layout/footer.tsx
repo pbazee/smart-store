@@ -30,9 +30,13 @@ export async function Footer({
     }
   }
 
-  const { supportEmail, footerContactPhone, footerTel } =
-    resolveSupportContactInfo(resolvedStoreSettings);
   const branding = getStoreLogoSetFromSettings(resolvedStoreSettings);
+  const hasStoreContactData = Boolean(
+    resolvedStoreSettings?.supportEmail?.trim() || resolvedStoreSettings?.footerContactPhone?.trim()
+  );
+  const supportInfo = hasStoreContactData
+    ? resolveSupportContactInfo(resolvedStoreSettings)
+    : null;
 
   return (
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
@@ -152,20 +156,22 @@ export async function Footer({
             </div>
           )}
           <div className="flex flex-col gap-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:gap-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <a
-                href={`mailto:${supportEmail}`}
-                className="transition-colors hover:text-white"
-              >
-                Support: {supportEmail}
-              </a>
-              <a
-                href={`tel:${footerTel}`}
-                className="transition-colors hover:text-white"
-              >
-                Call: {footerContactPhone}
-              </a>
-            </div>
+            {supportInfo ? (
+              <div className="flex flex-wrap items-center gap-4">
+                <a
+                  href={`mailto:${supportInfo.supportEmail}`}
+                  className="transition-colors hover:text-white"
+                >
+                  Support: {supportInfo.supportEmail}
+                </a>
+                <a
+                  href={`tel:${supportInfo.footerTel}`}
+                  className="transition-colors hover:text-white"
+                >
+                  Call: {supportInfo.footerContactPhone}
+                </a>
+              </div>
+            ) : null}
             <div className="flex items-center gap-4">
               <Link href="/privacy-policy" className="transition-colors hover:text-white">
                 Privacy

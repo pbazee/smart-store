@@ -1,5 +1,5 @@
 import { shouldUseMockData } from "@/lib/live-data-mode";
-import { prisma, withPrismaRetry } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 // Use globalThis so the Map survives Next.js dev-mode module reloads.
 // Without this, every new route compilation resets the Map and re-runs
@@ -35,10 +35,7 @@ async function runSchemaRepair(key: string, repair: () => Promise<void>) {
 
 async function executeRepairStatements(statements: string[]) {
   for (const statement of statements) {
-    await withPrismaRetry("schema repair statement", () => prisma.$executeRawUnsafe(statement), {
-      retries: 3,
-      retryDelayMs: 500,
-    });
+    await prisma.$executeRawUnsafe(statement);
   }
 }
 

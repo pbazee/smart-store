@@ -18,7 +18,7 @@ export type CatalogPageData = {
 };
 
 const COLLECTION_PRODUCT_KEYS: Record<CatalogCollectionKey, Parameters<typeof getHomepageCollectionProducts>[0]> = {
-  popular: "featured",
+  popular: "popular",
   trending: "trending",
   "new-arrivals": "new-arrivals",
   recommended: "recommended",

@@ -77,18 +77,20 @@ function AnnouncementBarFallback() {
   );
 }
 
+const FALLBACK_HOMEPAGE_SHELL_DATA = {
+  announcements: [],
+  popups: [],
+  socialLinks: [],
+  whatsAppSettings: null,
+  storeSettings: null,
+};
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const shellData = await getHomepageShellData().catch(() => ({
-    announcements: [],
-    popups: [],
-    socialLinks: [],
-    whatsAppSettings: null,
-    storeSettings: null,
-  }));
+  const shellData = await getHomepageShellData().catch(() => FALLBACK_HOMEPAGE_SHELL_DATA);
 
   return (
     <html

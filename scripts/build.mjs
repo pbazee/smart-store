@@ -8,6 +8,9 @@ const child = spawn(process.execPath, [nextBin, "build"], {
   stdio: "inherit",
   env: {
     ...process.env,
+    NODE_OPTIONS: [process.env.NODE_OPTIONS, "--max-old-space-size=4096"]
+      .filter(Boolean)
+      .join(" "),
     SKIP_LIVE_DATA_DURING_BUILD: "true",
   },
 });
