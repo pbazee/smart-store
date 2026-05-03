@@ -1,3 +1,5 @@
+import type { Category } from "@/types";
+
 export type NavigationLink = {
   href: string;
   label: string;
@@ -21,12 +23,47 @@ export const drawerMenuLinks: NavigationLink[] = [
   { href: "/contact", label: "Contact Us" },
 ];
 
-export const drawerCategoryLinks: NavigationLink[] = [
+const drawerCategoryPriority = ["shoes", "clothes", "accessories"];
+const fallbackDrawerCategoryLinks: NavigationLink[] = [
   { href: "/shop?category=shoes", label: "Shoes" },
-  { href: "/shop?subcategory=bags", label: "Bags" },
-  { href: "/shop?subcategory=t-shirts", label: "T-Shirts" },
+  { href: "/shop?category=clothes", label: "Clothes" },
   { href: "/shop?category=accessories", label: "Accessories" },
 ];
+
+function matchesDrawerCategory(category: Category, value: string) {
+  const normalizedName = category.name.trim().toLowerCase();
+  const normalizedSlug = category.slug.trim().toLowerCase();
+  const normalizedId = category.id.trim().toLowerCase();
+
+  return (
+    normalizedName === value ||
+    normalizedSlug === value ||
+    normalizedId === value
+  );
+}
+
+export function getDrawerCategoryLinks(categories: Category[] = []): NavigationLink[] {
+  if (categories.length === 0) {
+    return fallbackDrawerCategoryLinks;
+  }
+
+  const links = drawerCategoryPriority
+    .map((target) =>
+      categories.find(
+        (category) =>
+          !category.parentId &&
+          category.isActive !== false &&
+          matchesDrawerCategory(category, target)
+      )
+    )
+    .filter((category): category is Category => Boolean(category))
+    .map((category) => ({
+      href: `/shop?category=${encodeURIComponent(category.slug)}`,
+      label: category.name,
+    }));
+
+  return links.length > 0 ? links : fallbackDrawerCategoryLinks;
+}
 
 export function isNavigationLinkActive(
   pathname: string,

@@ -36,7 +36,8 @@ export function useRoutePrefetch(routes: Array<string | null | undefined>) {
       return;
     }
 
-    const prefetchBudget = deviceMemory <= 4 || hardwareConcurrency <= 4 ? 2 : 4;
+    const isConstrainedDevice = deviceMemory <= 4 || hardwareConcurrency <= 4;
+    const prefetchBudget = isConstrainedDevice ? 1 : 4;
     const routesToPrefetch = uniqueRoutes.slice(0, prefetchBudget);
     if (routesToPrefetch.length === 0) {
       return;
@@ -93,7 +94,9 @@ export function useRoutePrefetch(routes: Array<string | null | undefined>) {
       schedulePrefetch();
     };
 
-    fallbackDelayId = window.setTimeout(schedulePrefetch, 3000);
+    if (!isConstrainedDevice) {
+      fallbackDelayId = window.setTimeout(schedulePrefetch, 3000);
+    }
     window.addEventListener("pointerdown", handleInteraction, {
       once: true,
       passive: true,

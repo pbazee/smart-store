@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Heart, Home, ShoppingBag, ShoppingCart, User } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useShallow } from "zustand/react/shallow";
+import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -15,6 +17,13 @@ const links = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { hasHydrated, cartCount } = useCartStore(
+    useShallow((state) => ({
+      hasHydrated: state.hasHydrated,
+      cartCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
+    }))
+  );
+  const count = hasHydrated ? cartCount : 0;
 
   if (
     pathname?.startsWith("/admin") ||
@@ -38,6 +47,7 @@ export function MobileBottomNav() {
             (href === "/account" && pathname?.startsWith("/account")) ||
             (href === "/wishlist" && pathname?.startsWith("/wishlist")) ||
             (href === "/cart" && pathname?.startsWith("/cart"));
+          const showCartBadge = href === "/cart" && count > 0;
 
           return (
           <Link
@@ -49,7 +59,14 @@ export function MobileBottomNav() {
               isActive ? "text-orange-500" : "text-muted-foreground"
             )}
           >
-            <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+            <span className="relative">
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              {showCartBadge ? (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white">
+                  {count}
+                </span>
+              ) : null}
+            </span>
             <span className="text-[10px] font-medium">{label}</span>
           </Link>
           );

@@ -164,6 +164,17 @@ export function ShopFilters({
   const sliderMin = priceBounds[0];
   const sliderMax = priceBounds[1] > priceBounds[0] ? priceBounds[1] : priceBounds[0] + 1;
   const sliderStep = Math.max(1, Math.round((sliderMax - sliderMin) / 20));
+  const clearFilters = () =>
+    onChange({
+      category: lockedCategory ? [lockedCategory] : [],
+      subcategory: [],
+      gender: [],
+      colors: [],
+      sizes: [],
+      priceRange: priceBounds,
+      search: "",
+      sortBy: "featured",
+    });
 
   const toggle = (key: "category" | "gender" | "colors" | "sizes", value: string) => {
     const current = filters[key] as string[];
@@ -216,18 +227,7 @@ export function ShopFilters({
         </h3>
         <button
           type="button"
-          onClick={() =>
-            onChange({
-              category: lockedCategory ? [lockedCategory] : [],
-              subcategory: [],
-              gender: [],
-              colors: [],
-              sizes: [],
-              priceRange: priceBounds,
-              search: "",
-              sortBy: filters.sortBy,
-            })
-          }
+          onClick={clearFilters}
           className="text-xs font-semibold text-brand-500 transition hover:text-brand-600"
         >
           Clear All

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { Product } from "@/types";
 import { HomepageProductCard } from "@/components/shop/homepage-product-card";
+import { buildCatalogHref } from "@/lib/catalog-routing";
 
 export function FeaturedGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {
@@ -27,7 +28,7 @@ export function FeaturedGrid({ products }: { products: Product[] }) {
           </p>
         </div>
         <Link
-          href="/shop?collection=popular"
+          href={buildCatalogHref({ collection: "popular" })}
           className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold transition-colors hover:border-brand-300 hover:text-brand-600"
         >
           View Popular Products

@@ -7,6 +7,7 @@ import { HomepageCategoryGrid } from "@/components/shop/homepage-category-grid";
 import { LatestReviews } from "@/components/shop/latest-reviews";
 import { NewArrivalsSection } from "@/components/shop/new-arrivals-section";
 import { TrendingSection } from "@/components/shop/trending-section";
+import { buildCatalogHref } from "@/lib/catalog-routing";
 import {
   getHomepageBlogPosts,
   getHomepageCategories,
@@ -73,7 +74,7 @@ async function DeferredHomepageProductSections({
         description="A fast-moving mix of compatible silhouettes, matching price bands, and category logic that feels personal without slowing down the storefront."
         products={productSections.alsoBought}
         viewAllLabel="Explore Recommended"
-        viewAllHref="/shop?collection=recommended"
+        viewAllHref={buildCatalogHref({ collection: "recommended" })}
       />
       <NewArrivalsSection products={productSections.newArrivals} />
       <HomepageRecommendationSection
@@ -82,7 +83,7 @@ async function DeferredHomepageProductSections({
         description="Smart picks shaped by what the city responds to: versatile layers, confident color, and easy daily wear."
         products={productSections.cityInspired}
         viewAllLabel="Explore City Picks"
-        viewAllHref="/shop?collection=city-inspired"
+        viewAllHref={buildCatalogHref({ collection: "city-inspired" })}
       />
     </>
   );

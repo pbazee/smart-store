@@ -83,6 +83,7 @@ const FALLBACK_HOMEPAGE_SHELL_DATA = {
   socialLinks: [],
   whatsAppSettings: null,
   storeSettings: null,
+  navigationCategories: [],
 };
 
 export default async function RootLayout({
@@ -126,7 +127,10 @@ export default async function RootLayout({
                       <AnnouncementBar announcements={shellData.announcements} />
                     </Suspense>
                     <Suspense fallback={<NavbarFallback />}>
-                      <Navbar initialStoreSettings={shellData.storeSettings} />
+                      <Navbar
+                        initialStoreSettings={shellData.storeSettings}
+                        initialCategories={shellData.navigationCategories}
+                      />
                     </Suspense>
                   </div>
                 }

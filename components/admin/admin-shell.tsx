@@ -58,7 +58,7 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
-    { href: "/admin/homepage-categories", label: "Shop Navigation", icon: LayoutGrid },
+    { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/messages", label: "Messages", icon: Mail },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
@@ -293,30 +293,13 @@ export function AdminShell({
               </button>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-3">
-                  {branding.logoDarkUrl || branding.logoUrl ? (
-                    <div className="relative h-10 w-[132px]">
-                      <Image
-                        src={branding.logoDarkUrl || branding.logoUrl || ""}
-                        alt={branding.storeName}
-                        fill
-                        sizes="132px"
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_28px_rgba(249,115,22,0.24)]">
-                      SK
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-white sm:text-base">
-                      {branding.storeName}
-                    </p>
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
-                      Admin Panel
-                    </p>
-                  </div>
+                <div className="lg:hidden">
+                  <p className="truncate text-sm font-black text-white sm:text-base">
+                    {branding.storeName}
+                  </p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                    Admin Panel
+                  </p>
                 </div>
               </div>
 

@@ -149,7 +149,7 @@ function ProductCardComponent({
               priority={priority}
               loading={priority ? undefined : "lazy"}
               placeholder="blur"
-              quality={80}
+              quality={72}
               blurDataURL={CARD_BLUR_DATA_URL}
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes={sizes}

@@ -30,7 +30,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
-  { href: "/admin/homepage-categories", label: "Shop Navigation", icon: LayoutGrid },
+  { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
   { href: "/admin/users", label: "Users", icon: User2 },
   { href: "/admin/messages", label: "Messages", icon: MessageCircle },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },

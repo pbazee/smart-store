@@ -56,8 +56,8 @@ async function loadActiveCategories(): Promise<Category[]> {
     console.error("[Categories] Query failed:", errorMsg, {
       dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
     });
-    console.warn("[Categories] Falling back to default categories");
-    return FALLBACK_CATEGORIES;
+    console.warn("[Categories] Returning empty category list to avoid stale fallback data");
+    return [];
   }
 }
 
@@ -81,13 +81,19 @@ export async function getAllCategories(): Promise<Category[]> {
     return FALLBACK_CATEGORIES;
   }
 
-  await ensureCategoryHomepageFields();
+  try {
+    await ensureCategoryHomepageFields();
 
-  const categories = await prisma.category.findMany({
-    orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
-  });
+    const categories = await prisma.category.findMany({
+      orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
+    });
 
-  return categories as Category[];
+    return categories as Category[];
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[Categories] Failed to load all categories:", errorMsg);
+    return [];
+  }
 }
 
 export async function getChildCategories(parentCategoryId: string) {

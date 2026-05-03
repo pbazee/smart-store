@@ -73,10 +73,32 @@ function buildFilterState(
   };
 }
 
+function buildEmptyFilterState(
+  priceBounds: [number, number],
+  lockedCategory?: string
+): FilterState {
+  return {
+    category: lockedCategory ? [lockedCategory] : [],
+    subcategory: [],
+    gender: [],
+    colors: [],
+    sizes: [],
+    priceRange: priceBounds,
+    search: "",
+    sortBy: "featured",
+  };
+}
+
 function buildCatalogUrlFromFilters(
   filters: FilterState,
   categories: Category[],
   pathname: string,
+  queryState: {
+    collection?: string | null;
+    filter?: string | null;
+    tag?: string | null;
+    tags?: string | null;
+  },
   lockedCategory?: string
 ) {
   const selectedParentId = lockedCategory || filters.category[0] || null;
@@ -90,10 +112,12 @@ function buildCatalogUrlFromFilters(
 
   return buildCatalogHref(
     {
+      collection: queryState.collection ?? queryState.filter ?? null,
       category: selectedParent?.slug ?? null,
       subcategory: selectedSubcategory?.slug ?? null,
       gender: filters.gender[0] ?? null,
       search: filters.search || null,
+      tag: queryState.tag ?? queryState.tags ?? null,
     },
     pathname === "/products" ? "/products" : "/shop"
   );
@@ -112,6 +136,7 @@ export function CatalogBrowser({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
+  const skipUrlSyncRef = useRef(true);
   const priceBounds = useMemo(() => getProductPriceBounds(products), [products]);
   const queryState = useMemo(
     () => ({
@@ -119,6 +144,8 @@ export function CatalogBrowser({
       subcategory: searchParams.get("subcategory"),
       gender: searchParams.get("gender"),
       search: searchParams.get("search") ?? "",
+      collection: searchParams.get("collection"),
+      filter: searchParams.get("filter"),
       tag: searchParams.get("tag"),
       tags: searchParams.get("tags"),
     }),
@@ -135,17 +162,29 @@ export function CatalogBrowser({
   const tag = queryState.tag ?? queryState.tags;
 
   useEffect(() => {
+    skipUrlSyncRef.current = true;
     setFilters(filterStateFromUrl);
   }, [filterStateFromUrl]);
 
   useEffect(() => {
-    const nextHref = buildCatalogUrlFromFilters(filters, categories, pathname, lockedCategory);
+    if (skipUrlSyncRef.current) {
+      skipUrlSyncRef.current = false;
+      return;
+    }
+
+    const nextHref = buildCatalogUrlFromFilters(
+      filters,
+      categories,
+      pathname,
+      queryState,
+      lockedCategory
+    );
     const currentHref = searchParamsKey ? `${pathname}?${searchParamsKey}` : pathname;
 
     if (nextHref !== currentHref) {
       router.replace(nextHref, { scroll: false });
     }
-  }, [categories, filters, lockedCategory, pathname, router, searchParamsKey]);
+  }, [categories, filters, lockedCategory, pathname, queryState, router, searchParamsKey]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -184,11 +223,14 @@ export function CatalogBrowser({
     sortOptions.find((option) => option.value === filters.sortBy)?.label || "Featured";
   const hasCatalogProducts = products.length > 0;
 
-  const resetFilters = () =>
-    setFilters({
-      ...buildFilterState(queryState, categories, priceBounds, lockedCategory),
-      sortBy: "featured",
-    });
+  const resetFilters = () => {
+    const nextFilters = buildEmptyFilterState(priceBounds, lockedCategory);
+    setFilters(nextFilters);
+    router.replace(
+      buildCatalogUrlFromFilters(nextFilters, categories, pathname, queryState, lockedCategory),
+      { scroll: false }
+    );
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

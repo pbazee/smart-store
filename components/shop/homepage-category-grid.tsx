@@ -40,6 +40,7 @@ export function HomepageCategoryGrid({
               key={category.id}
               href={href}
               className="group relative isolate block aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-neutral-900 shadow-[0_32px_80px_rgba(0,0,0,0.22)]"
+              style={{ contentVisibility: "auto", containIntrinsicSize: "360px 480px" }}
             >
               <Image
                 src={category.imageUrl}
@@ -50,7 +51,7 @@ export function HomepageCategoryGrid({
                 blurDataURL={categoryBlurDataUrl}
                 className="object-cover transition-all duration-700 group-hover:scale-105 group-hover:brightness-110"
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                quality={80}
+                quality={72}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity group-hover:opacity-90" />
 

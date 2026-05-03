@@ -9,11 +9,12 @@ import { useTheme } from "next-themes";
 import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
+import { buildCatalogHref } from "@/lib/catalog-routing";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
-import { isNavigationLinkActive } from "@/lib/navigation";
+import { getDrawerCategoryLinks, isNavigationLinkActive } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { StoreSettings } from "@/types";
+import type { Category, StoreSettings } from "@/types";
 
 const AccountMenu = dynamic(
   () => import("@/components/layout/account-menu").then((mod) => mod.AccountMenu),
@@ -137,7 +138,13 @@ function HeaderIconLink({
   );
 }
 
-function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | undefined }) {
+function BrandMark({
+  storeSettings,
+  mobile = false,
+}: {
+  storeSettings: StoreSettings | null | undefined;
+  mobile?: boolean;
+}) {
   const branding = getStoreLogoSetFromSettings(storeSettings);
   const storeName = branding.storeName;
   const lightLogo = branding.logoUrl;
@@ -145,8 +152,13 @@ function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | un
 
   if (lightLogo || darkLogo) {
     return (
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="relative h-10 w-[112px] shrink-0 sm:w-[132px]">
+      <div className={cn("flex min-w-0 items-center gap-3", mobile && "gap-2")}>
+        <div
+          className={cn(
+            "relative h-10 shrink-0",
+            mobile ? "w-[72px] sm:w-[96px]" : "w-[112px] sm:w-[132px]"
+          )}
+        >
           {lightLogo ? (
             <Image
               src={lightLogo}
@@ -168,7 +180,7 @@ function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | un
             />
           ) : null}
         </div>
-        <div className="hidden min-w-0 sm:block">
+        <div className={cn("min-w-0", mobile ? "hidden" : "hidden sm:block")}>
           <span className="block truncate text-sm font-semibold text-muted-foreground">
             {branding.storeTagline}
           </span>
@@ -193,8 +205,10 @@ function BrandMark({ storeSettings }: { storeSettings: StoreSettings | null | un
 
 export function Navbar({
   initialStoreSettings,
+  initialCategories = [],
 }: {
   initialStoreSettings?: StoreSettings | null;
+  initialCategories?: Category[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -214,11 +228,14 @@ export function Navbar({
   const wishlistHref = "/wishlist";
   const accountHref = "/account";
   const storeSettings = initialStoreSettings;
+  const drawerCategoryLinks = getDrawerCategoryLinks(initialCategories ?? []);
 
   useRoutePrefetch([
     "/",
     "/shop?gender=women",
     "/shop?gender=men",
+    buildCatalogHref({ collection: "new-arrivals" }),
+    buildCatalogHref({ collection: "trending" }),
     "/shop",
     wishlistHref,
     accountHref,
@@ -314,16 +331,16 @@ export function Navbar({
             <Link
               href="/"
               onClick={closeCart}
-              className="mr-auto flex min-w-0 max-w-[8.5rem] items-center gap-2 sm:max-w-none"
+              className="flex shrink-0 items-center justify-start"
             >
-              <BrandMark storeSettings={storeSettings} />
+              <BrandMark storeSettings={storeSettings} mobile />
             </Link>
 
             <div className="min-w-0 flex-1">
               <SearchForm
                 defaultValue={searchValue}
                 onSubmit={submitSearch}
-                inputClassName="h-10"
+                inputClassName="h-10 pr-4 text-[13px]"
               />
             </div>
 
@@ -339,20 +356,18 @@ export function Navbar({
             </HeaderIconButton>
 
             <HeaderIconButton onClick={() => setMenuOpen(true)} aria-label="Open menu">
-              <span className="relative block">
-                <Menu className="h-5 w-5" />
-                {count > 0 && (
-                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white">
-                    {count}
-                  </span>
-                )}
-              </span>
+              <Menu className="h-5 w-5" />
             </HeaderIconButton>
           </div>
         </div>
       </div>
 
-      <SiteMenuDrawer open={menuOpen} onOpenChange={setMenuOpen} />
+      <SiteMenuDrawer
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        categories={initialCategories ?? []}
+        drawerCategoryLinks={drawerCategoryLinks ?? []}
+      />
     </header>
   );
 }

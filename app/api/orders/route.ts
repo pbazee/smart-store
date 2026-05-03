@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId, isAuthenticated } from "@/lib/auth-utils";
-import { releaseExpiredReservations } from "@/lib/order-reservations";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,11 +14,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await releaseExpiredReservations();
-
     const orders = await prisma.order.findMany({
       where: { userId },
-      include: { items: true },
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        status: true,
+        paymentStatus: true,
+        createdAt: true,
+        items: {
+          select: {
+            id: true,
+            productName: true,
+            productId: true,
+            price: true,
+            quantity: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 

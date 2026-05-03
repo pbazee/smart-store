@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { LayoutDashboard, Package2, User2 } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { drawerCategoryLinks, isNavigationLinkActive } from "@/lib/navigation";
+import { buildCatalogHref } from "@/lib/catalog-routing";
+import { drawerMenuLinks, getDrawerCategoryLinks, isNavigationLinkActive, type NavigationLink } from "@/lib/navigation";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useSessionUser } from "@/hooks/use-session-user";
@@ -14,10 +15,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import type { Category } from "@/types";
 
 type SiteMenuDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  categories?: Category[];
+  drawerCategoryLinks?: NavigationLink[];
 };
 
 type DrawerLinkProps = {
@@ -27,17 +31,17 @@ type DrawerLinkProps = {
   onSelect: () => void;
 };
 
-const storefrontMenuLinks = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/shop?gender=men", label: "Men" },
-  { href: "/shop?gender=women", label: "Women" },
-  { href: "/shop?collection=new-arrivals", label: "New Arrivals" },
-  { href: "/shop?collection=trending", label: "Trending" },
-  { href: "/blog", label: "Blog" },
-  { href: "/about", label: "About Us" },
-  { href: "/contact", label: "Contact Us" },
-];
+const storefrontMenuLinks = drawerMenuLinks.map((link) => {
+  if (link.label === "New Arrivals") {
+    return { ...link, href: buildCatalogHref({ collection: "new-arrivals" }) };
+  }
+
+  if (link.label === "Trending") {
+    return { ...link, href: buildCatalogHref({ collection: "trending" }) };
+  }
+
+  return link;
+});
 
 function DrawerLink({ href, label, active, onSelect }: DrawerLinkProps) {
   return (
@@ -60,6 +64,8 @@ function DrawerLink({ href, label, active, onSelect }: DrawerLinkProps) {
 export function SiteMenuDrawer({
   open,
   onOpenChange,
+  categories = [],
+  drawerCategoryLinks = [],
 }: SiteMenuDrawerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,6 +80,8 @@ export function SiteMenuDrawer({
   const isAdmin = sessionUser?.role === "admin";
   const wishlistHref = "/wishlist";
   const cartCount = useCartStore((state) => state.items.reduce((sum, item) => sum + item.quantity, 0));
+  const resolvedDrawerCategoryLinks =
+    drawerCategoryLinks.length > 0 ? drawerCategoryLinks : getDrawerCategoryLinks(categories);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -127,7 +135,7 @@ export function SiteMenuDrawer({
                 Categories
               </h3>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {drawerCategoryLinks.map((link) => (
+                {(resolvedDrawerCategoryLinks ?? []).map((link) => (
                   <DrawerLink
                     key={link.href}
                     href={link.href}

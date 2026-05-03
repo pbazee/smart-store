@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { CATEGORY_CACHE_TAG, getActiveCategories, getAllCategories } from "@/lib/category-service";
+import { CATEGORY_CACHE_TAG, getAllCategories } from "@/lib/category-service";
 import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 
 const categorySchema = z.object({
@@ -30,15 +30,7 @@ async function ensureAdmin() {
 }
 
 const getCachedAllAdminCategories = unstable_cache(
-  async () => {
-    const categories = await getAllCategories();
-    // If the DB has no child categories yet, fall back to the seeded defaults
-    const hasChildren = categories.some((c) => c.parentId !== null);
-    if (!hasChildren) {
-      return getActiveCategories();
-    }
-    return categories;
-  },
+  async () => getAllCategories(),
   ["admin-all-categories"],
   {
     revalidate: 60,
@@ -51,7 +43,7 @@ export async function fetchCategoriesAction() {
   try {
     return await getCachedAllAdminCategories();
   } catch {
-    return getActiveCategories();
+    return [];
   }
 }
 
@@ -77,9 +69,9 @@ export async function fetchTopLevelCategoriesAction() {
       return categories;
     }
 
-    return (await getActiveCategories()).filter((category) => !category.parentId);
+    return [];
   } catch {
-    return (await getActiveCategories()).filter((category) => !category.parentId);
+    return [];
   }
 }
 

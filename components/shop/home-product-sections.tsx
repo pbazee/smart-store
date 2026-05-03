@@ -2,6 +2,7 @@ import { FeaturedGrid } from "@/components/shop/featured-grid";
 import { HomepageRecommendationSection } from "@/components/shop/homepage-recommendation-section";
 import { NewArrivalsSection } from "@/components/shop/new-arrivals-section";
 import { TrendingSection } from "@/components/shop/trending-section";
+import { buildCatalogHref } from "@/lib/catalog-routing";
 import type { HomepageProductSectionsData } from "@/lib/homepage-data";
 
 function RecommendationCarouselSkeleton() {
@@ -42,7 +43,7 @@ export function HomeProductSections({
         description="A fast-moving mix of compatible silhouettes, matching price bands, and category logic that feels personal without slowing down the storefront."
         products={alsoBought}
         viewAllLabel="Explore Recommended"
-        viewAllHref="/shop?collection=recommended"
+        viewAllHref={buildCatalogHref({ collection: "recommended" })}
       />
       <TrendingSection products={trending} />
       <NewArrivalsSection products={newArrivals} />
@@ -52,7 +53,7 @@ export function HomeProductSections({
         description="Smart picks shaped by what the city responds to: versatile layers, confident color, and easy daily wear."
         products={cityInspired}
         viewAllLabel="Explore City Picks"
-        viewAllHref="/shop?collection=city-inspired"
+        viewAllHref={buildCatalogHref({ collection: "city-inspired" })}
       />
     </>
   );

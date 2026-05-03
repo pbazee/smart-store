@@ -4,6 +4,8 @@ import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { getActiveCategories } from "@/lib/category-service";
+import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
 import { getPromoBanners } from "@/lib/promo-banner-service";
 import { getStoreSettings as getPersistedStoreSettings } from "@/lib/store-settings";
 import { getWhatsAppSettings as getPersistedWhatsAppSettings } from "@/lib/whatsapp-service";
@@ -307,26 +309,7 @@ export const getCachedHomepageProducts = unstable_cache(
 export const getCachedHomepageCategories = unstable_cache(
   async () => {
     try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return [];
-      }
-
-      return await prisma.homepageCategory.findMany({
-        where: { isActive: true },
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          title: true,
-          subtitle: true,
-          imageUrl: true,
-          link: true,
-          parentCategoryId: true,
-          order: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+      return await getActiveHomepageCategories();
     } catch (error) {
       console.error("[HomepageCategories] DB error, using fallback:", error);
       return [];
@@ -496,8 +479,14 @@ export async function getHomepageShellData() {
   const socialLinks = await getCachedSocialLinks();
   const whatsAppSettings = await getCachedWhatsAppSettings();
   const storeSettings = await getCachedStoreSettings();
+  const navigationCategories = shouldSkipLiveDataDuringBuild()
+    ? []
+    : await getActiveCategories().catch((error) => {
+        console.error("[HomepageShell] Failed to load navigation categories:", error);
+        return [];
+      });
 
-  return { announcements, popups, socialLinks, whatsAppSettings, storeSettings };
+  return { announcements, popups, socialLinks, whatsAppSettings, storeSettings, navigationCategories };
 }
 
 export async function getHomepagePageData() {

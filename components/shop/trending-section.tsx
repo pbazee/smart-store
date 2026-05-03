@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, TrendingUp } from "lucide-react";
 import type { Product } from "@/types";
 import { HomepageProductCard } from "@/components/shop/homepage-product-card";
+import { buildCatalogHref } from "@/lib/catalog-routing";
 
 export function TrendingSection({ products }: { products: Product[] }) {
   if (products.length === 0) {
@@ -31,7 +32,7 @@ export function TrendingSection({ products }: { products: Product[] }) {
             </p>
           </div>
           <Link
-            href="/shop?collection=trending"
+            href={buildCatalogHref({ collection: "trending" })}
             className="overlay-readable-text inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold transition-colors hover:border-brand-300"
           >
             View Trending
