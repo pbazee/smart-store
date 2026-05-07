@@ -42,16 +42,16 @@ export async function Footer({
     <footer className="mt-20 bg-zinc-950 text-zinc-400">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-12 grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr,0.9fr,0.9fr,0.9fr,1.2fr]">
-          <div>
-            <div className="mb-4 flex items-center gap-2">
+          <div className="text-left">
+            <div className="mb-4 flex items-start gap-2">
               {branding.logoDarkUrl || branding.logoUrl ? (
-                <div className="relative h-10 w-[140px]">
+                <div className="relative h-10 w-[140px] self-start">
                   <Image
                     src={branding.logoDarkUrl || branding.logoUrl || ""}
                     alt={branding.storeName}
                     fill
                     sizes="140px"
-                    className="object-contain"
+                    className="mx-0 object-contain object-left"
                   />
                 </div>
               ) : (
@@ -63,7 +63,7 @@ export async function Footer({
                 </>
               )}
             </div>
-            <p className="text-sm leading-relaxed">
+            <p className="text-left text-sm leading-relaxed">
               Kenya&apos;s smartest fashion destination. Premium shoes, clothes, and streetwear.
               Nairobi-born, East Africa-ready.
             </p>
@@ -140,7 +140,7 @@ export async function Footer({
         <div className="flex flex-col gap-5 border-t border-zinc-800 pt-8 text-sm xl:flex-row xl:items-center xl:justify-between">
           <p>&copy; 2026 Smartest Store KE. All rights reserved.</p>
           {socialLinks.length > 0 && (
-            <div className="flex items-center justify-center gap-3 overflow-x-auto xl:flex-1 xl:justify-center">
+            <div className="flex items-center justify-center gap-3 overflow-x-auto xl:flex-[0.85] xl:justify-start xl:pl-8">
               {socialLinks.map((socialLink, index) => (
                 <a
                   key={socialLink.id ?? `${socialLink.platform}-${socialLink.url}-${index}`}

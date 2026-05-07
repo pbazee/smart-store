@@ -6,7 +6,6 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { getActiveCategories } from "@/lib/category-service";
 import { prisma } from "@/lib/prisma";
-import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 import { deleteHomepageCategoryImage, uploadHomepageCategoryImage } from "@/lib/supabase-storage";
 import { slugify } from "@/lib/utils";
 import type { Category, HomepageCategory } from "@/types";
@@ -76,7 +75,6 @@ function toHomepageCategory(category: Category): HomepageCategory {
 
 export async function fetchAdminHomepageCategories() {
   await ensureAdmin();
-  await ensureCategoryHomepageFields();
 
   try {
     const categories = await getActiveCategories();
@@ -112,7 +110,6 @@ export async function createAdminHomepageCategoryAction(input: AdminHomepageCate
 
 export async function updateAdminHomepageCategoryAction(input: AdminHomepageCategoryInput) {
   await ensureAdmin();
-  await ensureCategoryHomepageFields();
   const data = adminHomepageCategorySchema.parse(input);
   const normalized = normalizeHomepageCategoryInput(data);
   const existingCategory = await prisma.category.findUnique({ where: { id: data.id } });
@@ -138,7 +135,6 @@ export async function updateAdminHomepageCategoryAction(input: AdminHomepageCate
 
 export async function deleteAdminHomepageCategoryAction(categoryId: string) {
   await ensureAdmin();
-  await ensureCategoryHomepageFields();
   const id = z.string().min(1).parse(categoryId);
   const existingCategory = await prisma.category.findUnique({ where: { id } });
   if (!existingCategory) {

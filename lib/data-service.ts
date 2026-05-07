@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { getEffectiveProductStock } from "@/lib/product-stock";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
@@ -214,6 +215,7 @@ const CATALOG_VARIANT_SELECT = {
   size: true,
   stock: true,
   price: true,
+  variantImageUrl: true,
 } satisfies Prisma.VariantSelect;
 
 const CATALOG_PRODUCT_SELECT = {
@@ -227,6 +229,7 @@ const CATALOG_PRODUCT_SELECT = {
   gender: true,
   tags: true,
   basePrice: true,
+  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,
@@ -607,18 +610,9 @@ async function loadAdminDashboardStats() {
       where: buildValidCatalogProductWhere(),
     }),
     prisma.product.findMany({
-      where: buildValidCatalogProductWhere({
-        variants: {
-          some: {
-            stock: {
-              gt: 0,
-              lte: 5,
-            },
-          },
-        },
-      }),
+      where: buildValidCatalogProductWhere(),
       include: { variants: true },
-      take: 6,
+      take: 24,
     }),
     prisma.order.findMany({
       orderBy: { createdAt: "desc" },
@@ -765,7 +759,12 @@ async function loadAdminDashboardStats() {
     revenueTrend,
     totalOrders,
     totalProducts,
-    lowStockProducts: lowStockProducts as Product[],
+    lowStockProducts: (lowStockProducts as Product[])
+      .filter((product) => {
+        const stock = getEffectiveProductStock(product);
+        return typeof stock === "number" && stock > 0 && stock <= 5;
+      })
+      .slice(0, 6),
     revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
     recentOrders,
     topProducts: topProductDetails,

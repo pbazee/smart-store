@@ -16,11 +16,13 @@ const updateProductSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2),
   description: z.string().min(10),
+  productType: z.string().optional(),
   category: z.string().optional(),
   categoryId: z.string().min(1).nullable(),
-  subcategory: z.string().min(2),
+  subcategory: z.string().optional().nullable().default(""),
   gender: z.enum(["men", "women", "unisex", "children", "male", "female"]),
   basePrice: z.number().int().positive(),
+  baseStock: z.number().int().nonnegative().nullable().optional(),
   images: z.array(z.string().min(1)).min(1),
   tags: z.array(z.string()).default([]),
   isFeatured: z.boolean().optional(),
@@ -37,22 +39,29 @@ const updateProductSchema = z.object({
         size: z.string().min(1),
         stock: z.number().int().nonnegative(),
         price: z.number().int().positive(),
+        variantImageUrl: z.string().trim().optional().nullable(),
       })
     )
-    .min(1),
-});
+    .default([]),
+}).strip();
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-function revalidateProductSurfaces() {
+function revalidateProductSurfaces(product?: { slug?: string | null }, previousSlug?: string | null) {
   revalidateTag(PRODUCTS_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/wishlist");
   revalidatePath("/admin/products");
+
+  const slugs = new Set([product?.slug, previousSlug].filter(Boolean));
+  slugs.forEach((slug) => {
+    revalidatePath(`/product/${slug}`);
+    revalidatePath(`/shop/${slug}`);
+  });
 }
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
@@ -105,9 +114,13 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
+    const previousBaseStock = existingProduct.baseStock ?? null;
+    const previousVariantStock = existingProduct.variants.reduce((sum, variant) => sum + variant.stock, 0);
+    const requestedSubcategory = validatedData.subcategory?.trim() ?? "";
     const catalogAssignment = await resolveAdminProductCatalogAssignment({
       categoryId: validatedData.categoryId ?? existingProduct.categoryId ?? null,
-      subcategory: validatedData.subcategory,
+      category: validatedData.category ?? existingProduct.category,
+      subcategory: requestedSubcategory.length > 0 ? requestedSubcategory : null,
     });
 
     const product = await prisma.product.update({
@@ -118,6 +131,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         description: validatedData.description,
         gender: validatedData.gender,
         basePrice: validatedData.basePrice,
+        baseStock: validatedData.baseStock ?? null,
         images: validatedData.images,
         tags: validatedData.tags,
         isFeatured: validatedData.isFeatured ?? false,
@@ -134,16 +148,32 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
             size: variant.size,
             stock: variant.stock,
             price: variant.price,
+            variantImageUrl: variant.variantImageUrl ?? null,
           })),
         },
       },
       include: { variants: true },
     });
 
-    revalidateProductSurfaces();
+    const nextVariantStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+    const stockIncreased =
+      (validatedData.variants.length === 0
+        ? (validatedData.baseStock ?? null) !== null &&
+          (validatedData.baseStock ?? 0) > (previousBaseStock ?? 0)
+        : nextVariantStock > previousVariantStock);
+    const pendingRestockCount = stockIncreased
+      ? await prisma.restockNotification.count({
+          where: {
+            productId: product.id,
+            notified: false,
+          },
+        })
+      : 0;
+
+    revalidateProductSurfaces(product, existingProduct.slug);
 
     return NextResponse.json(
-      { success: true, data: product },
+      { success: true, data: product, meta: { pendingRestockCount } },
       {
         headers: {
           "Cache-Control": "no-store",
@@ -156,6 +186,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         { error: "Validation error", details: error.errors },
         { status: 400 }
       );
+    }
+
+    if (error instanceof Error) {
+      console.error("Error updating product:", error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     console.error("Error updating product:", error);
@@ -181,7 +216,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       where: operations.productWhere,
     });
 
-    revalidateProductSurfaces();
+    revalidateProductSurfaces(undefined, product.slug);
 
     return NextResponse.json(
       { success: true, data: product },

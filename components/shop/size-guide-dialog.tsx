@@ -9,16 +9,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { apparelSizeRows, footwearSizeRows, isFootwearProductLike } from "@/lib/size-guide";
+import type { Product } from "@/types";
 
-const sizeRows = [
-  ["XS", "84-88 cm", "66-70 cm", "88-92 cm"],
-  ["S", "89-94 cm", "71-76 cm", "93-98 cm"],
-  ["M", "95-100 cm", "77-82 cm", "99-104 cm"],
-  ["L", "101-108 cm", "83-90 cm", "105-112 cm"],
-  ["XL", "109-116 cm", "91-98 cm", "113-120 cm"],
-];
+export function SizeGuideDialog({ product }: { product?: Product }) {
+  const isFootwear = isFootwearProductLike(product ?? {});
+  const sizeRows = isFootwear ? footwearSizeRows : apparelSizeRows;
+  const headings = isFootwear
+    ? ["EU Size", "UK Size", "Foot Length", "Fit Note"]
+    : ["Size", "Chest", "Waist", "Hip"];
 
-export function SizeGuideDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -33,8 +33,9 @@ export function SizeGuideDialog() {
             Interactive Size Guide
           </DialogTitle>
           <DialogDescription className="text-left text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-            Built with Kenyan fit notes in mind. If you are between sizes, most Nairobi shoppers
-            prefer sizing up for oversized streetwear and sizing true for fitted dresses.
+            {isFootwear
+              ? "Built around the footwear patterns used by major commerce platforms: choose by foot length first, then confirm your EU size."
+              : "Built with Kenyan fit notes in mind. If you are between sizes, most Nairobi shoppers prefer sizing up for oversized streetwear and sizing true for fitted dresses."}
           </DialogDescription>
         </DialogHeader>
 
@@ -42,17 +43,29 @@ export function SizeGuideDialog() {
           <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)] dark:border-zinc-800 dark:bg-zinc-900/70 dark:shadow-none">
             <h3 className="font-semibold text-zinc-950 dark:text-zinc-50">Find your size</h3>
             <ol className="mt-4 space-y-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-              <li>1. Measure chest at the fullest point while standing naturally.</li>
-              <li>2. Measure waist above the hipbone with relaxed posture.</li>
-              <li>3. Measure hips around the fullest part of the seat.</li>
-              <li>4. For sneakers, Nairobi customers usually size true unless wearing thick socks.</li>
+              {isFootwear ? (
+                <>
+                  <li>1. Stand with your heel against a wall and measure to the tip of your longest toe.</li>
+                  <li>2. Measure both feet and use the longer foot, which is how major shoe guides avoid under-sizing.</li>
+                  <li>3. If you are between two sizes, go up to the next EU size for comfort and thicker socks.</li>
+                  <li>4. Use the numeric EU size on this store first, then cross-check foot length for the best fit.</li>
+                </>
+              ) : (
+                <>
+                  <li>1. Measure chest at the fullest point while standing naturally.</li>
+                  <li>2. Measure waist above the hipbone with relaxed posture.</li>
+                  <li>3. Measure hips around the fullest part of the seat.</li>
+                  <li>4. For sneakers, Nairobi customers usually size true unless wearing thick socks.</li>
+                </>
+              )}
             </ol>
 
             <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950 dark:border-orange-400/30 dark:bg-orange-500/10 dark:text-orange-100">
-              <p className="font-semibold">Average fit insight</p>
+              <p className="font-semibold">{isFootwear ? "Footwear fit insight" : "Average fit insight"}</p>
               <p className="mt-1 leading-6">
-                Streetwear pieces run relaxed. If you are shopping bombers, hoodies, or cargos for a
-                boxier silhouette, one size up tends to feel best.
+                {isFootwear
+                  ? "Top footwear stores usually anchor sizing on heel-to-toe length, not clothing measurements. Narrow fits can stay true to size, while wide feet usually feel better going up half a step where available."
+                  : "Streetwear pieces run relaxed. If you are shopping bombers, hoodies, or cargos for a boxier silhouette, one size up tends to feel best."}
               </p>
             </div>
           </div>
@@ -61,7 +74,7 @@ export function SizeGuideDialog() {
             <table className="min-w-[420px] w-full text-sm">
               <thead className="bg-zinc-100 text-left text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
                 <tr>
-                  {["Size", "Chest", "Waist", "Hip"].map((heading) => (
+                  {headings.map((heading) => (
                     <th key={heading} className="px-4 py-3 font-semibold">
                       {heading}
                     </th>

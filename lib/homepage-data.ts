@@ -6,6 +6,8 @@ import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import { getActiveCategories } from "@/lib/category-service";
 import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
+import { getPublishedBlogPosts } from "@/lib/blog-service";
+import { getActiveHeroSlides, getDefaultHeroSlides } from "@/lib/hero-slide-service";
 import { getPromoBanners } from "@/lib/promo-banner-service";
 import { getStoreSettings as getPersistedStoreSettings } from "@/lib/store-settings";
 import { getWhatsAppSettings as getPersistedWhatsAppSettings } from "@/lib/whatsapp-service";
@@ -14,6 +16,7 @@ import type { HeroSlide, Product } from "@/types";
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
 const STATIC_STORE_DATA_REVALIDATE_SECONDS = 900;
+let lastKnownHomepageHeroSlides: HeroSlide[] = [];
 
 export type HomepageProductSectionsData = {
   featured: Product[];
@@ -41,6 +44,7 @@ const HOMEPAGE_PRODUCT_VARIANT_SELECT = {
   size: true,
   stock: true,
   price: true,
+  variantImageUrl: true,
 } satisfies Prisma.VariantSelect;
 
 const HOMEPAGE_PRODUCT_SELECT = {
@@ -53,6 +57,7 @@ const HOMEPAGE_PRODUCT_SELECT = {
   gender: true,
   tags: true,
   basePrice: true,
+  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,
@@ -179,32 +184,22 @@ export const getCachedHeroSlides = unstable_cache(
   async (): Promise<HeroSlide[]> => {
     try {
       if (shouldSkipLiveDataDuringBuild()) {
-        return [];
+        return getDefaultHeroSlides();
+      }
+      const slides = await getActiveHeroSlides();
+      if (slides.length > 0) {
+        lastKnownHomepageHeroSlides = slides;
+        return slides;
       }
 
-      const slides = await prisma.heroSlide.findMany({
-        where: { isActive: true },
-        orderBy: { order: "asc" },
-        select: {
-          id: true,
-          title: true,
-          subtitle: true,
-          imageUrl: true,
-          ctaText: true,
-          ctaLink: true,
-          moodTags: true,
-          locationBadge: true,
-          order: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      return slides as HeroSlide[];
+      return lastKnownHomepageHeroSlides.length > 0
+        ? lastKnownHomepageHeroSlides
+        : getDefaultHeroSlides();
     } catch (error) {
       console.error("[HeroSlides] DB error, using fallback:", error);
-      return [];
+      return lastKnownHomepageHeroSlides.length > 0
+        ? lastKnownHomepageHeroSlides
+        : getDefaultHeroSlides();
     }
   },
   ["hero-slides"],
@@ -323,16 +318,22 @@ export const getCachedStoreSettings = unstable_cache(
   async () => {
     try {
       if (shouldSkipLiveDataDuringBuild()) {
-        return null;
+        return await getPersistedStoreSettings({
+          seedIfEmpty: true,
+          fallbackOnError: true,
+        });
       }
 
       return await getPersistedStoreSettings({
         seedIfEmpty: true,
-        fallbackOnError: false,
+        fallbackOnError: true,
       });
     } catch (error) {
-      console.error("[StoreSettings] DB error, returning null:", error);
-      return null;
+      console.error("[StoreSettings] DB error, returning fallback:", error);
+      return await getPersistedStoreSettings({
+        seedIfEmpty: true,
+        fallbackOnError: true,
+      });
     }
   },
   ["store-settings"],
@@ -380,16 +381,22 @@ export const getCachedWhatsAppSettings = unstable_cache(
   async () => {
     try {
       if (shouldSkipLiveDataDuringBuild()) {
-        return null;
+        return await getPersistedWhatsAppSettings({
+          seedIfEmpty: true,
+          fallbackOnError: true,
+        });
       }
 
       return await getPersistedWhatsAppSettings({
         seedIfEmpty: true,
-        fallbackOnError: false,
+        fallbackOnError: true,
       });
     } catch (error) {
-      console.error("[WhatsAppSettings] DB error, returning null:", error);
-      return null;
+      console.error("[WhatsAppSettings] DB error, returning fallback:", error);
+      return await getPersistedWhatsAppSettings({
+        seedIfEmpty: true,
+        fallbackOnError: true,
+      });
     }
   },
   ["whatsapp-settings"],
@@ -399,16 +406,14 @@ export const getCachedWhatsAppSettings = unstable_cache(
 export const getCachedSocialLinks = unstable_cache(
   async () => {
     try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return [];
-      }
-
       return await getPersistedSocialLinks({
         seedIfEmpty: true,
       });
     } catch (error) {
-      console.error("[SocialLinks] DB error, returning empty list:", error);
-      return [];
+      console.error("[SocialLinks] DB error, returning fallback list:", error);
+      return await getPersistedSocialLinks({
+        seedIfEmpty: true,
+      });
     }
   },
   ["social-links"],
@@ -419,18 +424,13 @@ export const getCachedHomepageBlogPosts = unstable_cache(
   async () => {
     try {
       if (shouldSkipLiveDataDuringBuild()) {
-        return [];
+        return await getPublishedBlogPosts(4);
       }
 
-      return await prisma.blog.findMany({
-        where: { isPublished: true },
-        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-        take: 4,
-        select: HOMEPAGE_BLOG_POST_SELECT,
-      });
+      return await getPublishedBlogPosts(4);
     } catch (error) {
       console.error("[HomepageBlogPosts] DB error, using fallback:", error);
-      return [];
+      return await getPublishedBlogPosts(4);
     }
   },
   ["homepage-blog-posts"],

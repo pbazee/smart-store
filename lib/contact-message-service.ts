@@ -1,6 +1,5 @@
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
-import { ensureContactMessageStorage } from "@/lib/runtime-schema-repair";
 import {
   sendContactMessageNotification,
   sendContactReply,
@@ -48,7 +47,6 @@ export async function createContactMessage(
     return message;
   }
 
-  await ensureContactMessageStorage();
 
   const message = (await prisma.contactMessage.create({
     data,
@@ -86,7 +84,6 @@ export async function getAdminContactMessages(): Promise<ContactMessage[]> {
     );
   }
 
-  await ensureContactMessageStorage();
 
   return getCachedAdminContactMessages();
 }
@@ -118,7 +115,6 @@ export async function replyToContactMessage(
     return updated;
   }
 
-  await ensureContactMessageStorage();
 
   const message = await prisma.contactMessage.findUnique({
     where: { id: input.id },

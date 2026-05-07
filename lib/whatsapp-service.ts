@@ -4,6 +4,7 @@ import {
   DEFAULT_WHATSAPP_SETTINGS,
 } from "@/lib/default-whatsapp-settings";
 import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import {
   encodePersistedWhatsAppMessage,
   getWhatsAppSettingsFallback as getSharedWhatsAppSettingsFallback,
@@ -114,11 +115,16 @@ export async function getWhatsAppSettings(options: {
         : null;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error("[WhatsAppSettings] Query failed:", errorMsg, {
+      const metadata = {
         dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
         seedIfEmpty,
         fallbackOnError,
-      });
+      };
+      if (isPrismaConnectionError(error)) {
+        console.warn("[WhatsAppSettings] Database unavailable, returning fallback settings.", metadata);
+      } else {
+        console.error("[WhatsAppSettings] Query failed:", errorMsg, metadata);
+      }
 
       if (fallbackOnError) {
         return getWhatsAppSettingsFallback();

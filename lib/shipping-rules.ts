@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { ensureShippingRuleStorage } from "@/lib/runtime-schema-repair";
 import type { ShippingRule } from "@/types";
 
 export const SHIPPING_ZONES_CACHE_TAG = "shipping-zones";
@@ -62,7 +61,6 @@ function formatMatch(rule: ShippingRule, subtotal: number, county: string): Ship
 }
 
 async function loadShippingRules(activeOnly: boolean) {
-  await ensureShippingRuleStorage();
 
   const rules = await prisma.shippingRule.findMany({
     where: activeOnly ? { isActive: true } : undefined,
@@ -118,7 +116,6 @@ export async function getShippingQuote(input: ShippingInput) {
 }
 
 export async function upsertShippingZones(zones: Array<Partial<ShippingRule>>) {
-  await ensureShippingRuleStorage();
 
   return prisma.$transaction(async (tx) => {
     await tx.shippingRule.deleteMany({});
@@ -152,6 +149,5 @@ export async function upsertShippingZones(zones: Array<Partial<ShippingRule>>) {
 }
 
 export async function deleteShippingZone(id: number) {
-  await ensureShippingRuleStorage();
   return prisma.shippingRule.delete({ where: { id } });
 }

@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { ensurePopupStorage } from "@/lib/runtime-schema-repair";
 import type { Popup } from "@/types";
 
 function isPopupActive(popup: Popup, now = new Date()) {
@@ -15,7 +14,6 @@ function isPopupActive(popup: Popup, now = new Date()) {
 }
 
 export async function getPopups() {
-  await ensurePopupStorage();
   const popups = await prisma.popup.findMany({
     orderBy: { createdAt: "desc" },
   });
@@ -24,7 +22,6 @@ export async function getPopups() {
 }
 
 export async function getActivePopups() {
-  await ensurePopupStorage();
   const popups = await prisma.popup.findMany({
     where: {
       isActive: true,

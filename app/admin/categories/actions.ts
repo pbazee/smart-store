@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { CATEGORY_CACHE_TAG, getAllCategories } from "@/lib/category-service";
-import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 
 const categorySchema = z.object({
   id: z.string().optional(),
@@ -42,7 +41,8 @@ export async function fetchCategoriesAction() {
   await ensureAdmin();
   try {
     return await getCachedAllAdminCategories();
-  } catch {
+  } catch (error) {
+    console.error("[AdminCategories] Failed to load categories:", error);
     return [];
   }
 }
@@ -70,14 +70,14 @@ export async function fetchTopLevelCategoriesAction() {
     }
 
     return [];
-  } catch {
+  } catch (error) {
+    console.error("[AdminCategories] Failed to load top-level categories:", error);
     return [];
   }
 }
 
 export async function upsertCategoryAction(input: z.infer<typeof categorySchema>) {
   await ensureAdmin();
-  await ensureCategoryHomepageFields();
   const data = categorySchema.parse(input);
   const category = await prisma.category.upsert({
     where: { id: data.id ?? "" },

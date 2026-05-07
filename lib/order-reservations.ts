@@ -66,6 +66,21 @@ export async function releaseOrderReservationInTransaction(
 
   for (const item of order.items) {
     if (!item.variantId) {
+      const product = await tx.product.findUnique({
+        where: { id: item.productId },
+        select: { baseStock: true },
+      });
+
+      if (product?.baseStock != null) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            baseStock: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
       continue;
     }
 

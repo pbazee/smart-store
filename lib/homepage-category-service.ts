@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { getActiveCategories, getChildCategories } from "@/lib/category-service";
-import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 import { slugify } from "@/lib/utils";
 import type { Category, HomepageCategory } from "@/types";
 
@@ -55,7 +54,6 @@ export async function getHomepageCategories(
   const { activeOnly = false } = options;
   const loadCategories = async () => {
     try {
-      await ensureCategoryHomepageFields();
 
       const categories = await getActiveCategories();
       const homepageCategories = categories

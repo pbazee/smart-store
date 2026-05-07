@@ -15,7 +15,7 @@ export default async function AdminProductsPage({
   const pageNum = Math.max(1, parseInt(page));
   const limitNum = Math.max(1, parseInt(limit));
 
-  const [products, total, categories, invalidProductCount] = await Promise.all([
+  const [productsResult, totalResult, categoriesResult, invalidCountResult] = await Promise.allSettled([
     fetchAdminProducts({ 
         skip: (pageNum - 1) * limitNum, 
         take: limitNum,
@@ -25,6 +25,25 @@ export default async function AdminProductsPage({
     fetchCategoriesAction(),
     fetchInvalidAdminProductCount(),
   ]);
+
+  if (productsResult.status === "rejected") {
+    console.error("[AdminProductsPage] Failed to load products:", productsResult.reason);
+  }
+  if (totalResult.status === "rejected") {
+    console.error("[AdminProductsPage] Failed to load product count:", totalResult.reason);
+  }
+  if (categoriesResult.status === "rejected") {
+    console.error("[AdminProductsPage] Failed to load categories:", categoriesResult.reason);
+  }
+  if (invalidCountResult.status === "rejected") {
+    console.error("[AdminProductsPage] Failed to load invalid product count:", invalidCountResult.reason);
+  }
+
+  const products = productsResult.status === "fulfilled" ? productsResult.value : [];
+  const total = totalResult.status === "fulfilled" ? totalResult.value : 0;
+  const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
+  const invalidProductCount =
+    invalidCountResult.status === "fulfilled" ? invalidCountResult.value : 0;
 
   return (
     <ProductsManager

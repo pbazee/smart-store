@@ -22,6 +22,8 @@ function createCartVariantSnapshot(variant: ProductVariant): ProductVariant {
     size: variant.size,
     stock: Math.max(0, normalizeNumber(variant.stock, 0)),
     price: Math.max(0, normalizeNumber(variant.price, 0)),
+    variantImageUrl: variant.variantImageUrl ?? null,
+    isDefault: Boolean(variant.isDefault),
   };
 }
 
@@ -40,6 +42,7 @@ function createCartProductSnapshot(
     gender: product.gender,
     tags: [],
     basePrice: variant.price || product.basePrice,
+    baseStock: product.baseStock ?? null,
     images: product.images.filter(Boolean).slice(0, 1),
     variants: [variant],
     rating: normalizeNumber(product.rating, 0),

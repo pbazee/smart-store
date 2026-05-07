@@ -41,6 +41,7 @@ model Product {
   gender        String
   tags          String[]
   basePrice     Int
+  baseStock     Int?
   images        String[]
   rating        Float                    @default(0)
   reviewCount   Int                      @default(0)
@@ -55,6 +56,7 @@ model Product {
   overrides     LandingSectionOverride[]
   categoryRef   Category?                @relation(fields: [categoryId], references: [id])
   reviews       Review[]
+  restockNotifications RestockNotification[]
   variants      Variant[]
   wishlists     WishlistItem[]
 
@@ -265,10 +267,30 @@ model Variant {
   size      String
   stock     Int     @default(0)
   price     Int
+  variantImageUrl String?
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  restockNotifications RestockNotification[]
 
   @@index([productId])
+}
+
+model RestockNotification {
+  id        String   @id @default(cuid())
+  email     String
+  phone     String?
+  productId String
+  variantId String?
+  sizeName  String?
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([email, productId, variantId, sizeName])
+  @@index([productId, notified, createdAt])
+  @@index([variantId, notified, createdAt])
+  @@index([notified, createdAt])
 }
 
 model Order {

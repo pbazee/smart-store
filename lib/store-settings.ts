@@ -3,7 +3,6 @@ import "server-only";
 import { DEFAULT_STORE_SETTINGS } from "@/lib/default-store-settings";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
-import { ensureStoreSettingsStorage } from "@/lib/runtime-schema-repair";
 import type { StoreSettings } from "@/types";
 
 export const STORE_SETTINGS_CACHE_TAG = "store-settings";
@@ -76,7 +75,6 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
 
   const request = (async () => {
     try {
-      await ensureStoreSettingsStorage();
 
       const settings = await prisma.storeSettings.findFirst({
         orderBy: { id: "asc" },
@@ -142,7 +140,6 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
 }
 
 export async function upsertStoreSettings(input: StoreSettingsInput) {
-  await ensureStoreSettingsStorage();
 
   const data = {
     storeName: normalizeOptionalText(input.storeName),

@@ -8,6 +8,7 @@ type HeroSlideQueryOptions = {
 };
 
 const HOMEPAGE_REVALIDATE_SECONDS = 60;
+let lastKnownHeroSlides: HeroSlide[] = [];
 
 function normalizeMoodTags(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -53,15 +54,32 @@ export function getDefaultHeroSlides() {
   return DEFAULT_HERO_SLIDE_SEEDS.map((seed) => createHeroSlideSeed(seed));
 }
 
+function rememberHeroSlides(slides: HeroSlide[]) {
+  if (slides.length > 0) {
+    lastKnownHeroSlides = slides;
+  }
+
+  return slides;
+}
+
+function getHeroSlidesFallback() {
+  return lastKnownHeroSlides.length > 0 ? lastKnownHeroSlides : getDefaultHeroSlides();
+}
+
 export async function getHeroSlides(options: HeroSlideQueryOptions = {}): Promise<HeroSlide[]> {
   const { activeOnly = false } = options;
   const loadSlides = async () => {
-    const slides = await prisma.heroSlide.findMany({
-      where: activeOnly ? { isActive: true } : undefined,
-      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-    });
+    try {
+      const slides = await prisma.heroSlide.findMany({
+        where: activeOnly ? { isActive: true } : undefined,
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      });
 
-    return slides.map((slide) => normalizeHeroSlideRecord(slide));
+      return rememberHeroSlides(slides.map((slide) => normalizeHeroSlideRecord(slide)));
+    } catch (error) {
+      console.error("[HeroSlides] Lookup failed:", error);
+      return getHeroSlidesFallback();
+    }
   };
 
   if (activeOnly) {

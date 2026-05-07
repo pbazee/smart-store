@@ -19,7 +19,6 @@ export async function getWishlistCount(userId: string) {
 
 export async function getWishlistProducts(userId: string): Promise<Product[]> {
   const ids = await getWishlistProductIds(userId);
-
   return (await prisma.product.findMany({
     where: buildValidCatalogProductWhere({
       id: { in: ids },

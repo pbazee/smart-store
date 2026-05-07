@@ -12,8 +12,15 @@ import {
   buildValidCatalogProductWhere,
   resolveAdminProductCatalogAssignment,
 } from "@/lib/product-integrity";
+import {
+  deleteProductVariantImage,
+  deleteStoreAsset,
+  uploadProductVariantImage,
+  uploadStoreAsset,
+} from "@/lib/supabase-storage";
 import { slugify } from "@/lib/utils";
 import { getChildCategories } from "@/lib/category-service";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import type { Category, Product } from "@/types";
 
 const adminVariantSchema = z.object({
@@ -23,6 +30,7 @@ const adminVariantSchema = z.object({
   size: z.string().min(1, "Size is required"),
   stock: z.number().int().nonnegative(),
   price: z.number().int().positive(),
+  variantImageUrl: z.string().trim().optional().nullable(),
 });
 
 const adminProductSchema = z.object({
@@ -35,6 +43,7 @@ const adminProductSchema = z.object({
   categoryId: z.string().optional().nullable(),
   gender: z.enum(["men", "women", "unisex", "children"]),
   basePrice: z.number().int().positive(),
+  baseStock: z.number().int().nonnegative().nullable().optional(),
   images: z.array(z.string().min(1)).min(1, "At least one image is required"),
   tags: z.array(z.string()).default([]),
   isFeatured: z.boolean().default(false),
@@ -42,8 +51,8 @@ const adminProductSchema = z.object({
   isPopular: z.boolean().default(false),
   isTrending: z.boolean().default(false),
   isRecommended: z.boolean().default(false),
-  variants: z.array(adminVariantSchema).min(1, "Add at least one variant"),
-});
+  variants: z.array(adminVariantSchema).default([]),
+}).passthrough();
 
 const adminProductListSelect = {
   id: true,
@@ -56,6 +65,7 @@ const adminProductListSelect = {
   gender: true,
   tags: true,
   basePrice: true,
+  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,
@@ -74,6 +84,7 @@ const adminProductListSelect = {
       size: true,
       stock: true,
       price: true,
+      variantImageUrl: true,
     },
   },
 } as const;
@@ -100,6 +111,7 @@ function revalidateCatalogPaths() {
 async function normalizeAdminProductInput(input: AdminProductInput) {
   const catalogAssignment = await resolveAdminProductCatalogAssignment({
     categoryId: input.categoryId ?? null,
+    category: input.category,
     subcategory: input.subcategory,
   });
 
@@ -125,34 +137,52 @@ export async function fetchAdminProducts(params?: { skip?: number; take?: number
   await ensureAdmin();
   const { skip, take, search } = params || {};
 
-  return (await prisma.product.findMany({
-    where: search 
-      ? buildValidCatalogProductWhere({
-          OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { slug: { contains: search, mode: "insensitive" } },
-          ],
-        })
-      : buildValidCatalogProductWhere(),
-    orderBy: { createdAt: "desc" },
-    skip,
-    take,
-    select: adminProductListSelect,
-  })) as Product[];
+  try {
+    return (await prisma.product.findMany({
+      where: search 
+        ? buildValidCatalogProductWhere({
+            OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { slug: { contains: search, mode: "insensitive" } },
+            ],
+          })
+        : buildValidCatalogProductWhere(),
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+      select: adminProductListSelect,
+    })) as Product[];
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.warn("[AdminProducts] Database unavailable, returning empty product list.");
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 export async function fetchAdminProductCount(search?: string) {
     await ensureAdmin();
-    return prisma.product.count({
-        where: search 
-          ? buildValidCatalogProductWhere({
-              OR: [
-                  { name: { contains: search, mode: "insensitive" } },
-                  { slug: { contains: search, mode: "insensitive" } },
-              ],
-            })
-          : buildValidCatalogProductWhere(),
-    });
+    try {
+      return await prisma.product.count({
+          where: search 
+            ? buildValidCatalogProductWhere({
+                OR: [
+                    { name: { contains: search, mode: "insensitive" } },
+                    { slug: { contains: search, mode: "insensitive" } },
+                ],
+              })
+            : buildValidCatalogProductWhere(),
+      });
+    } catch (error) {
+      if (isPrismaConnectionError(error)) {
+        console.warn("[AdminProducts] Database unavailable, returning product count 0.");
+        return 0;
+      }
+
+      throw error;
+    }
 }
 
 export async function fetchInvalidAdminProductCount() {
@@ -173,6 +203,63 @@ export async function fetchHomepageSubcategoriesAction(
   }
 
   return getChildCategories(parentCategoryId);
+}
+
+export async function uploadProductVariantImageAction(formData: FormData) {
+  await ensureAdmin();
+  const file = formData.get("file");
+  const productId = z.string().trim().min(1).parse(formData.get("productId"));
+  const variantId = z.string().trim().min(1).parse(formData.get("variantId"));
+
+  if (!(file instanceof File)) {
+    throw new Error("Please choose an image to upload.");
+  }
+
+  if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Please use a JPG, PNG, or WebP image.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image too large — please use an image under 5MB");
+  }
+
+  const imageUrl = await uploadProductVariantImage(file, productId, variantId);
+  return { imageUrl };
+}
+
+export async function uploadProductImageAction(formData: FormData) {
+  await ensureAdmin();
+  const file = formData.get("file");
+  const productId = z.string().trim().min(1).parse(formData.get("productId"));
+
+  if (!(file instanceof File)) {
+    throw new Error("Please choose an image to upload.");
+  }
+
+  if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Please use a JPG, PNG, or WebP image.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image too large - please use an image under 5MB");
+  }
+
+  const imageUrl = await uploadStoreAsset(file, "product-image", `products/${productId}`);
+  return { imageUrl };
+}
+
+export async function cleanupProductVariantImageAction(imageUrl: string) {
+  await ensureAdmin();
+  const normalizedImageUrl = z.string().trim().min(1).parse(imageUrl);
+  await deleteProductVariantImage(normalizedImageUrl);
+  return { cleaned: true };
+}
+
+export async function cleanupProductImageAction(imageUrl: string) {
+  await ensureAdmin();
+  const normalizedImageUrl = z.string().trim().min(1).parse(imageUrl);
+  await deleteStoreAsset(normalizedImageUrl);
+  return { cleaned: true };
 }
 
 export async function createAdminProductAction(input: AdminProductInput) {
@@ -209,6 +296,7 @@ export async function updateAdminProductAction(input: AdminProductInput) {
       gender: normalizedData.gender,
       tags: normalizedData.tags,
       basePrice: normalizedData.basePrice,
+      baseStock: normalizedData.baseStock ?? null,
       images: normalizedData.images,
       isFeatured: normalizedData.isFeatured,
       isNew: normalizedData.isNew,
@@ -223,6 +311,7 @@ export async function updateAdminProductAction(input: AdminProductInput) {
           size: variant.size,
           stock: variant.stock,
           price: variant.price,
+          variantImageUrl: variant.variantImageUrl ?? null,
         })),
       },
     },

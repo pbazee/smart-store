@@ -10,11 +10,30 @@ type BlogQueryOptions = {
 
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 
+const defaultBlogPostFallback = DEFAULT_BLOG_POST_SEEDS.map((seed) => createBlogSeed(seed));
+let lastKnownBlogPosts: BlogPost[] = defaultBlogPostFallback;
+
+function rememberBlogPosts(posts: BlogPost[]) {
+  if (posts.length > 0) {
+    lastKnownBlogPosts = posts;
+  }
+
+  return posts;
+}
+
+function getBlogPostFallbackBySlug(slug: string) {
+  return (
+    lastKnownBlogPosts.find((post) => post.slug === slug) ??
+    defaultBlogPostFallback.find((post) => post.slug === slug) ??
+    null
+  );
+}
+
 export async function getBlogPosts(options: BlogQueryOptions = {}): Promise<BlogPost[]> {
   const { publishedOnly = false, take, fallbackOnError = false } = options;
 
   if (shouldSkipLiveDataDuringBuild()) {
-    return DEFAULT_BLOG_POST_SEEDS.map((seed) => createBlogSeed(seed));
+    return rememberBlogPosts(defaultBlogPostFallback);
   }
 
   try {
@@ -24,15 +43,15 @@ export async function getBlogPosts(options: BlogQueryOptions = {}): Promise<Blog
       take,
     });
 
-    return posts as BlogPost[];
+    return rememberBlogPosts(posts as BlogPost[]);
   } catch (error) {
     console.error("Blog lookup failed:", error);
 
     if (fallbackOnError) {
-      return DEFAULT_BLOG_POST_SEEDS.map((seed) => createBlogSeed(seed));
+      return rememberBlogPosts(lastKnownBlogPosts.length > 0 ? lastKnownBlogPosts : defaultBlogPostFallback);
     }
 
-    return [];
+    return lastKnownBlogPosts;
   }
 }
 
@@ -46,13 +65,26 @@ export async function getPublishedBlogPosts(take?: number) {
 
 export async function getBlogPostBySlug(slug: string) {
   try {
+    if (shouldSkipLiveDataDuringBuild()) {
+      return getBlogPostFallbackBySlug(slug);
+    }
+
     const post = await prisma.blog.findUnique({
       where: { slug },
     });
 
-    return (post as BlogPost | null) ?? null;
+    const resolvedPost = (post as BlogPost | null) ?? getBlogPostFallbackBySlug(slug);
+    if (resolvedPost) {
+      rememberBlogPosts(
+        Array.from(
+          new Map([...lastKnownBlogPosts, resolvedPost].map((entry) => [entry.slug, entry])).values()
+        )
+      );
+    }
+
+    return resolvedPost;
   } catch (error) {
     console.error("Blog lookup by slug failed:", error);
-    return null;
+    return getBlogPostFallbackBySlug(slug);
   }
 }

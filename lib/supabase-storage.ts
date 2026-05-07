@@ -8,6 +8,8 @@ const DEFAULT_POPUP_IMAGE_BUCKET =
   process.env.SUPABASE_POPUP_IMAGE_BUCKET || "popup-images";
 const DEFAULT_STORE_ASSETS_BUCKET =
   process.env.SUPABASE_STORE_ASSETS_BUCKET || "store-assets";
+const DEFAULT_PRODUCT_VARIANTS_BUCKET =
+  process.env.SUPABASE_PRODUCT_VARIANTS_BUCKET || "product-variants";
 const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024;
 
 function getSupabaseUrl() {
@@ -61,14 +63,51 @@ export function getStoreAssetsBucketName() {
   return DEFAULT_STORE_ASSETS_BUCKET;
 }
 
+export function getProductVariantsBucketName() {
+  return DEFAULT_PRODUCT_VARIANTS_BUCKET;
+}
+
+async function ensureBucketExists(bucket: string) {
+  const supabaseUrl = getSupabaseUrl();
+  const storageKey = getSupabaseStorageKey();
+
+  if (!supabaseUrl || !storageKey) {
+    return false;
+  }
+
+  const response = await fetch(`${supabaseUrl}/storage/v1/bucket`, {
+    method: "POST",
+    headers: {
+      apikey: storageKey,
+      Authorization: `Bearer ${storageKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: bucket,
+      name: bucket,
+      public: true,
+    }),
+    cache: "no-store",
+  });
+
+  if (response.ok || response.status === 409) {
+    return true;
+  }
+
+  const body = await response.text();
+  throw new Error(body || `Failed to create bucket ${bucket}.`);
+}
+
 async function uploadImageToBucket(input: {
   file: File;
   bucket: string;
   fallbackName: string;
   contextLabel: string;
   folder?: string;
+  objectPathOverride?: string;
+  upsert?: boolean;
 }) {
-  const { file, bucket, fallbackName, contextLabel, folder } = input;
+  const { file, bucket, fallbackName, contextLabel, folder, objectPathOverride, upsert } = input;
 
   if (file.size > MAX_UPLOAD_FILE_SIZE) {
     throw new Error("Please upload an image smaller than 5MB.");
@@ -84,16 +123,18 @@ async function uploadImageToBucket(input: {
   }
 
   const fileName = `${Date.now()}-${crypto.randomUUID()}-${sanitizeFileName(file.name, fallbackName)}`;
-  const objectPath = folder ? `${folder.replace(/^\/+|\/+$/g, "")}/${fileName}` : fileName;
+  const objectPath =
+    objectPathOverride ||
+    (folder ? `${folder.replace(/^\/+|\/+$/g, "")}/${fileName}` : fileName);
 
   try {
-    const response = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`, {
+    let response = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`, {
       method: "POST",
       headers: {
         apikey: storageKey,
         Authorization: `Bearer ${storageKey}`,
         "Content-Type": mimeType,
-        "x-upsert": "false",
+        "x-upsert": upsert ? "true" : "false",
       },
       body: buffer,
       cache: "no-store",
@@ -101,12 +142,32 @@ async function uploadImageToBucket(input: {
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(body || "Supabase storage upload failed.");
+      if (response.status === 404 && body.includes("Bucket not found")) {
+        await ensureBucketExists(bucket);
+        response = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`, {
+          method: "POST",
+          headers: {
+            apikey: storageKey,
+            Authorization: `Bearer ${storageKey}`,
+            "Content-Type": mimeType,
+            "x-upsert": upsert ? "true" : "false",
+          },
+          body: buffer,
+          cache: "no-store",
+        });
+      }
+
+      if (!response.ok) {
+        const retryBody = await response.text();
+        throw new Error(retryBody || body || "Supabase storage upload failed.");
+      }
     }
 
     return getPublicObjectUrl(bucket, objectPath);
   } catch (error) {
-    console.error(`Supabase ${contextLabel} upload failed, using inline fallback:`, error);
+    const message = error instanceof Error ? error.message : String(error);
+    const log = message.includes("Bucket not found") ? console.warn : console.error;
+    log(`Supabase ${contextLabel} upload failed, using inline fallback:`, error);
     return createInlineImageDataUrl(buffer, mimeType);
   }
 }
@@ -247,5 +308,30 @@ export async function deleteStoreAsset(imageUrl?: string | null) {
     imageUrl,
     bucket: DEFAULT_STORE_ASSETS_BUCKET,
     contextLabel: "Store asset",
+  });
+}
+
+export async function uploadProductVariantImage(file: File, productId: string, variantId: string) {
+  const sanitizedProductId =
+    productId.toLowerCase().replace(/[^a-z0-9-_]+/g, "-").replace(/^-+|-+$/g, "") || "draft";
+  const sanitizedVariantId =
+    variantId.toLowerCase().replace(/[^a-z0-9-_]+/g, "-").replace(/^-+|-+$/g, "") || "variant";
+  const sanitizedFileName = sanitizeFileName(file.name, "variant-image");
+
+  return uploadImageToBucket({
+    file,
+    bucket: DEFAULT_PRODUCT_VARIANTS_BUCKET,
+    fallbackName: "variant-image",
+    contextLabel: "product variant",
+    objectPathOverride: `product-variants/${sanitizedProductId}/${sanitizedVariantId}-${sanitizedFileName}`,
+    upsert: true,
+  });
+}
+
+export async function deleteProductVariantImage(imageUrl?: string | null) {
+  return deleteImageFromBucket({
+    imageUrl,
+    bucket: DEFAULT_PRODUCT_VARIANTS_BUCKET,
+    contextLabel: "Product variant",
   });
 }

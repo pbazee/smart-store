@@ -2,6 +2,7 @@ import type { SessionUser } from "@/types";
 import { resolveAuthenticatedRole } from "@/lib/admin-identity";
 import { getLocalAuthSession } from "@/lib/local-auth";
 import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { normalizeUserRole } from "@/lib/user-role";
 
@@ -56,7 +57,11 @@ export async function getSessionUser(): Promise<SessionUser | null> {
         role = normalizeUserRole(persistedUser.role);
       }
     } catch (error) {
-      console.error("Failed to resolve persisted Supabase role:", error);
+      if (isPrismaConnectionError(error)) {
+        console.warn("[SessionUser] Skipping persisted role lookup because the database pool is busy.");
+      } else {
+        console.error("Failed to resolve persisted Supabase role:", error);
+      }
     }
   }
 

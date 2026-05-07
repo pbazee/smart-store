@@ -6,7 +6,6 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { getPopups } from "@/lib/popup-service";
 import { prisma } from "@/lib/prisma";
-import { ensurePopupStorage } from "@/lib/runtime-schema-repair";
 import { deletePopupImage, uploadPopupImage } from "@/lib/supabase-storage";
 import type { Popup } from "@/types";
 
@@ -82,7 +81,7 @@ function normalizePopupInput(input: AdminPopupInput) {
 
 function revalidatePopupPaths() {
   revalidateTag('popups');
-  revalidateTag('homepage-shell');
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");
@@ -92,7 +91,6 @@ function revalidatePopupPaths() {
 
 export async function fetchAdminPopups() {
   await ensureAdmin();
-  await ensurePopupStorage();
   return getPopups();
 }
 
@@ -114,7 +112,6 @@ export async function cleanupPopupImageAction(imageUrl: string) {
 
 export async function createAdminPopupAction(input: AdminPopupInput) {
   await ensureAdmin();
-  await ensurePopupStorage();
   const data = normalizePopupInput(input);
 
   const popup = await prisma.popup.create({
@@ -137,7 +134,6 @@ export async function createAdminPopupAction(input: AdminPopupInput) {
 
 export async function updateAdminPopupAction(input: AdminPopupInput) {
   await ensureAdmin();
-  await ensurePopupStorage();
   const id = z.string().min(1).parse(input.id);
   const normalized = normalizePopupInput({ ...input, id });
 
@@ -169,7 +165,6 @@ export async function updateAdminPopupAction(input: AdminPopupInput) {
 
 export async function deleteAdminPopupAction(popupId: string) {
   await ensureAdmin();
-  await ensurePopupStorage();
   const id = z.string().min(1).parse(popupId);
 
   const existingPopup = await prisma.popup.findUnique({ where: { id } });

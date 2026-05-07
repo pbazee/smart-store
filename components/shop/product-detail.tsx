@@ -1,22 +1,46 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Heart,
+  Link,
+  MessageCircle,
   Share,
   Shield,
+  Send,
   ShoppingBag,
   Smartphone,
   Star,
   Truck,
+  Twitter,
   ZoomIn,
 } from "lucide-react";
 import { SizeGuideDialog } from "@/components/shop/size-guide-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSessionUser } from "@/hooks/use-session-user";
+import {
+  createDefaultProductVariant,
+  getBaseStockMessage,
+  hasRealVariants,
+} from "@/lib/product-stock";
+import {
+  isAgeBasedSize,
+  isFootwearProductLike,
+  isNumericSize,
+  isOneSize,
+  shouldUseCompactSizeButton,
+} from "@/lib/size-guide";
 import { useWishlistActions, useWishlistProduct } from "@/hooks/use-wishlist";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
@@ -44,30 +68,65 @@ export function ProductDetail({
   const isWishlisted = useWishlistProduct(product.id);
   const { isSignedIn, toggle } = useWishlistActions();
   const { sessionUser } = useSessionUser();
+  const [liveProduct, setLiveProduct] = useState(product);
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const [heartAnimating, setHeartAnimating] = useState(false);
+  const [pageUrl, setPageUrl] = useState("");
+  const [canUseNativeShare, setCanUseNativeShare] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState<string | null>(null);
+  const [notifyPending, setNotifyPending] = useState(false);
 
-  const initialVariant =
-    product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
-  const [selectedColor, setSelectedColor] = useState(initialVariant?.color ?? "");
-  const [selectedSize, setSelectedSize] = useState(initialVariant?.size ?? "");
+  const currentProduct = liveProduct;
+  const hasVariants = hasRealVariants(currentProduct);
+  const defaultVariant = useMemo(() => createDefaultProductVariant(currentProduct), [currentProduct]);
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
 
   const colors = useMemo(
-    () => [...new Set(product.variants.map((variant) => variant.color))],
-    [product.variants]
+    () => [...new Set(currentProduct.variants.map((variant) => variant.color))],
+    [currentProduct.variants]
   );
   const sizesForColor = useMemo(
-    () => product.variants.filter((variant) => variant.color === selectedColor),
-    [product.variants, selectedColor]
+    () => currentProduct.variants.filter((variant) => variant.color === selectedColor),
+    [currentProduct.variants, selectedColor]
   );
   const selectedVariant: ProductVariant | undefined = useMemo(
     () =>
-      product.variants.find(
+      currentProduct.variants.find(
         (variant) => variant.color === selectedColor && variant.size === selectedSize
       ),
-    [product.variants, selectedColor, selectedSize]
+    [currentProduct.variants, selectedColor, selectedSize]
   );
+  const activeVariantImageUrl = useMemo(() => {
+    if (!selectedColor) {
+      return "";
+    }
+
+    const selectedVariantImage = selectedVariant?.variantImageUrl?.trim();
+    if (selectedVariantImage) {
+      return selectedVariantImage;
+    }
+
+    return (
+      currentProduct.variants.find(
+        (variant) => variant.color === selectedColor && variant.variantImageUrl?.trim()
+      )?.variantImageUrl?.trim() || ""
+    );
+  }, [currentProduct.variants, selectedColor, selectedVariant]);
+  const displayImages = useMemo(() => {
+    if (!activeVariantImageUrl) {
+      return currentProduct.images;
+    }
+
+    return [
+      activeVariantImageUrl,
+      ...currentProduct.images.filter((image) => image !== activeVariantImageUrl),
+    ];
+  }, [activeVariantImageUrl, currentProduct.images]);
   const blurDataUrl = useMemo(
     () =>
       createBlurDataURL({
@@ -77,7 +136,61 @@ export function ProductDetail({
       }),
     []
   );
-  const averageRating = product.rating;
+  const averageRating = currentProduct.rating;
+  const isFootwearProduct = isFootwearProductLike(currentProduct);
+  const sharePrice = selectedVariant?.price ?? currentProduct.basePrice;
+  const shareSummary = `${currentProduct.name} — ${formatKES(sharePrice)} at Smartest Store KE`;
+  const shareMessage = pageUrl
+    ? `Check out ${currentProduct.name} — ${formatKES(sharePrice)} at Smartest Store KE. ${pageUrl}`
+    : `Check out ${currentProduct.name} — ${formatKES(sharePrice)} at Smartest Store KE.`;
+  const whatsappShareUrl = pageUrl
+    ? `https://wa.me/?text=${encodeURIComponent(shareMessage)}`
+    : "";
+  const twitterShareUrl = pageUrl
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareSummary)}&url=${encodeURIComponent(pageUrl)}`
+    : "";
+  const normalizedShareSummary = `${currentProduct.name} - ${formatKES(sharePrice)} at Smartest Store KE`;
+  const normalizedShareMessage = pageUrl
+    ? `Check out ${currentProduct.name} - ${formatKES(sharePrice)} at Smartest Store KE. ${pageUrl}`
+    : `Check out ${currentProduct.name} - ${formatKES(sharePrice)} at Smartest Store KE.`;
+  const normalizedWhatsappShareUrl = pageUrl
+    ? `https://wa.me/?text=${encodeURIComponent(normalizedShareMessage)}`
+    : "";
+  const normalizedTwitterShareUrl = pageUrl
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(normalizedShareSummary)}&url=${encodeURIComponent(pageUrl)}`
+    : "";
+  const uniqueSizes = useMemo(
+    () => [...new Set(sizesForColor.map((variant) => variant.size.trim()).filter(Boolean))],
+    [sizesForColor]
+  );
+  const outOfStockSizes = useMemo(
+    () => sizesForColor.filter((variant) => variant.stock === 0).map((variant) => variant.size.trim()),
+    [sizesForColor]
+  );
+  const inStockSizes = useMemo(
+    () => sizesForColor.filter((variant) => variant.stock > 0).map((variant) => variant.size.trim()),
+    [sizesForColor]
+  );
+  const sizeLabel = useMemo(() => {
+    if (uniqueSizes.length === 1 && uniqueSizes[0] && isOneSize(uniqueSizes[0])) {
+      return "One Size fits all";
+    }
+
+    if (uniqueSizes.some((size) => isAgeBasedSize(size))) {
+      return "Size (Age)";
+    }
+
+    if (isFootwearProduct || uniqueSizes.some((size) => isNumericSize(size))) {
+      return "Size (EU)";
+    }
+
+    return "Size";
+  }, [isFootwearProduct, uniqueSizes]);
+  const allSizesOutOfStock = sizesForColor.length > 0 && inStockSizes.length === 0;
+  const singleSizeRemaining =
+    inStockSizes.length === 1 && uniqueSizes.length > 1 ? inStockSizes[0] : null;
+  const baseStockMessage = hasVariants ? null : getBaseStockMessage(currentProduct.baseStock);
+  const defaultProductOutOfStock = !hasVariants && currentProduct.baseStock === 0;
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) {
@@ -95,8 +208,99 @@ export function ProductDetail({
     );
   };
 
+  useEffect(() => {
+    setLiveProduct(product);
+  }, [product]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetch(`/api/products/${product.slug}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null;
+        }
+
+        const payload = (await response.json()) as { data?: Product };
+        return payload.data ?? null;
+      })
+      .then((freshProduct) => {
+        if (cancelled || !freshProduct) {
+          return;
+        }
+
+        setLiveProduct(freshProduct);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product.slug]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setPageUrl(window.location.href);
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncShareCapability = () => {
+      setCanUseNativeShare(Boolean(window.navigator.share) && mediaQuery.matches);
+    };
+
+    syncShareCapability();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncShareCapability);
+      return () => mediaQuery.removeEventListener("change", syncShareCapability);
+    }
+
+    mediaQuery.addListener(syncShareCapability);
+    return () => mediaQuery.removeListener(syncShareCapability);
+  }, []);
+
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [activeVariantImageUrl, selectedColor]);
+
+  useEffect(() => {
+    const hasSelectedColor = currentProduct.variants.some((variant) => variant.color === selectedColor);
+    if (!selectedColor) {
+      setSelectedSize("");
+      return;
+    }
+
+    if (hasSelectedColor) {
+      const hasSelectedSize = currentProduct.variants.some(
+        (variant) => variant.color === selectedColor && variant.size === selectedSize
+      );
+      if (hasSelectedSize) {
+        return;
+      }
+
+      const nextVariant =
+        currentProduct.variants.find(
+          (variant) => variant.color === selectedColor && variant.stock > 0
+        ) ?? currentProduct.variants.find((variant) => variant.color === selectedColor);
+
+      if (nextVariant?.size) {
+        setSelectedSize(nextVariant.size);
+      }
+      return;
+    }
+  }, [currentProduct, selectedColor, selectedSize]);
+
   const handleAddToCart = () => {
-    if (!selectedVariant) {
+    const variantToAdd = hasVariants ? selectedVariant : defaultVariant;
+
+    if (hasVariants && !variantToAdd) {
       toast({
         title: "Select a size first",
         description: "Choose your fit before adding this item to cart.",
@@ -105,21 +309,23 @@ export function ProductDetail({
       return;
     }
 
-    if (selectedVariant.stock === 0) {
+    if (!variantToAdd || variantToAdd.stock === 0) {
       toast({
         title: "Out of stock",
-        description: "That size is currently unavailable.",
+        description: hasVariants ? "That size is currently unavailable." : "This item is currently unavailable.",
         variant: "destructive",
       });
       return;
     }
 
-    const result = addItem(product, selectedVariant);
+    const result = addItem(currentProduct, variantToAdd);
 
     if (result.status === "out-of-stock" || result.status === "max-stock") {
       toast({
         title: result.status === "out-of-stock" ? "Out of stock" : "Stock limit reached",
-        description: `${product.name} - ${selectedColor}, Size ${selectedSize}`,
+        description: hasVariants
+          ? `${currentProduct.name} - ${selectedColor}, Size ${selectedSize}`
+          : currentProduct.name,
         variant: "destructive",
       });
       return;
@@ -138,8 +344,48 @@ export function ProductDetail({
 
     toast({
       title: "Added to cart",
-      description: `${product.name} - ${selectedColor}, Size ${selectedSize}`,
+      description: hasVariants
+        ? `${currentProduct.name} - ${selectedColor}, Size ${selectedSize}`
+        : currentProduct.name,
     });
+  };
+
+  const handleNotifyMe = async () => {
+    if (!notifyEmail.trim()) {
+      setNotifyMessage("Please enter your email address.");
+      return;
+    }
+
+    setNotifyPending(true);
+    setNotifyMessage(null);
+
+    try {
+      const response = await fetch("/api/notify-restock", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: currentProduct.id,
+          variantId: hasVariants ? selectedVariant?.id ?? null : null,
+          email: notifyEmail.trim(),
+          phone: notifyPhone.trim() || null,
+          sizeName: hasVariants ? (selectedSize || null) : null,
+        }),
+      });
+
+      const payload = (await response.json()) as { message?: string; duplicate?: boolean };
+      setNotifyMessage(
+        payload.message ||
+          (response.ok
+            ? `We'll email you at ${notifyEmail.trim()} when this is back in stock!`
+            : "Unable to save your restock alert right now.")
+      );
+    } catch {
+      setNotifyMessage("Unable to save your restock alert right now.");
+    } finally {
+      setNotifyPending(false);
+    }
   };
 
   const handleWishlistToggle = async () => {
@@ -170,6 +416,38 @@ export function ProductDetail({
     }
   };
 
+  const openShareWindow = (shareUrl: string) => {
+    if (!shareUrl) {
+      return;
+    }
+
+    window.open(shareUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopyLink = async () => {
+    if (!pageUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(pageUrl);
+    toast({
+      title: "Copied!",
+      description: "Product link copied to your clipboard.",
+    });
+  };
+
+  const handleNativeShare = async () => {
+    if (!canUseNativeShare || !pageUrl || !navigator.share) {
+      return;
+    }
+
+    await navigator.share({
+      title: normalizedShareSummary,
+      text: normalizedShareMessage,
+      url: pageUrl,
+    });
+  };
+
   return (
     <div className="space-y-20">
       <div className="grid gap-10 lg:grid-cols-[1.05fr,0.95fr] lg:gap-16">
@@ -182,8 +460,8 @@ export function ProductDetail({
             onMouseMove={handleMouseMove}
           >
             <Image
-              src={product.images[selectedImage] || "/images/product-placeholder.png"}
-              alt={product.name}
+              src={displayImages[selectedImage] || "/images/product-placeholder.png"}
+              alt={currentProduct.name}
               fill
               priority
               placeholder="blur"
@@ -205,12 +483,13 @@ export function ProductDetail({
             />
 
             <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-              {product.isNew && (
+              {currentProduct.isNew && (
                 <span className="rounded-full bg-brand-500 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white">
                   New Arrival
                 </span>
               )}
-              {selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5 && (
+              {((hasVariants && selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5) ||
+                (!hasVariants && currentProduct.baseStock != null && currentProduct.baseStock > 0 && currentProduct.baseStock <= 5)) && (
                 <span className="rounded-full bg-amber-400/90 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-black">
                   Low stock
                 </span>
@@ -226,7 +505,7 @@ export function ProductDetail({
           </div>
 
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-            {product.images.map((image, index) => (
+            {displayImages.map((image, index) => (
               <button
                 key={`${image}-${index}`}
                 type="button"
@@ -240,7 +519,7 @@ export function ProductDetail({
               >
                 <Image
                   src={image || "/images/product-placeholder.png"}
-                  alt={`${product.name} view ${index + 1}`}
+                  alt={`${currentProduct.name} view ${index + 1}`}
                   fill
                   placeholder="blur"
                   quality={80}
@@ -256,10 +535,10 @@ export function ProductDetail({
         <div className="space-y-6">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-500">
-              {product.category} - {product.subcategory}
+              {currentProduct.category} - {currentProduct.subcategory}
             </p>
             <h1 className="mt-3 font-display text-3xl font-black leading-tight sm:text-5xl">
-              {product.name}
+              {currentProduct.name}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1">
@@ -276,7 +555,7 @@ export function ProductDetail({
                 ))}
               </div>
               <span className="text-sm text-muted-foreground">
-                {averageRating.toFixed(1)} average - {product.reviewCount} reviews
+                {averageRating.toFixed(1)} average - {currentProduct.reviewCount} reviews
               </span>
               {sessionUser?.isDemo && (
                 <span className="rounded-full border border-brand-300/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600">
@@ -287,95 +566,166 @@ export function ProductDetail({
           </div>
 
           <div className="text-3xl font-black text-brand-600">
-            {selectedVariant ? formatKES(selectedVariant.price) : formatKES(product.basePrice)}
+            {selectedVariant ? formatKES(selectedVariant.price) : formatKES(currentProduct.basePrice)}
           </div>
 
           <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-            {product.description}
+            {currentProduct.description}
           </p>
 
-          <div className="rounded-[1.75rem] border border-border bg-card p-5">
-            <div>
-              <p className="text-sm font-semibold">
-                Color <span className="text-muted-foreground">- {selectedColor}</span>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                {colors.map((color, index) => {
-                  const variant = product.variants.find((item) => item.color === color);
-                  return (
+          {hasVariants ? (
+            <div className="rounded-[1.75rem] border border-border bg-card p-5">
+              <div>
+                <p className="text-sm font-semibold">
+                  Color <span className="text-muted-foreground">- {selectedColor || "Choose a color"}</span>
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {colors.map((color) => {
+                    const variant = currentProduct.variants.find((item) => item.color === color);
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => {
+                          setSelectedColor(color);
+                          const nextVariant =
+                            currentProduct.variants.find(
+                              (item) => item.color === color && item.stock > 0
+                            ) ?? currentProduct.variants.find((item) => item.color === color);
+                          setSelectedSize(nextVariant?.size ?? "");
+                          setSelectedImage(0);
+                          setNotifyOpen(false);
+                          setNotifyMessage(null);
+                        }}
+                        className={cn(
+                          "h-11 w-11 rounded-full border-2 transition-all hover:scale-105",
+                          selectedColor === color
+                            ? "border-brand-500 ring-4 ring-brand-500/15"
+                            : "border-border"
+                        )}
+                        style={{ backgroundColor: variant?.colorHex }}
+                        aria-label={color}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">{sizeLabel}</p>
+                  <SizeGuideDialog product={currentProduct} />
+                </div>
+                {selectedColor && uniqueSizes.length === 1 && uniqueSizes[0] && isOneSize(uniqueSizes[0]) ? (
+                  <div className="mt-3 inline-flex rounded-full border border-brand-400/30 bg-brand-500/10 px-4 py-2 text-sm font-semibold text-brand-600">
+                    One Size
+                  </div>
+                ) : allSizesOutOfStock ? (
+                  <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/70">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      Currently out of stock
+                    </p>
                     <button
-                      key={color}
                       type="button"
                       onClick={() => {
-                        setSelectedColor(color);
-                        const nextVariant =
-                          product.variants.find(
-                            (item) => item.color === color && item.stock > 0
-                          ) ?? product.variants.find((item) => item.color === color);
-                        setSelectedSize(nextVariant?.size ?? "");
-                        setSelectedImage(index % product.images.length);
+                        setNotifyOpen((current) => !current);
+                        setNotifyMessage(null);
                       }}
-                      className={cn(
-                        "h-11 w-11 rounded-full border-2 transition-all hover:scale-105",
-                        selectedColor === color
-                          ? "border-brand-500 ring-4 ring-brand-500/15"
-                          : "border-border"
-                      )}
-                      style={{ backgroundColor: variant?.colorHex }}
-                      aria-label={color}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold">Size</p>
-                <SizeGuideDialog />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {sizesForColor.map((variant) => {
-                  const outOfStock = variant.stock === 0;
-
-                  return (
-                    <button
-                      key={`${variant.color}-${variant.size}`}
-                      type="button"
-                      onClick={() => !outOfStock && setSelectedSize(variant.size)}
-                      disabled={outOfStock}
-                      className={cn(
-                        "min-w-12 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all",
-                        outOfStock && "cursor-not-allowed opacity-35 line-through",
-                        selectedSize === variant.size
-                          ? "border-brand-500 bg-brand-500 text-white"
-                          : "border-border hover:border-foreground"
-                      )}
+                      className="mt-3 rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900"
                     >
-                      {variant.size}
+                      Notify me
                     </button>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {sizesForColor.map((variant) => {
+                      const outOfStock = variant.stock === 0;
+                      const compactButton = shouldUseCompactSizeButton(variant.size);
+
+                      return (
+                        <button
+                          key={`${variant.color}-${variant.size}`}
+                          type="button"
+                          onClick={() => {
+                            if (outOfStock) {
+                              return;
+                            }
+
+                            setSelectedSize(variant.size);
+                            setNotifyOpen(false);
+                            setNotifyMessage(null);
+                          }}
+                          disabled={outOfStock}
+                          className={cn(
+                            "rounded-2xl border px-4 py-3 text-sm font-semibold transition-all",
+                            compactButton ? "min-w-12" : "min-w-[3.5rem]",
+                            !compactButton && "px-5",
+                            outOfStock && "cursor-not-allowed opacity-35 line-through",
+                            selectedSize === variant.size
+                              ? "border-brand-500 bg-brand-500 text-white"
+                              : "border-border hover:border-foreground"
+                          )}
+                        >
+                          {variant.size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {singleSizeRemaining ? (
+                  <p className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+                    Only size {singleSizeRemaining} remaining
+                  </p>
+                ) : null}
+                {!singleSizeRemaining && outOfStockSizes.length > 0 && !allSizesOutOfStock ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Sizes {outOfStockSizes.join(", ")} out of stock
+                  </p>
+                ) : null}
+                {selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5 && (
+                  <p className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+                    Low stock: only {selectedVariant.stock} left in this size.
+                  </p>
+                )}
               </div>
-              {selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5 && (
-                <p className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400">
-                  Low stock: only {selectedVariant.stock} left in this size.
-                </p>
-              )}
             </div>
-          </div>
+          ) : (
+            <div className="rounded-[1.75rem] border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">
+                This product is sold as a single item with no size or color selection required.
+              </p>
+              {baseStockMessage ? (
+                <p className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {baseStockMessage}
+                </p>
+              ) : null}
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-[1fr,auto]">
-            <motion.button
-              whileTap={{ scale: 0.985 }}
-              type="button"
-              onClick={handleAddToCart}
-              className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] bg-brand-500 px-6 py-4 text-base font-bold text-white shadow-[0_14px_40px_rgba(249,115,22,0.24)] transition-colors hover:bg-brand-600"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              Add to cart -{" "}
-              {selectedVariant ? formatKES(selectedVariant.price) : formatKES(product.basePrice)}
-            </motion.button>
+            {defaultProductOutOfStock || allSizesOutOfStock ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setNotifyOpen((current) => !current);
+                  setNotifyMessage(null);
+                }}
+                className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] border border-border px-6 py-4 text-base font-bold text-foreground transition-colors hover:border-brand-300 hover:text-brand-600"
+              >
+                Notify me
+              </button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.985 }}
+                type="button"
+                onClick={handleAddToCart}
+                className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] bg-brand-500 px-6 py-4 text-base font-bold text-white shadow-[0_14px_40px_rgba(249,115,22,0.24)] transition-colors hover:bg-brand-600"
+              >
+                <ShoppingBag className="h-5 w-5" />
+                Add to cart -{" "}
+                {selectedVariant ? formatKES(selectedVariant.price) : formatKES(currentProduct.basePrice)}
+              </motion.button>
+            )}
 
             <button
               type="button"
@@ -392,6 +742,41 @@ export function ProductDetail({
               Wishlist
             </button>
           </div>
+
+          {notifyOpen ? (
+            <div className="rounded-[1.35rem] border border-border bg-card p-4">
+              <div className="flex flex-col gap-3">
+                <input
+                  type="email"
+                  value={notifyEmail}
+                  onChange={(event) => setNotifyEmail(event.target.value)}
+                  placeholder="your@email.com"
+                  className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-brand-400"
+                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Phone number (optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={notifyPhone}
+                    onChange={(event) => setNotifyPhone(event.target.value)}
+                    placeholder="+254 7XX XXX XXX"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-brand-400"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleNotifyMe()}
+                  disabled={notifyPending}
+                  className="rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {notifyPending ? "Saving..." : "Notify me"}
+                </button>
+              </div>
+              {notifyMessage ? <p className="mt-3 text-sm text-muted-foreground">{notifyMessage}</p> : null}
+            </div>
+          ) : null}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[1.35rem] border border-border bg-card p-4">
@@ -424,36 +809,81 @@ export function ProductDetail({
             </p>
           </div>
 
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => {
-              if (navigator.share) {
-                void navigator.share({
-                  title: product.name,
-                  text: product.description,
-                  url: window.location.href,
-                });
-                return;
-              }
-
-              void navigator.clipboard?.writeText(window.location.href);
-              toast({
-                title: "Link copied",
-                description: "Product link copied to your clipboard.",
-              });
-            }}
-          >
-            <Share className="h-4 w-4" />
-            Share this product
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Share className="h-4 w-4" />
+                Share this product
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-[19rem] rounded-[1.35rem] border-orange-500/30 bg-zinc-950 p-2 text-zinc-100 shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+            >
+              <DropdownMenuLabel className="text-[11px] tracking-[0.22em] text-orange-300/80">
+                Share Product
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
+                onSelect={() => openShareWindow(normalizedWhatsappShareUrl)}
+              >
+                <MessageCircle className="h-4 w-4 text-orange-400" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Share via WhatsApp</span>
+                  <span className="text-xs text-zinc-400">Preview-ready link with message</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
+                onSelect={() => openShareWindow(normalizedTwitterShareUrl)}
+              >
+                <Twitter className="h-4 w-4 text-orange-400" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Share on Twitter/X</span>
+                  <span className="text-xs text-zinc-400">Post with title, price, and link</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
+                onSelect={() => {
+                  void handleCopyLink();
+                }}
+              >
+                <Link className="h-4 w-4 text-orange-400" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Copy link</span>
+                  <span className="text-xs text-zinc-400">Copies the product URL instantly</span>
+                </div>
+              </DropdownMenuItem>
+              {canUseNativeShare ? (
+                <>
+                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuItem
+                    className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
+                    onSelect={() => {
+                      void handleNativeShare();
+                    }}
+                  >
+                    <Send className="h-4 w-4 text-orange-400" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold">More options</span>
+                      <span className="text-xs text-zinc-400">Open your device share sheet</span>
+                    </div>
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       <ReviewsPanel
-        productId={product.id}
+        productId={currentProduct.id}
         averageRating={averageRating}
-        reviewCount={product.reviewCount}
+        reviewCount={currentProduct.reviewCount}
       />
     </div>
   );

@@ -66,7 +66,7 @@ function normalizeAnnouncementInput(input: AdminAnnouncementInput) {
 
 function revalidateAnnouncementPaths() {
   revalidateTag('announcements');
-  revalidateTag('homepage-shell');
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");

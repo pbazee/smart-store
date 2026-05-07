@@ -1,61 +1,54 @@
 /**
- * Next.js Instrumentation Hook — runs ONCE when the server starts.
- *
- * Runs all schema-repair tasks sequentially at startup so that:
- *  1. The first real HTTP request is not blocked by 30+ ALTER TABLE queries.
- *  2. The globalThis-backed Map in runtime-schema-repair.ts is pre-populated,
- *     meaning every subsequent route gets an instant no-op from the Map check.
- *
- * Sequential (not parallel) to avoid exhausting the PgBouncer connection pool
- * at startup — Supabase session mode limits total concurrent connections.
+ * Next.js instrumentation hook that warms the schema-repair helpers once when
+ * the Node.js server starts.
  */
+import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
+
 export async function register() {
-  // Only run in the Node.js runtime (not Edge).
   if (process.env.NEXT_RUNTIME !== "nodejs") {
     return;
   }
 
-  // Skip during `next build` — DB may not be available and static
-  // pages use fallback data anyway.
-  if (process.env.NEXT_PHASE === "phase-production-build") {
+  // Build-time/static work should never touch live schema repair paths.
+  if (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    shouldSkipLiveDataDuringBuild()
+  ) {
     return;
   }
 
-  // Skip when using mock/demo data.
   if (process.env.USE_MOCK_DATA === "true") {
-    return;
-  }
-
-  // Runtime schema repair is expensive against pooled Postgres connections.
-  // Keep dev/startup fast and predictable unless it is explicitly requested.
-  if (process.env.ENABLE_RUNTIME_SCHEMA_REPAIR !== "true") {
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "[Instrumentation] Runtime schema repair is disabled. Set ENABLE_RUNTIME_SCHEMA_REPAIR=true to run startup repairs."
-      );
-    }
-
     return;
   }
 
   try {
     const {
+      ensureShippingRuleStorage,
+      ensureFAQStorage,
       ensureStoreSettingsStorage,
       ensureReviewStorage,
       ensureCartStorage,
       ensureHomepageCategoryStorage,
+      ensureCategoryHomepageFields,
+      ensureVariantImageField,
+      ensureProductBaseStockField,
+      ensureRestockNotificationStorage,
       ensurePromoBannerStorage,
       ensureContactMessageStorage,
       ensurePopupStorage,
     } = await import("@/lib/runtime-schema-repair");
 
-    // Run repairs one at a time to avoid saturating PgBouncer connections.
-    // Each repair is idempotent (IF NOT EXISTS / ADD COLUMN IF NOT EXISTS).
     const repairs: Array<[string, () => Promise<void>]> = [
+      ["shipping-rules", ensureShippingRuleStorage],
+      ["faq", ensureFAQStorage],
       ["store-settings", ensureStoreSettingsStorage],
       ["review", ensureReviewStorage],
       ["cart", ensureCartStorage],
       ["homepage-category", ensureHomepageCategoryStorage],
+      ["category-homepage-fields", ensureCategoryHomepageFields],
+      ["variant-image-field", ensureVariantImageField],
+      ["product-base-stock-field", ensureProductBaseStockField],
+      ["restock-notifications", ensureRestockNotificationStorage],
       ["promo-banners", ensurePromoBannerStorage],
       ["contact-message", ensureContactMessageStorage],
       ["popup", ensurePopupStorage],
@@ -64,9 +57,10 @@ export async function register() {
     for (const [name, repair] of repairs) {
       try {
         await repair();
-      } catch (err) {
-        // Non-fatal — individual services fall back gracefully.
-        console.error(`[Instrumentation] Schema repair failed for "${name}":`, err);
+      } catch (error) {
+        // Individual repairs are non-fatal; affected features can degrade
+        // gracefully while the rest of the app still boots.
+        console.error(`[Instrumentation] Schema repair failed for "${name}":`, error);
       }
     }
 

@@ -46,7 +46,7 @@ export function FooterNewsletterForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
-          className="h-12 w-full min-w-0 flex-1 rounded-full border border-zinc-800 bg-zinc-900 px-5 text-sm text-zinc-100 outline-none transition-colors focus:border-brand-400 sm:min-w-[18rem]"
+          className="h-11 w-full min-w-0 flex-1 rounded-full border border-zinc-800 bg-zinc-900 px-4 text-sm text-zinc-100 outline-none transition-colors focus:border-brand-400 sm:h-12 sm:min-w-[18rem] sm:px-5"
         />
         <button
           type="submit"

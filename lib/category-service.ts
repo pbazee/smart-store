@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 import type { Category } from "@/types";
 
 export const CATEGORY_CACHE_TAG = "categories";
@@ -36,13 +35,43 @@ const FALLBACK_CATEGORIES: Category[] = [
 
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 
+const globalForCategories = globalThis as typeof globalThis & {
+  _lastKnownActiveCategories?: Category[];
+  _lastKnownAllCategories?: Category[];
+};
+
+function cloneCategories(categories: Category[]) {
+  return categories.map((category) => ({
+    ...category,
+    createdAt: new Date(category.createdAt),
+    updatedAt: new Date(category.updatedAt),
+  }));
+}
+
+function rememberActiveCategories(categories: Category[]) {
+  globalForCategories._lastKnownActiveCategories = cloneCategories(categories);
+  return categories;
+}
+
+function rememberAllCategories(categories: Category[]) {
+  globalForCategories._lastKnownAllCategories = cloneCategories(categories);
+  return categories;
+}
+
+function getLastKnownActiveCategories() {
+  return cloneCategories(globalForCategories._lastKnownActiveCategories ?? []);
+}
+
+function getLastKnownAllCategories() {
+  return cloneCategories(globalForCategories._lastKnownAllCategories ?? []);
+}
+
 async function loadActiveCategories(): Promise<Category[]> {
   if (shouldSkipLiveDataDuringBuild()) {
-    return FALLBACK_CATEGORIES;
+    return rememberActiveCategories(FALLBACK_CATEGORIES);
   }
 
   try {
-    await ensureCategoryHomepageFields();
 
     const categories = await prisma.category.findMany({
       where: { isActive: true },
@@ -50,14 +79,20 @@ async function loadActiveCategories(): Promise<Category[]> {
     });
 
     console.log(`[Categories] Loaded ${categories.length} active categories from database`);
-    return categories as unknown as Category[];
+    return rememberActiveCategories(categories as unknown as Category[]);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("[Categories] Query failed:", errorMsg, {
       dbUrl: process.env.DATABASE_URL ? "set" : "NOT SET",
     });
-    console.warn("[Categories] Returning empty category list to avoid stale fallback data");
-    return [];
+    const lastKnown = getLastKnownActiveCategories();
+    if (lastKnown.length > 0) {
+      console.warn("[Categories] Returning last known active categories");
+      return lastKnown;
+    }
+
+    console.warn("[Categories] Returning baked fallback categories");
+    return rememberActiveCategories(FALLBACK_CATEGORIES);
   }
 }
 
@@ -78,21 +113,27 @@ export async function getActiveCategories(): Promise<Category[]> {
 
 export async function getAllCategories(): Promise<Category[]> {
   if (shouldSkipLiveDataDuringBuild()) {
-    return FALLBACK_CATEGORIES;
+    return rememberAllCategories(FALLBACK_CATEGORIES);
   }
 
   try {
-    await ensureCategoryHomepageFields();
 
     const categories = await prisma.category.findMany({
       orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
     });
 
-    return categories as Category[];
+    return rememberAllCategories(categories as Category[]);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("[Categories] Failed to load all categories:", errorMsg);
-    return [];
+    const lastKnown = getLastKnownAllCategories();
+    if (lastKnown.length > 0) {
+      console.warn("[Categories] Returning last known full category list");
+      return lastKnown;
+    }
+
+    console.warn("[Categories] Returning baked fallback categories");
+    return rememberAllCategories(FALLBACK_CATEGORIES);
   }
 }
 

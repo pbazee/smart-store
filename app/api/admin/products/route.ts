@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
@@ -10,6 +11,7 @@ import {
   buildValidCatalogProductWhere,
   resolveAdminProductCatalogAssignment,
 } from "@/lib/product-integrity";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import { slugify } from "@/lib/utils";
 
 const genderSchema = z.enum(["men", "women", "unisex", "children", "male", "female"]);
@@ -18,11 +20,13 @@ const createProductSchema = z.object({
   name: z.string().min(2, "Name required"),
   slug: z.string().min(2, "Slug required"),
   description: z.string().min(10, "Description required"),
+  productType: z.string().optional(),
   category: z.string().optional(),
   categoryId: z.string().min(1, "Category required"),
-  subcategory: z.string().min(2, "Subcategory required"),
+  subcategory: z.string().optional().nullable().default(""),
   gender: genderSchema,
   basePrice: z.number().int().positive("Price must be positive"),
+  baseStock: z.number().int().nonnegative().nullable().optional(),
   images: z.array(z.string().min(1, "Image required")).min(1, "At least one image is required"),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().optional(),
@@ -39,10 +43,11 @@ const createProductSchema = z.object({
         size: z.string().min(1, "Size required"),
         stock: z.number().int().nonnegative(),
         price: z.number().int().positive(),
+        variantImageUrl: z.string().trim().optional().nullable(),
       })
     )
-    .min(1, "At least one variant is required"),
-});
+    .default([]),
+}).strip();
 
 const adminProductListSelect = {
   id: true,
@@ -55,6 +60,7 @@ const adminProductListSelect = {
   gender: true,
   tags: true,
   basePrice: true,
+  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,
@@ -73,17 +79,23 @@ const adminProductListSelect = {
       size: true,
       stock: true,
       price: true,
+      variantImageUrl: true,
     },
   },
 } as const;
 
-function revalidateProductSurfaces() {
+function revalidateProductSurfaces(product?: { slug?: string | null }) {
   revalidateTag(PRODUCTS_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/wishlist");
   revalidatePath("/admin/products");
+
+  if (product?.slug) {
+    revalidatePath(`/product/${product.slug}`);
+    revalidatePath(`/shop/${product.slug}`);
+  }
 }
 
 function buildAdminProductSearchWhere(search?: string) {
@@ -142,6 +154,25 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.warn("[AdminProductsApi] Database unavailable, returning empty product list.");
+      const search = req.nextUrl.searchParams.get("search")?.trim() || "";
+      const page = Math.max(1, Number(req.nextUrl.searchParams.get("page") || 1));
+      const limit = Math.max(1, Number(req.nextUrl.searchParams.get("limit") || 20));
+
+      return NextResponse.json({
+        success: true,
+        data: [],
+        meta: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 1,
+          search,
+        },
+      });
+    }
+
     console.error("Error fetching admin products:", error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
   }
@@ -154,26 +185,56 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log('[ProductCreate] Request body:', JSON.stringify(await req.clone().json(), null, 2));
     const body = await req.json();
     const validatedData = createProductSchema.parse(body);
+    const requestedSubcategory = validatedData.subcategory?.trim() ?? "";
     const catalogAssignment = await resolveAdminProductCatalogAssignment({
       categoryId: validatedData.categoryId,
-      subcategory: validatedData.subcategory,
+      category: validatedData.category,
+      subcategory: requestedSubcategory.length > 0 ? requestedSubcategory : null,
     });
 
-    const product = await prisma.product.create({
-      data: buildAdminProductCreateData({
+    let product;
+
+    try {
+      product = await prisma.product.create({
+        data: buildAdminProductCreateData({
+          ...validatedData,
+          slug: slugify(validatedData.slug || validatedData.name),
+          ...catalogAssignment,
+        }),
+        select: adminProductListSelect,
+      });
+    } catch (error) {
+      const missingBaseStockColumn =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2022" &&
+        String(error.meta?.column ?? "").includes("baseStock");
+
+      if (!missingBaseStockColumn) {
+        throw error;
+      }
+
+      const retryData = buildAdminProductCreateData({
         ...validatedData,
+        baseStock: undefined,
         slug: slugify(validatedData.slug || validatedData.name),
         ...catalogAssignment,
-      }),
-      select: adminProductListSelect,
-    });
+      });
 
-    revalidateProductSurfaces();
+      const { baseStock: _baseStock, ...retryDataWithoutBaseStock } = retryData;
+
+      product = await prisma.product.create({
+        data: retryDataWithoutBaseStock,
+        select: adminProductListSelect,
+      });
+    }
+
+    revalidateProductSurfaces(product);
 
     return NextResponse.json(
-      { success: true, data: product },
+      { success: true, data: product, meta: { pendingRestockCount: 0 } },
       {
         status: 201,
         headers: {
@@ -196,6 +257,16 @@ export async function POST(req: NextRequest) {
       error.code === "P2002"
     ) {
       return NextResponse.json({ error: "Slug already exists" }, { status: 409 });
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error("Error creating product:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (error instanceof Error) {
+      console.error("Error creating product:", error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     console.error("Error creating product:", error);

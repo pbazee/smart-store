@@ -40,7 +40,7 @@ function normalizeOptionalPhone(phone?: string) {
 
 function revalidateStorefront() {
   revalidateTag('store-settings');
-  revalidateTag('homepage-shell');
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/contact");

@@ -1,6 +1,5 @@
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
-import { ensureReviewStorage } from "@/lib/runtime-schema-repair";
 import type { ProductReview } from "@/types";
 
 export async function getProductReviews(productId: string) {
@@ -8,7 +7,6 @@ export async function getProductReviews(productId: string) {
     return [];
   }
 
-  await ensureReviewStorage();
 
   return await prisma.review.findMany({
     where: { productId, isApproved: true },
@@ -21,7 +19,6 @@ export async function getLatestApprovedReviews(limit: number = 6) {
     return [];
   }
 
-  await ensureReviewStorage();
 
   return await prisma.review.findMany({
     where: { isApproved: true },
@@ -43,7 +40,6 @@ export async function getAllReviewsAdmin() {
     return [];
   }
 
-  await ensureReviewStorage();
 
   return await prisma.review.findMany({
     orderBy: { createdAt: "desc" },
@@ -59,7 +55,6 @@ export async function getAllReviewsAdmin() {
 }
 
 export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: boolean, rating: number, title: string, content: string }>) {
-  await ensureReviewStorage();
 
   return await prisma.review.update({
     where: { id },
@@ -68,7 +63,6 @@ export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: 
 }
 
 export async function deleteReviewAdmin(id: string) {
-  await ensureReviewStorage();
 
   return await prisma.review.delete({
     where: { id },
@@ -85,7 +79,6 @@ export async function createProductReview(input: {
   content: string;
   verifiedPurchase?: boolean;
 }) {
-  await ensureReviewStorage();
 
   const review = await prisma.$transaction(async (tx) => {
     const createdReview = await tx.review.create({

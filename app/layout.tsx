@@ -33,6 +33,9 @@ export const metadata: Metadata = {
   description:
     "Kenya's smartest fashion destination. Premium shoes, clothes, and streetwear delivered to your door. Pay with M-Pesa.",
   keywords: "shoes kenya, clothes nairobi, streetwear kenya, fashion nairobi, mpesa",
+  icons: {
+    icon: "/icon.svg",
+  },
   openGraph: {
     title: "Smartest Store KE",
     description: "Kenya's coolest fashion store",

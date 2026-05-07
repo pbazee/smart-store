@@ -2,6 +2,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { Resend } from "resend";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import type { NewsletterSubscriber } from "@/types";
 
 export const NEWSLETTER_CACHE_TAG = "newsletter-subscribers";
@@ -99,9 +100,18 @@ export async function getNewsletterSubscriberCount() {
     return getDemoNewsletterSubscribers().length;
   }
 
-  // Always use the cached version (works in dev too) to avoid a DB
-  // COUNT query on every admin layout render.
-  return getCachedNewsletterSubscriberCount();
+  try {
+    // Always use the cached version (works in dev too) to avoid a DB
+    // COUNT query on every admin layout render.
+    return await getCachedNewsletterSubscriberCount();
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.warn("[Newsletter] Subscriber count unavailable because the database pool is busy.");
+      return 0;
+    }
+
+    throw error;
+  }
 }
 
 export async function subscribeToNewsletter(email: string) {

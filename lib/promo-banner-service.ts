@@ -2,7 +2,6 @@ import { unstable_cache } from "next/cache";
 import { getDefaultPromoBanners, DEFAULT_PROMO_BANNER_SEEDS } from "@/lib/default-promo-banners";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
-import { ensurePromoBannerStorage } from "@/lib/runtime-schema-repair";
 import type { PromoBanner } from "@/types";
 
 type PromoBannerQueryOptions = {
@@ -185,7 +184,6 @@ async function loadPromoBanners(options: PromoBannerQueryOptions = {}): Promise<
     return activeOnly ? banners.filter((banner) => banner.isActive) : banners;
   }
 
-  await ensurePromoBannerStorage();
 
   if (seedIfEmpty) {
     await seedPromoBannersIfEmpty();
@@ -237,7 +235,6 @@ export async function createPromoBanner(input: PromoBannerRecordInput) {
     return banner;
   }
 
-  await ensurePromoBannerStorage();
   const rows = await prisma.$queryRaw<PromoBannerRecord[]>`
     INSERT INTO "promo_banners" (
       badge_text,
@@ -297,7 +294,6 @@ export async function updatePromoBanner(id: string, input: PromoBannerRecordInpu
     return nextBanner;
   }
 
-  await ensurePromoBannerStorage();
   const rows = await prisma.$queryRaw<PromoBannerRecord[]>`
     UPDATE "promo_banners"
     SET
@@ -343,7 +339,6 @@ export async function deletePromoBanner(id: string) {
     return current;
   }
 
-  await ensurePromoBannerStorage();
   const rows = await prisma.$queryRaw<PromoBannerRecord[]>`
     DELETE FROM "promo_banners"
     WHERE id = ${id}::uuid
@@ -384,7 +379,6 @@ export async function savePromoBannerOrder(input: Array<{ id: string; position: 
     return getDemoPromoBanners();
   }
 
-  await ensurePromoBannerStorage();
   await prisma.$transaction(
     normalizedOrder.map((item) =>
       prisma.$executeRaw`

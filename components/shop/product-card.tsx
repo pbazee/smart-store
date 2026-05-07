@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import { useWishlistActions, useWishlistProduct } from "@/hooks/use-wishlist";
+import { getCartVariantForProduct } from "@/lib/product-stock";
 import { buildProductHref } from "@/lib/product-routes";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
@@ -53,14 +54,27 @@ function ProductCardComponent({
   const addItem = useCartStore((state) => state.addItem);
   const { toast } = useToast();
   const [heartAnimating, setHeartAnimating] = useState(false);
+  const [hoveredVariantImageUrl, setHoveredVariantImageUrl] = useState<string | null>(null);
 
-  const firstVariant =
-    product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
+  const firstVariant = getCartVariantForProduct(product);
   const productHref = buildProductHref(product);
   const colorSwatches = useMemo(
-    () => [...new Set(product.variants.map((variant) => variant.colorHex))].slice(0, 4),
+    () =>
+      Array.from(
+        new Map(
+          product.variants.map((variant) => [
+            variant.color.toLowerCase(),
+            {
+              color: variant.color,
+              hex: variant.colorHex,
+              variantImageUrl: variant.variantImageUrl ?? null,
+            },
+          ])
+        ).values()
+      ).slice(0, 4),
     [product.variants]
   );
+  const cardImage = hoveredVariantImageUrl || product.images[0] || "/images/product-placeholder.png";
 
   const prefetchProduct = () => {
     prefetchProductRoute(router, productHref, hasPrefetchedRef);
@@ -79,7 +93,9 @@ function ProductCardComponent({
     if (result.status === "out-of-stock" || result.status === "max-stock") {
       toast({
         title: result.status === "out-of-stock" ? "Out of stock" : "Stock limit reached",
-        description: `${product.name} - ${firstVariant.color}, Size ${firstVariant.size}`,
+        description: firstVariant.isDefault
+          ? product.name
+          : `${product.name} - ${firstVariant.color}, Size ${firstVariant.size}`,
         variant: "destructive",
       });
       return;
@@ -87,7 +103,9 @@ function ProductCardComponent({
 
     toast({
       title: "Added to cart",
-      description: `${product.name} - ${firstVariant.color}, Size ${firstVariant.size}`,
+      description: firstVariant.isDefault
+        ? product.name
+        : `${product.name} - ${firstVariant.color}, Size ${firstVariant.size}`,
     });
   };
 
@@ -143,7 +161,7 @@ function ProductCardComponent({
         <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg">
           <div className="relative aspect-[3/4] overflow-hidden bg-muted">
             <Image
-              src={product.images[0] || "/images/product-placeholder.png"}
+              src={cardImage}
               alt={product.name}
               fill
               priority={priority}
@@ -183,7 +201,7 @@ function ProductCardComponent({
               />
             </button>
 
-            {firstVariant && (
+            {firstVariant && firstVariant.stock > 0 && (
               <button
                 type="button"
                 onClick={handleQuickAdd}
@@ -215,17 +233,21 @@ function ProductCardComponent({
               </div>
 
               <div className="flex items-center gap-1">
-                {colorSwatches.map((hex) => (
+                {colorSwatches.map((swatch) => (
                   <span
-                    key={hex}
+                    key={`${swatch.color}-${swatch.hex}`}
                     className="h-3 w-3 rounded-full border border-border"
-                    style={{ backgroundColor: hex }}
+                    style={{ backgroundColor: swatch.hex }}
+                    onMouseEnter={() =>
+                      setHoveredVariantImageUrl(swatch.variantImageUrl?.trim() || null)
+                    }
+                    onMouseLeave={() => setHoveredVariantImageUrl(null)}
                   />
                 ))}
               </div>
             </div>
 
-            {firstVariant && (
+            {firstVariant && firstVariant.stock > 0 && (
               <button
                 type="button"
                 onClick={handleQuickAdd}

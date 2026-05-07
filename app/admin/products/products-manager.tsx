@@ -42,7 +42,11 @@ type ProductsResponse = {
 };
 
 function getTotalStock(product: Product) {
-  return product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+  if (product.variants.length > 0) {
+    return product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+  }
+
+  return product.baseStock ?? 0;
 }
 
 function buildProductsUrl(page: number, limit: number, search: string) {
@@ -145,8 +149,29 @@ export function ProductsManager({
     syncUrl(1, pageSize, nextSearch);
   };
 
-  const handleSavedProduct = async () => {
-    await mutate();
+  const handleSavedProduct = async (savedProduct: Product) => {
+    await mutate(
+      (current) =>
+        current
+          ? {
+              ...current,
+              meta: {
+                ...current.meta,
+                total: current.data.some((product) => product.id === savedProduct.id)
+                  ? current.meta.total
+                  : current.meta.total + 1,
+              },
+              data: current.data.some((product) => product.id === savedProduct.id)
+                ? current.data.map((product) =>
+                    product.id === savedProduct.id ? savedProduct : product
+                  )
+                : [savedProduct, ...current.data],
+            }
+          : current,
+      { revalidate: false }
+    );
+
+    void mutate();
   };
 
   const handleDelete = async (ids: string[]) => {

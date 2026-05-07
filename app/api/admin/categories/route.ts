@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { CATEGORY_CACHE_TAG } from "@/lib/category-service";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { ensureCategoryHomepageFields } from "@/lib/runtime-schema-repair";
 
 const categorySchema = z.object({
   id: z.string().optional(),
@@ -38,7 +37,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await ensureCategoryHomepageFields();
     const categories = await prisma.category.findMany({
       orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
     });
@@ -60,7 +58,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await ensureCategoryHomepageFields();
     const payload = categorySchema.parse(await request.json());
 
     if (payload.parentId && payload.parentId === payload.id) {

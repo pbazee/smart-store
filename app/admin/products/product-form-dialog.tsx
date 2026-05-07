@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { ImagePlus, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { Camera, GripVertical, ImagePlus, Info, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  cleanupProductImageAction,
+  cleanupProductVariantImageAction,
+  uploadProductImageAction,
+  uploadProductVariantImageAction,
+} from "@/app/admin/products/actions";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { jsonFetcher } from "@/lib/fetcher";
+import {
+  apparelSizeOptions,
+  getQuickFillSizesForProductType,
+  inferAdminVariantProductType,
+  isFootwearProductLike,
+  type AdminVariantProductType,
+} from "@/lib/size-guide";
 import { useToast } from "@/lib/use-toast";
 import { slugify } from "@/lib/utils";
 import type { Category, Product } from "@/types";
@@ -16,6 +30,7 @@ type VariantFormState = {
   size: string;
   stock: string;
   price: string;
+  variantImageUrl?: string | null;
 };
 
 type ProductFormState = {
@@ -30,6 +45,7 @@ type ProductFormState = {
   subcategoryId?: string | null;
   gender: Product["gender"];
   basePrice: string;
+  baseStock: string;
   images: string[];
   tags: string;
   isFeatured: boolean;
@@ -40,13 +56,28 @@ type ProductFormState = {
   variants: VariantFormState[];
 };
 
-const defaultVariant: VariantFormState = {
-  color: "Black",
-  colorHex: "#111111",
-  size: "M",
-  stock: "12",
-  price: "",
-};
+type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+const VARIANT_IMAGE_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
+
+function createProductDraftKey() {
+  return `product-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createVariantDraftId() {
+  return `variant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createDefaultVariant(): VariantFormState {
+  return {
+    id: createVariantDraftId(),
+    color: "",
+    colorHex: "#000000",
+    size: "",
+    stock: "0",
+    price: "",
+    variantImageUrl: null,
+  };
+}
 
 function createEmptyFormState(): ProductFormState {
   return {
@@ -60,6 +91,7 @@ function createEmptyFormState(): ProductFormState {
     subcategoryId: null,
     gender: "unisex",
     basePrice: "",
+    baseStock: "",
     images: [],
     tags: "trending, nairobi",
     isFeatured: false,
@@ -67,8 +99,93 @@ function createEmptyFormState(): ProductFormState {
     isPopular: true,
     isTrending: true,
     isRecommended: true,
-    variants: [{ ...defaultVariant }],
+    variants: [],
   };
+}
+
+const variantProductTypeOptions: Array<{
+  value: AdminVariantProductType;
+  label: string;
+  description: string;
+}> = [
+  { value: "clothing", label: "Clothing", description: "Tops, dresses, jackets, trousers, hoodies" },
+  { value: "footwear", label: "Footwear", description: "Shoes, sneakers, boots, sandals" },
+  { value: "kids-clothing", label: "Kids Clothing", description: "Children's apparel sizes" },
+  { value: "kids-footwear", label: "Kids Footwear", description: "Children's shoe sizes" },
+  { value: "accessories", label: "Accessories", description: "Bags, hats, belts, jewellery" },
+  { value: "custom", label: "Custom", description: "Admin defines custom sizes" },
+];
+
+type VariantFieldErrors = {
+  size?: string;
+  stock?: string;
+  price?: string;
+  duplicate?: string;
+};
+
+function createQuickFillVariant(size: string): VariantFormState {
+  return {
+    id: createVariantDraftId(),
+    color: "",
+    colorHex: "#000000",
+    size,
+    stock: "0",
+    price: "",
+    variantImageUrl: null,
+  };
+}
+
+function normalizeVariantKey(color: string, size: string) {
+  return `${color.trim().toLowerCase()}::${size.trim().toLowerCase()}`;
+}
+
+function validateVariantRows(variants: VariantFormState[]) {
+  const errors: VariantFieldErrors[] = variants.map(() => ({}));
+  const duplicateMap = new Map<string, number[]>();
+
+  variants.forEach((variant, index) => {
+    if (!variant.size.trim()) {
+      errors[index].size = "Size is required";
+    }
+
+    if (!/^\d+$/.test(variant.stock.trim())) {
+      errors[index].stock = "Enter a valid stock number";
+    }
+
+    if (variant.price.trim() && (!Number.isFinite(Number(variant.price)) || Number(variant.price) <= 0)) {
+      errors[index].price = "Enter a valid price or leave blank";
+    }
+
+    const key = normalizeVariantKey(variant.color, variant.size);
+    if (variant.color.trim() && variant.size.trim()) {
+      duplicateMap.set(key, [...(duplicateMap.get(key) ?? []), index]);
+    }
+  });
+
+  duplicateMap.forEach((indexes) => {
+    if (indexes.length > 1) {
+      indexes.forEach((index) => {
+        errors[index].duplicate = "Duplicate variant - each color/size combination must be unique";
+      });
+    }
+  });
+
+  return errors;
+}
+
+function hasVariantErrors(errors: VariantFieldErrors[]) {
+  return errors.some((error) => Object.keys(error).length > 0);
+}
+
+function inferProductTypeFromForm(form: ProductFormState, categories: Category[]) {
+  const parentCategory = categories.find((category) => category.id === form.parentId) ?? null;
+  const subcategory = categories.find((category) => category.id === form.subcategoryId) ?? null;
+
+  return inferAdminVariantProductType({
+    category: parentCategory?.name ?? form.category,
+    subcategory: subcategory?.name ?? form.subcategory,
+    tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+  });
 }
 
 function createFormState(product?: Product | null): ProductFormState {
@@ -88,6 +205,7 @@ function createFormState(product?: Product | null): ProductFormState {
     subcategoryId: null,
     gender: product.gender,
     basePrice: String(product.basePrice),
+    baseStock: product.baseStock == null ? "" : String(product.baseStock),
     images: product.images,
     tags: product.tags.join(", "),
     isFeatured: product.isFeatured,
@@ -96,28 +214,34 @@ function createFormState(product?: Product | null): ProductFormState {
     isTrending: product.isTrending,
     isRecommended: product.isRecommended,
     variants: product.variants.map((variant) => ({
-      id: variant.id,
+      id: variant.id || createVariantDraftId(),
       color: variant.color,
       colorHex: variant.colorHex,
       size: variant.size,
       stock: String(variant.stock),
       price: String(variant.price),
+      variantImageUrl: variant.variantImageUrl ?? null,
     })),
   };
 }
 
-async function readFilesAsDataUrls(files: FileList) {
-  return Promise.all(
-    Array.from(files).map(
-      (file) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ""));
-          reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
-          reader.readAsDataURL(file);
-        })
-    )
-  );
+function hydrateFormState(product: Product | null, categories: Category[]) {
+  const base = createFormState(product);
+
+  if (product?.categoryId) {
+    const matchedCategory = categories.find((category) => category.id === product.categoryId);
+    if (matchedCategory) {
+      const parentCategory = matchedCategory.parentId
+        ? categories.find((category) => category.id === matchedCategory.parentId)
+        : matchedCategory;
+      const resolvedParent = parentCategory ?? matchedCategory;
+      base.parentId = resolvedParent.id;
+      base.categoryId = resolvedParent.id;
+      base.category = resolvedParent.slug;
+    }
+  }
+
+  return base;
 }
 
 function toPayload(form: ProductFormState): AdminProductInput {
@@ -129,10 +253,11 @@ function toPayload(form: ProductFormState): AdminProductInput {
     slug: slugify(form.slug || form.name),
     description: form.description.trim(),
     category: form.category.trim(),
-    subcategory: form.subcategory.trim(),
+    subcategory: form.subcategory.trim() || "",
     categoryId: form.parentId || form.categoryId || null,
     gender: form.gender,
     basePrice,
+    baseStock: form.baseStock.trim() === "" ? null : Number(form.baseStock),
     images: form.images.filter(Boolean),
     tags: form.tags
       .split(",")
@@ -150,6 +275,7 @@ function toPayload(form: ProductFormState): AdminProductInput {
       size: variant.size.trim(),
       stock: Number(variant.stock),
       price: variant.price ? Number(variant.price) : basePrice,
+      variantImageUrl: variant.variantImageUrl?.trim() || null,
     })),
   };
 }
@@ -164,6 +290,7 @@ type AdminProductInput = {
   categoryId?: string | null;
   gender: Product["gender"];
   basePrice: number;
+  baseStock?: number | null;
   images: string[];
   tags: string[];
   isFeatured: boolean;
@@ -178,12 +305,289 @@ type AdminProductInput = {
     size: string;
     stock: number;
     price: number;
+    variantImageUrl?: string | null;
   }>;
 };
 
 function normalizeProductSubcategory(value?: string | null) {
   return slugify(value || "").replace(/-/g, "");
 }
+
+function getTotalVariantStock(variants: VariantFormState[]) {
+  return variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0);
+}
+
+type VariantRowProps = {
+  index: number;
+  variant: VariantFormState;
+  errors: VariantFieldErrors;
+  isFootwearCategory: boolean;
+  basePrice: string;
+  draggedVariantIndex: number | null;
+  onDragStart: (index: number) => void;
+  onDragEnd: () => void;
+  onDrop: (index: number) => void;
+  onCommit: (index: number, field: keyof VariantFormState, value: string) => void;
+  onUploadImage: (index: number, file: File) => Promise<void>;
+  onRemoveImage: (index: number) => Promise<void>;
+  onRemove: (index: number) => void;
+};
+
+const VariantRow = memo(function VariantRow({
+  index,
+  variant,
+  errors,
+  isFootwearCategory,
+  basePrice,
+  draggedVariantIndex,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  onCommit,
+  onUploadImage,
+  onRemoveImage,
+  onRemove,
+}: VariantRowProps) {
+  const hasInlineVariantImage = Boolean(variant.variantImageUrl?.startsWith("data:"));
+  const [urlInput, setUrlInput] = useState(
+    hasInlineVariantImage ? "" : (variant.variantImageUrl ?? "")
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  useEffect(() => {
+    setUrlInput(variant.variantImageUrl?.startsWith("data:") ? "" : (variant.variantImageUrl ?? ""));
+  }, [variant.variantImageUrl]);
+
+  const fieldBorder = (fieldError?: string) =>
+    fieldError
+      ? "border-red-500/70 focus-within:border-red-500"
+      : "border-zinc-800 focus-within:border-orange-400";
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10, scale: 0.98 }}
+      transition={{ duration: 0.18 }}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={() => {
+        if (draggedVariantIndex === null) return;
+        onDrop(index);
+      }}
+      onDragEnd={onDragEnd}
+      className={`group grid gap-4 rounded-2xl border bg-zinc-950/80 p-4 transition ${
+        errors.duplicate ? "border-red-500/60" : "border-zinc-800"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            draggable
+            onDragStart={() => onDragStart(index)}
+            className="inline-flex cursor-grab rounded-xl border border-zinc-800 bg-black p-2 text-zinc-500 transition hover:text-white active:cursor-grabbing"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </span>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+            Variant {index + 1}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="inline-flex items-center justify-center rounded-xl border border-red-500/25 px-3 py-2 text-red-400 transition hover:bg-red-500/10 hover:border-red-500/40"
+          aria-label="Delete variant"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr),5.25rem,minmax(0,0.95fr),minmax(0,1fr),minmax(0,0.9fr),minmax(0,1fr)]">
+        <label className="space-y-1 text-sm">
+          <span className="font-medium text-zinc-300">Color name</span>
+          <input
+            required
+            value={variant.color}
+            onChange={(event) => onCommit(index, "color", event.target.value)}
+            placeholder="Black, Navy Blue, Cream"
+            className={`w-full rounded-xl border bg-black px-3 py-2.5 text-sm text-zinc-100 outline-none ${fieldBorder(errors.duplicate)}`}
+          />
+          {errors.duplicate ? <p className="text-xs text-red-400">{errors.duplicate}</p> : null}
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium text-zinc-300">Swatch</span>
+          <input
+            type="color"
+            value={variant.colorHex}
+            onChange={(event) => onCommit(index, "colorHex", event.target.value)}
+            className="h-12 w-full cursor-pointer rounded-2xl border border-zinc-800 bg-black p-1"
+          />
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium text-zinc-300">Hex code</span>
+          <input
+            value={variant.colorHex}
+            onChange={(event) => onCommit(index, "colorHex", event.target.value)}
+            className="min-w-0 rounded-xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-100 outline-none focus:border-orange-400"
+          />
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium text-zinc-300">{isFootwearCategory ? "Size (EU)" : "Size"}</span>
+          <input
+            required
+            list={isFootwearCategory ? "footwear-size-options" : "apparel-size-options"}
+            value={variant.size}
+            onChange={(event) => onCommit(index, "size", event.target.value)}
+            placeholder={isFootwearCategory ? "42" : "M"}
+            className={`w-full rounded-xl border bg-black px-4 py-3 text-sm text-zinc-100 outline-none ${fieldBorder(errors.size || errors.duplicate)}`}
+          />
+          {errors.size ? <p className="text-xs text-red-400">{errors.size}</p> : null}
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium text-zinc-300">Stock</span>
+          <input
+            required
+            min="0"
+            type="number"
+            value={variant.stock}
+            onChange={(event) => onCommit(index, "stock", event.target.value)}
+            placeholder="0"
+            className={`w-full rounded-xl border bg-black px-4 py-3 text-sm text-zinc-100 outline-none ${fieldBorder(errors.stock)}`}
+          />
+          {errors.stock ? <p className="text-xs text-red-400">{errors.stock}</p> : null}
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium text-zinc-300">Price override</span>
+          <input
+            min="0"
+            type="number"
+            value={variant.price}
+            onChange={(event) => onCommit(index, "price", event.target.value)}
+            placeholder={basePrice || "0"}
+            className={`w-full rounded-xl border bg-black px-4 py-3 text-sm text-zinc-100 outline-none ${fieldBorder(errors.price)}`}
+          />
+          <p className="text-xs text-zinc-500">
+            Blank uses base price: Ksh {Number(basePrice || 0).toLocaleString()}
+          </p>
+          {errors.price ? <p className="text-xs text-red-400">{errors.price}</p> : null}
+        </label>
+      </div>
+
+      <div className="grid gap-3 rounded-2xl border border-zinc-800/80 bg-black/35 p-4 lg:grid-cols-[4.5rem,minmax(0,1fr)]">
+        <div className="flex justify-center lg:justify-start">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-700 bg-black">
+            {variant.variantImageUrl ? (
+              <Image
+                src={variant.variantImageUrl}
+                alt={`${variant.color || "Variant"} color preview`}
+                fill
+                className="object-cover"
+                sizes="56px"
+              />
+            ) : (
+              <Camera className="h-4 w-4 text-zinc-500" />
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-zinc-200">Variant image</p>
+            {hasInlineVariantImage ? (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200">
+                Inline fallback image stored
+              </span>
+            ) : null}
+          </div>
+
+            <input
+              value={urlInput}
+              onChange={(event) => setUrlInput(event.target.value)}
+              placeholder="Paste a hosted image URL for this color"
+              className="w-full rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-orange-400"
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-800 bg-black px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-orange-400">
+                <Upload className="h-3.5 w-3.5" />
+                <span>{isUploadingImage ? "Uploading..." : "Upload image"}</span>
+                <input
+                  type="file"
+                  accept={VARIANT_IMAGE_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    event.target.value = "";
+                    if (!file) {
+                      return;
+                    }
+
+                    setIsUploadingImage(true);
+                    void onUploadImage(index, file).finally(() => {
+                      setIsUploadingImage(false);
+                    });
+                  }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onCommit(index, "variantImageUrl", urlInput.trim());
+                }}
+                className="rounded-xl border border-zinc-800 bg-black px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-orange-400"
+              >
+                Apply URL
+              </button>
+
+              {variant.variantImageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUrlInput("");
+                    void onRemoveImage(index);
+                  }}
+                  className="rounded-xl border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
+                >
+                  Remove image
+                </button>
+              ) : null}
+            </div>
+        </div>
+
+        <p className="text-xs text-zinc-500">
+          Add a dedicated color photo here. This image is what shoppers will see when they switch to this color.
+        </p>
+      </div>
+    </motion.div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.index === nextProps.index &&
+    prevProps.isFootwearCategory === nextProps.isFootwearCategory &&
+    prevProps.basePrice === nextProps.basePrice &&
+    prevProps.draggedVariantIndex === nextProps.draggedVariantIndex &&
+    prevProps.variant.id === nextProps.variant.id &&
+    prevProps.variant.color === nextProps.variant.color &&
+    prevProps.variant.colorHex === nextProps.variant.colorHex &&
+    prevProps.variant.size === nextProps.variant.size &&
+    prevProps.variant.stock === nextProps.variant.stock &&
+    prevProps.variant.price === nextProps.variant.price &&
+    prevProps.variant.variantImageUrl === nextProps.variant.variantImageUrl &&
+    prevProps.errors.size === nextProps.errors.size &&
+    prevProps.errors.stock === nextProps.errors.stock &&
+    prevProps.errors.price === nextProps.errors.price &&
+    prevProps.errors.duplicate === nextProps.errors.duplicate
+  );
+});
 
 export function ProductFormDialog({
   open,
@@ -203,10 +607,18 @@ export function ProductFormDialog({
   const [form, setForm] = useState<ProductFormState>(() => createFormState(product));
   const [slugTouched, setSlugTouched] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
+  const [variantProductType, setVariantProductType] = useState<AdminVariantProductType>(() =>
+    inferProductTypeFromForm(createFormState(product), categories)
+  );
+  const [variantErrors, setVariantErrors] = useState<VariantFieldErrors[]>([]);
+  const [draggedVariantIndex, setDraggedVariantIndex] = useState<number | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [productAssetKey, setProductAssetKey] = useState(() => product?.id ?? createProductDraftKey());
+  const [restockBannerCount, setRestockBannerCount] = useState(0);
 
   const topLevelCategories = useMemo(() => {
     return categories
-      .filter((category) => !category.parentId)
+      .filter((category) => !category.parentId && category.isActive !== false)
       .sort((left, right) =>
         (left.order ?? 0) === (right.order ?? 0)
           ? left.name.localeCompare(right.name)
@@ -217,7 +629,7 @@ export function ProductFormDialog({
   const subcategoryOptions = useMemo(
     () =>
       categories
-        .filter((category) => category.parentId === form.parentId)
+        .filter((category) => category.parentId === form.parentId && category.isActive !== false)
         .sort((left, right) =>
           (left.order ?? 0) === (right.order ?? 0)
             ? left.name.localeCompare(right.name)
@@ -225,26 +637,37 @@ export function ProductFormDialog({
         ),
     [categories, form.parentId]
   );
+  const selectedParentCategory = useMemo(
+    () => topLevelCategories.find((category) => category.id === form.parentId) ?? null,
+    [form.parentId, topLevelCategories]
+  );
+  const selectedSubcategory = useMemo(
+    () => subcategoryOptions.find((category) => category.id === form.subcategoryId) ?? null,
+    [form.subcategoryId, subcategoryOptions]
+  );
+  const sizeSuggestions = useMemo(
+    () => getQuickFillSizesForProductType(variantProductType),
+    [variantProductType]
+  );
+  const isFootwearCategory = useMemo(
+    () =>
+      isFootwearProductLike({
+        category: selectedParentCategory?.name ?? form.category,
+        subcategory: selectedSubcategory?.name ?? form.subcategory,
+      }),
+    [form.category, form.subcategory, selectedParentCategory, selectedSubcategory]
+  );
 
   useEffect(() => {
-    const base = createFormState(product);
-
-    if (product?.categoryId) {
-      const matchedCategory = categories.find((category) => category.id === product.categoryId);
-      if (matchedCategory) {
-        const parentCategory = matchedCategory.parentId
-          ? categories.find((category) => category.id === matchedCategory.parentId)
-          : matchedCategory;
-        const resolvedParent = parentCategory ?? matchedCategory;
-        base.parentId = resolvedParent.id;
-        base.categoryId = resolvedParent.id;
-        base.category = resolvedParent.slug;
-      }
-    }
-
+    const base = hydrateFormState(product, categories);
     setForm(base);
     setSlugTouched(false);
     setImageUrlInput("");
+    setVariantProductType(inferProductTypeFromForm(base, categories));
+    setVariantErrors(validateVariantRows(base.variants));
+    setSaveState("idle");
+    setProductAssetKey(product?.id ?? createProductDraftKey());
+    setRestockBannerCount(0);
   }, [product, open, categories]);
 
   useEffect(() => {
@@ -270,27 +693,264 @@ export function ProductFormDialog({
     }));
   }, [form.parentId, form.subcategory, form.subcategoryId, subcategoryOptions]);
 
-  const updateVariant = (
+  useEffect(() => {
+    setVariantErrors(validateVariantRows(form.variants));
+  }, [form.variants]);
+
+  const setFormDirty = useCallback((updater: (current: ProductFormState) => ProductFormState) => {
+    setSaveState((current) => (current === "saving" ? current : "dirty"));
+    setForm(updater);
+  }, []);
+
+  const updateVariant = useCallback((
     index: number,
     field: keyof VariantFormState,
     value: string
   ) => {
-    setForm((current) => ({
-      ...current,
-      variants: current.variants.map((variant, variantIndex) =>
+    setFormDirty((current) => {
+      const nextVariants = current.variants.map((variant, variantIndex) =>
         variantIndex === index ? { ...variant, [field]: value } : variant
-      ),
-    }));
+      );
+      setVariantErrors(validateVariantRows(nextVariants));
+      return {
+        ...current,
+        variants: nextVariants,
+      };
+    });
+  }, [setFormDirty]);
+
+  const addVariantRows = (sizes: string[]) => {
+    setFormDirty((current) => {
+      const existingSizes = new Set(current.variants.map((variant) => variant.size.trim().toLowerCase()));
+      const nextVariants = [
+        ...current.variants,
+        ...sizes
+          .filter((size) => {
+            const normalizedSize = size.trim().toLowerCase();
+            return normalizedSize && !existingSizes.has(normalizedSize);
+          })
+          .map((size) => createQuickFillVariant(size)),
+      ];
+
+      if (nextVariants.length === current.variants.length) {
+        toast({
+          title: "Sizes already added",
+          description: "Those quick-fill sizes are already in the variant list.",
+        });
+        return current;
+      }
+
+      setVariantErrors(validateVariantRows(nextVariants));
+      return {
+        ...current,
+        variants: nextVariants,
+      };
+    });
   };
+
+  const removeVariant = useCallback((index: number) => {
+    setFormDirty((current) => {
+      const nextVariants = current.variants.filter((_, variantIndex) => variantIndex !== index);
+      setVariantErrors(validateVariantRows(nextVariants));
+      return {
+        ...current,
+        variants: nextVariants,
+      };
+    });
+  }, [setFormDirty]);
+
+  const uploadVariantImage = useCallback(
+    async (index: number, file: File) => {
+      if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+        toast({
+          title: "Upload failed",
+          description: "Please use a JPG, PNG, or WebP image.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Upload failed",
+          description: "Image too large — please use an image under 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const variantId = form.variants[index]?.id ?? createVariantDraftId();
+      if (!form.variants[index]?.id) {
+        updateVariant(index, "id", variantId);
+      }
+
+      try {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        uploadFormData.append("productId", productAssetKey);
+        uploadFormData.append("variantId", variantId);
+        const uploadResult = await uploadProductVariantImageAction(uploadFormData);
+        updateVariant(index, "variantImageUrl", uploadResult.imageUrl);
+      } catch (error) {
+        toast({
+          title: "Upload failed",
+          description:
+            error instanceof Error
+              ? error.message
+              : "The variant image could not be uploaded.",
+          variant: "destructive",
+        });
+      }
+    },
+    [form.variants, productAssetKey, toast, updateVariant]
+  );
+
+  const removeVariantImage = useCallback(
+    async (index: number) => {
+      const currentImageUrl = form.variants[index]?.variantImageUrl?.trim();
+      updateVariant(index, "variantImageUrl", "");
+
+      if (!currentImageUrl) {
+        return;
+      }
+
+      try {
+        await cleanupProductVariantImageAction(currentImageUrl);
+      } catch (error) {
+        console.error("Variant image cleanup failed:", error);
+      }
+    },
+    [form.variants, updateVariant]
+  );
+
+  const uploadProductImages = useCallback(
+    async (files: FileList) => {
+      const uploadedImages: string[] = [];
+
+      for (const file of Array.from(files)) {
+        if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+          throw new Error("Please use JPG, PNG, or WebP images only.");
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("Each image must be under 5MB.");
+        }
+
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        uploadFormData.append("productId", productAssetKey);
+
+        const uploadResult = await uploadProductImageAction(uploadFormData);
+        if (uploadResult.imageUrl) {
+          uploadedImages.push(uploadResult.imageUrl);
+        }
+      }
+
+      if (uploadedImages.length > 0) {
+        setFormDirty((current) => ({
+          ...current,
+          images: [...current.images, ...uploadedImages],
+        }));
+      }
+    },
+    [productAssetKey, setFormDirty]
+  );
+
+  const removeProductImage = useCallback(
+    async (index: number) => {
+      const currentImageUrl = form.images[index]?.trim();
+      setFormDirty((current) => ({
+        ...current,
+        images: current.images.filter((_, imageIndex) => imageIndex !== index),
+      }));
+
+      if (!currentImageUrl) {
+        return;
+      }
+
+      try {
+        await cleanupProductImageAction(currentImageUrl);
+      } catch (error) {
+        console.error("Product image cleanup failed:", error);
+      }
+    },
+    [form.images, setFormDirty]
+  );
+
+  const moveVariant = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) {
+      return;
+    }
+
+    setFormDirty((current) => {
+      const nextVariants = [...current.variants];
+      const [movedVariant] = nextVariants.splice(fromIndex, 1);
+      nextVariants.splice(toIndex, 0, movedVariant);
+      setVariantErrors(validateVariantRows(nextVariants));
+      return {
+        ...current,
+        variants: nextVariants,
+      };
+    });
+  }, [setFormDirty]);
+
+  const handleVariantDragStart = useCallback((index: number) => {
+    setDraggedVariantIndex(index);
+  }, []);
+
+  const handleVariantDragEnd = useCallback(() => {
+    setDraggedVariantIndex(null);
+  }, []);
+
+  const handleVariantDrop = useCallback((toIndex: number) => {
+    if (draggedVariantIndex === null) {
+      return;
+    }
+
+    moveVariant(draggedVariantIndex, toIndex);
+    setDraggedVariantIndex(null);
+  }, [draggedVariantIndex, moveVariant]);
+
+  const variantValidation = useMemo(() => validateVariantRows(form.variants), [form.variants]);
+  const hasValidationErrors = hasVariantErrors(variantValidation);
+  const hasUnsavedChanges = !form.id || saveState === "dirty" || saveState === "error";
+  const previousTotalStock = useMemo(
+    () =>
+      product?.variants.length
+        ? product.variants.reduce((sum, variant) => sum + variant.stock, 0)
+        : (product?.baseStock ?? 0),
+    [product]
+  );
+  const currentTotalStock = form.variants.length
+    ? getTotalVariantStock(form.variants)
+    : (form.baseStock.trim() === "" ? null : Number(form.baseStock));
+  const footwearLetterSizeWarning = useMemo(
+    () =>
+      isFootwearCategory &&
+      form.variants.some((variant) => apparelSizeOptions.includes(variant.size.trim().toUpperCase())),
+    [form.variants, isFootwearCategory]
+  );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const nextErrors = validateVariantRows(form.variants);
+    setVariantErrors(nextErrors);
+
+    if (hasVariantErrors(nextErrors)) {
+      toast({
+        title: "Fix variant errors first",
+        description: "Resolve the highlighted variant issues before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     startTransition(() => {
       void (async () => {
         try {
+          setSaveState("saving");
           const payload = toPayload(form);
-          const response = await jsonFetcher<{ success: boolean; data: Product }>(
+          const response = await jsonFetcher<{ success: boolean; data: Product; meta?: { pendingRestockCount?: number } }>(
             form.id ? `/api/admin/products/${form.id}` : "/api/admin/products",
             {
               method: form.id ? "PATCH" : "POST",
@@ -301,14 +961,31 @@ export function ProductFormDialog({
             }
           );
           const savedProduct = response.data;
+          const nextForm = hydrateFormState(savedProduct, categories);
 
+          setForm(nextForm);
+          setProductAssetKey(savedProduct.id);
+          setSlugTouched(false);
+          setVariantProductType(inferProductTypeFromForm(nextForm, categories));
+          setVariantErrors(validateVariantRows(nextForm.variants));
+          setSaveState("saved");
+          const nextPendingRestockCount =
+            (typeof currentTotalStock === "number" ? currentTotalStock : 0) > previousTotalStock
+              ? (response.meta?.pendingRestockCount ?? 0)
+              : 0;
+          setRestockBannerCount(nextPendingRestockCount);
           onSaved(savedProduct);
-          onOpenChange(false);
           toast({
             title: form.id ? "Product updated" : "Product created",
-            description: `${savedProduct.name} is now live in the catalog.`,
+            description: form.id
+              ? `${savedProduct.name} and its variants were saved successfully.`
+              : `${savedProduct.name} is now live in the catalog.`,
           });
+          if (!form.id) {
+            onOpenChange(false);
+          }
         } catch (error) {
+          setSaveState("error");
           toast({
             title: "Product save failed",
             description: error instanceof Error ? error.message : "Please review the form and try again.",
@@ -338,7 +1015,7 @@ export function ProductFormDialog({
                 value={form.name}
                 onChange={(event) => {
                   const name = event.target.value;
-                  setForm((current) => ({
+                  setFormDirty((current) => ({
                     ...current,
                     name,
                     slug: slugTouched ? current.slug : slugify(name),
@@ -355,7 +1032,7 @@ export function ProductFormDialog({
                 value={form.slug}
                 onChange={(event) => {
                   setSlugTouched(true);
-                  setForm((current) => ({ ...current, slug: slugify(event.target.value) }));
+                  setFormDirty((current) => ({ ...current, slug: slugify(event.target.value) }));
                 }}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
@@ -368,7 +1045,7 @@ export function ProductFormDialog({
                 rows={5}
                 value={form.description}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, description: event.target.value }))
+                  setFormDirty((current) => ({ ...current, description: event.target.value }))
                 }
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
@@ -383,14 +1060,29 @@ export function ProductFormDialog({
                   const parentId = event.target.value ? event.target.value : null;
                   const parentCategory = topLevelCategories.find((category) => category.id === parentId) || null;
 
-                  setForm((current) => ({
+                  setFormDirty((current) => ({
                     ...current,
                     parentId,
                     categoryId: parentId,
                     subcategoryId: null,
                     category: parentCategory?.slug || "",
-                    subcategory: parentCategory?.name || "",
+                    subcategory: "",
+                    variants: current.variants.map((variant) => ({
+                      ...variant,
+                      size:
+                        parentCategory &&
+                        isFootwearProductLike({ category: parentCategory.name }) &&
+                        (!variant.size || ["XS", "S", "M", "L", "XL", "XXL"].includes(variant.size))
+                          ? "42"
+                          : variant.size,
+                    })),
                   }));
+                  setVariantProductType(
+                    inferAdminVariantProductType({
+                      category: parentCategory?.name ?? "",
+                      subcategory: "",
+                    })
+                  );
                 }}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
@@ -410,12 +1102,11 @@ export function ProductFormDialog({
                 onChange={(event) => {
                   const selectedId = event.target.value || null;
                   const selectedSubcategory = subcategoryOptions.find((option) => option.id === selectedId);
-                  const parentCategory = topLevelCategories.find((category) => category.id === form.parentId) || null;
 
-                  setForm((current) => ({
+                  setFormDirty((current) => ({
                     ...current,
                     subcategoryId: selectedId,
-                    subcategory: selectedSubcategory?.name || parentCategory?.name || "",
+                    subcategory: selectedSubcategory?.name || "",
                   }));
                 }}
                 disabled={!form.parentId}
@@ -437,7 +1128,7 @@ export function ProductFormDialog({
               <select
                 value={form.gender}
                 onChange={(event) =>
-                  setForm((current) => ({
+                  setFormDirty((current) => ({
                     ...current,
                     gender: event.target.value as Product["gender"],
                   }))
@@ -459,10 +1150,32 @@ export function ProductFormDialog({
                 type="number"
                 value={form.basePrice}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, basePrice: event.target.value }))
+                  setFormDirty((current) => ({ ...current, basePrice: event.target.value }))
                 }
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               />
+            </label>
+
+            <label className="space-y-2 text-sm">
+              <span className="font-medium text-zinc-300">Stock quantity</span>
+              <input
+                min="0"
+                type="number"
+                value={form.baseStock}
+                onChange={(event) =>
+                  setFormDirty((current) => ({ ...current, baseStock: event.target.value }))
+                }
+                placeholder="Leave blank for unlimited"
+                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+              />
+              <p className="text-xs text-zinc-500">
+                Total units available. Leave blank for unlimited. Only used when no variants are added.
+              </p>
+              {form.variants.length > 0 ? (
+                <p className="text-xs text-amber-300">
+                  Stock is managed per variant when variants are added. This field will be ignored.
+                </p>
+              ) : null}
             </label>
 
             <label className="space-y-2 text-sm md:col-span-2">
@@ -470,7 +1183,7 @@ export function ProductFormDialog({
               <input
                 value={form.tags}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, tags: event.target.value }))
+                  setFormDirty((current) => ({ ...current, tags: event.target.value }))
                 }
                 placeholder="trending, nairobi, bestseller"
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
@@ -484,7 +1197,7 @@ export function ProductFormDialog({
                 type="checkbox"
                 checked={form.isFeatured}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, isFeatured: event.target.checked }))
+                  setFormDirty((current) => ({ ...current, isFeatured: event.target.checked }))
                 }
               />
               Featured on homepage
@@ -494,7 +1207,7 @@ export function ProductFormDialog({
                 type="checkbox"
                 checked={form.isNew}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, isNew: event.target.checked }))
+                  setFormDirty((current) => ({ ...current, isNew: event.target.checked }))
                 }
               />
               Mark as new arrival
@@ -504,7 +1217,7 @@ export function ProductFormDialog({
                 type="checkbox"
                 checked={form.isPopular}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, isPopular: event.target.checked }))
+                  setFormDirty((current) => ({ ...current, isPopular: event.target.checked }))
                 }
               />
               Popular product
@@ -514,7 +1227,7 @@ export function ProductFormDialog({
                 type="checkbox"
                 checked={form.isTrending}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, isTrending: event.target.checked }))
+                  setFormDirty((current) => ({ ...current, isTrending: event.target.checked }))
                 }
               />
               Trending
@@ -524,7 +1237,7 @@ export function ProductFormDialog({
                 type="checkbox"
                 checked={form.isRecommended}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, isRecommended: event.target.checked }))
+                  setFormDirty((current) => ({ ...current, isRecommended: event.target.checked }))
                 }
               />
               Recommended for you
@@ -549,11 +1262,18 @@ export function ProductFormDialog({
                     void (async () => {
                       const files = event.target.files;
                       if (!files?.length) return;
-                      const nextImages = await readFilesAsDataUrls(files);
-                      setForm((current) => ({
-                        ...current,
-                        images: [...current.images, ...nextImages.filter(Boolean)],
-                      }));
+                      try {
+                        await uploadProductImages(files);
+                      } catch (error) {
+                        toast({
+                          title: "Upload failed",
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "The product images could not be uploaded.",
+                          variant: "destructive",
+                        });
+                      }
                     })();
                   }}
                 />
@@ -571,7 +1291,7 @@ export function ProductFormDialog({
                 type="button"
                 onClick={() => {
                   if (!imageUrlInput.trim()) return;
-                  setForm((current) => ({
+                  setFormDirty((current) => ({
                     ...current,
                     images: [...current.images, imageUrlInput.trim()],
                   }));
@@ -592,12 +1312,9 @@ export function ProductFormDialog({
                   </div>
                   <button
                     type="button"
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        images: current.images.filter((_, imageIndex) => imageIndex !== index),
-                      }))
-                    }
+                    onClick={() => {
+                      void removeProductImage(index);
+                    }}
                     className="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white"
                   >
                     <X className="h-4 w-4" />
@@ -610,15 +1327,43 @@ export function ProductFormDialog({
           <div className="rounded-[1.75rem] border border-zinc-800 bg-black/50 p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="font-semibold">Variants</h3>
-                <p className="text-sm text-zinc-400">Color, swatch, size, stock, and price override.</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Variants</h3>
+                  <div className="group relative inline-flex">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 text-zinc-400">
+                      <Info className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="pointer-events-none absolute left-1/2 top-[calc(100%+0.5rem)] z-20 hidden w-72 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 text-xs leading-5 text-zinc-300 shadow-2xl group-hover:block group-focus-within:block">
+                      Each variant is a unique version of this product - e.g. a different size or color.
+                      Each has its own stock count. Use price override only if a specific variant costs more or less than the base price.
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-zinc-400">
+                  {isFootwearCategory
+                    ? "Color, swatch, EU shoe size, stock, price override, and optional color photo."
+                    : "Color, swatch, size, stock, price override, and optional color photo."}
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() =>
-                  setForm((current) => ({
+                  setFormDirty((current) => ({
                     ...current,
-                    variants: [...current.variants, { ...defaultVariant, color: "", price: "" }],
+                    variants: [
+                      ...current.variants,
+                      {
+                        ...createDefaultVariant(),
+                        size:
+                          variantProductType === "accessories"
+                            ? "One Size"
+                            : variantProductType === "footwear"
+                              ? "42"
+                              : variantProductType === "kids-footwear"
+                                ? "30"
+                                : "",
+                      },
+                    ],
                   }))
                 }
                 className="rounded-full border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200"
@@ -627,77 +1372,190 @@ export function ProductFormDialog({
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
-              {form.variants.map((variant, index) => (
-                <div
-                  key={`${variant.id || index}-${variant.color}-${variant.size}`}
-                  className="grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/80 p-4 md:grid-cols-[1.2fr,0.9fr,0.9fr,0.8fr,0.9fr,auto]"
-                >
-                  <input
-                    required
-                    value={variant.color}
-                    onChange={(event) => updateVariant(index, "color", event.target.value)}
-                    placeholder="Color name"
-                    className="rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100"
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={variant.colorHex}
-                      onChange={(event) => updateVariant(index, "colorHex", event.target.value)}
-                      className="h-11 w-12 rounded-xl border border-zinc-800 bg-black p-1"
-                    />
-                    <input
-                      value={variant.colorHex}
-                      onChange={(event) => updateVariant(index, "colorHex", event.target.value)}
-                      className="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100"
-                    />
-                  </div>
-                  <input
-                    required
-                    value={variant.size}
-                    onChange={(event) => updateVariant(index, "size", event.target.value)}
-                    placeholder="Size"
-                    className="rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100"
-                  />
-                  <input
-                    required
-                    min="0"
-                    type="number"
-                    value={variant.stock}
-                    onChange={(event) => updateVariant(index, "stock", event.target.value)}
-                    placeholder="Stock"
-                    className="rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100"
-                  />
-                  <input
-                    min="0"
-                    type="number"
-                    value={variant.price}
-                    onChange={(event) => updateVariant(index, "price", event.target.value)}
-                    placeholder="Price override"
-                    className="rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100"
-                  />
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-zinc-200">Product Type</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {variantProductTypeOptions.map((option) => (
                   <button
+                    key={option.value}
                     type="button"
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        variants:
-                          current.variants.length === 1
-                            ? current.variants
-                            : current.variants.filter((_, variantIndex) => variantIndex !== index),
-                      }))
-                    }
-                    className="inline-flex items-center justify-center rounded-xl border border-zinc-800 px-3 text-zinc-400 transition-colors hover:text-red-400"
+                    onClick={() => setVariantProductType(option.value)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
+                      variantProductType === option.value
+                        ? "border-orange-400 bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.25)]"
+                        : "border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-zinc-500 hover:text-white"
+                    }`}
+                    title={option.description}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {option.label}
                   </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+
+            {variantProductType !== "custom" && (
+              <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Quick fill sizes</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {sizeSuggestions.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => addVariantRows([size])}
+                      className="rounded-full border border-zinc-700 bg-black px-3 py-2 text-sm font-semibold text-zinc-200 transition hover:border-orange-400 hover:text-white"
+                    >
+                      + {size}
+                    </button>
+                  ))}
+
+                  {variantProductType === "clothing" && (
+                    <button
+                      type="button"
+                      onClick={() => addVariantRows(["XS", "S", "M", "L", "XL", "XXL"])}
+                      className="rounded-full border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-200"
+                    >
+                      + Add all (XS → XXL)
+                    </button>
+                  )}
+                  {variantProductType === "footwear" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => addVariantRows(["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"])}
+                        className="rounded-full border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-200"
+                      >
+                        + Add all (36 → 45)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addVariantRows(["35", "36", "37", "38", "39", "40", "41", "42"])}
+                        className="rounded-full border border-zinc-700 bg-black px-3 py-2 text-sm font-semibold text-zinc-200"
+                      >
+                        + Women's range (35 → 42)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addVariantRows(["39", "40", "41", "42", "43", "44", "45", "46"])}
+                        className="rounded-full border border-zinc-700 bg-black px-3 py-2 text-sm font-semibold text-zinc-200"
+                      >
+                        + Men's range (39 → 46)
+                      </button>
+                    </>
+                  )}
+                  {variantProductType === "kids-clothing" && (
+                    <button
+                      type="button"
+                      onClick={() => addVariantRows(["2-3Y", "3-4Y", "4-5Y", "5-6Y", "6-7Y", "7-8Y", "8-10Y"])}
+                      className="rounded-full border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-200"
+                    >
+                      + Add all kids sizes
+                    </button>
+                  )}
+                  {variantProductType === "kids-footwear" && (
+                    <button
+                      type="button"
+                      onClick={() => addVariantRows(["26", "28", "30", "32", "33", "35"])}
+                      className="rounded-full border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-200"
+                    >
+                      + Add all kids shoe sizes
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {footwearLetterSizeWarning && (
+              <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+                <p className="font-semibold">For shoe products: sizes should be EU numbers (e.g. 39, 40, 41).</p>
+                <p className="mt-1 text-amber-200/90">
+                  Using clothing sizes (S, M, L) on shoe products will confuse customers.
+                </p>
+              </div>
+            )}
+
+            {form.variants.length === 0 ? (
+              <div className="mt-5 rounded-[1.75rem] border border-dashed border-zinc-700 bg-zinc-950/50 px-6 py-10 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 text-zinc-400">
+                  <Plus className="h-6 w-6" />
+                </div>
+                <h4 className="mt-4 text-lg font-semibold text-zinc-100">No variants added</h4>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-400">
+                  No variants added — this product will be sold as a single item. Add variants if this product comes in multiple sizes or colors.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <AnimatePresence initial={false}>
+                  {form.variants.map((variant, index) => {
+                    const currentErrors = variantErrors[index] ?? variantValidation[index] ?? {};
+
+                    return (
+                      <VariantRow
+                        key={variant.id || `variant-${index}`}
+                        index={index}
+                        variant={variant}
+                        errors={currentErrors}
+                        isFootwearCategory={isFootwearCategory}
+                        basePrice={form.basePrice}
+                        draggedVariantIndex={draggedVariantIndex}
+                        onDragStart={handleVariantDragStart}
+                        onDragEnd={handleVariantDragEnd}
+                        onDrop={handleVariantDrop}
+                        onCommit={updateVariant}
+                        onUploadImage={uploadVariantImage}
+                        onRemoveImage={removeVariantImage}
+                        onRemove={removeVariant}
+                      />
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+            <datalist id="footwear-size-options">
+              {["35", ...getQuickFillSizesForProductType("footwear"), "46"].map((size) => (
+                <option key={size} value={size} />
+              ))}
+            </datalist>
+            <datalist id="apparel-size-options">
+              {apparelSizeOptions.map((size) => (
+                <option key={size} value={size} />
+              ))}
+            </datalist>
+            <p className="mt-3 text-xs text-zinc-500">
+              {isFootwearCategory
+                ? `Suggested shoe sizes: ${sizeSuggestions.join(", ")}. Major footwear stores usually anchor fit on foot length, so this form now defaults to numeric EU sizing for shoes.`
+                : `Suggested apparel sizes: ${sizeSuggestions.join(", ")}.`}
+            </p>
           </div>
 
+          {restockBannerCount > 0 ? (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              {restockBannerCount} {restockBannerCount === 1 ? "customer is" : "customers are"} waiting for this product to be restocked — consider emailing them.
+            </div>
+          ) : null}
+
           <div className="flex items-center justify-end gap-3">
+            {form.id ? (
+              <p
+                className={`mr-auto text-sm ${
+                  saveState === "saved"
+                    ? "text-emerald-400"
+                    : saveState === "error"
+                      ? "text-red-400"
+                      : saveState === "dirty"
+                        ? "text-amber-300"
+                        : "text-zinc-500"
+                }`}
+              >
+                {saveState === "saved"
+                  ? "All product and variant changes are saved."
+                  : saveState === "error"
+                    ? "Save failed. Your edits are still here."
+                    : saveState === "dirty"
+                      ? "You have unsaved changes."
+                      : "No unsaved changes yet."}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => onOpenChange(false)}
@@ -707,11 +1565,17 @@ export function ProductFormDialog({
             </button>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || hasValidationErrors || !hasUnsavedChanges}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              {isPending ? "Saving..." : product ? "Save changes" : "Create product"}
+              {isPending
+                ? "Saving..."
+                : form.id
+                  ? saveState === "saved"
+                    ? "Saved"
+                    : "Save changes"
+                  : "Create product"}
             </button>
           </div>
         </form>

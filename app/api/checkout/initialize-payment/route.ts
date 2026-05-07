@@ -18,6 +18,7 @@ import {
 } from "@/lib/order-reservations";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { getPaystackPublicKey } from "@/lib/paystack-config";
+import { getProductIdFromDefaultVariantId, isDefaultProductVariantId } from "@/lib/product-stock";
 import { getSessionUser } from "@/lib/session-user";
 import { getShippingQuote } from "@/lib/shipping-rules";
 import { NEWSLETTER_CACHE_TAG } from "@/lib/newsletter-service";
@@ -123,18 +124,73 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: cartValidationError }, { status: 400 });
     }
 
-    const requestedVariantIds = [...new Set(validatedData.items.map((item) => item.variantId))];
-    const variants = await prisma.variant.findMany({
-      where: { id: { in: requestedVariantIds } },
-      include: { product: true },
-    });
+    const requestedVariantIds = [
+      ...new Set(
+        validatedData.items
+          .map((item) => item.variantId)
+          .filter((variantId) => !isDefaultProductVariantId(variantId))
+      ),
+    ];
+    const defaultProductIds = [
+      ...new Set(
+        validatedData.items
+          .map((item) => getProductIdFromDefaultVariantId(item.variantId))
+          .filter((productId): productId is string => Boolean(productId))
+      ),
+    ];
+    const [variants, defaultProducts] = await Promise.all([
+      requestedVariantIds.length
+        ? prisma.variant.findMany({
+            where: { id: { in: requestedVariantIds } },
+            include: { product: true },
+          })
+        : Promise.resolve([]),
+      defaultProductIds.length
+        ? prisma.product.findMany({
+            where: { id: { in: defaultProductIds } },
+            include: {
+              _count: {
+                select: {
+                  variants: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
 
-    if (variants.length !== requestedVariantIds.length) {
+    if (variants.length !== requestedVariantIds.length || defaultProducts.length !== defaultProductIds.length) {
       return NextResponse.json({ error: "One or more cart items are invalid" }, { status: 400 });
     }
 
     const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+    const defaultProductMap = new Map(defaultProducts.map((product) => [product.id, product]));
     const resolvedItems = validatedData.items.map((item) => {
+      const productLevelProductId = getProductIdFromDefaultVariantId(item.variantId);
+      if (productLevelProductId) {
+        const product = defaultProductMap.get(productLevelProductId);
+        if (!product || product.id !== item.productId || product._count.variants > 0) {
+          throw new Error("Invalid product selection");
+        }
+
+        if (product.basePrice !== item.price) {
+          throw new Error("Cart pricing has changed. Please review your cart and try again.");
+        }
+
+        if (product.baseStock != null && product.baseStock < item.quantity) {
+          throw new Error("Some items are no longer available in the requested quantity");
+        }
+
+        return {
+          productId: product.id,
+          variantId: null,
+          productName: product.name,
+          price: product.basePrice,
+          quantity: item.quantity,
+          usesBaseStock: true,
+        };
+      }
+
       const variant = variantMap.get(item.variantId);
       if (!variant || variant.productId !== item.productId) {
         throw new Error("Invalid product selection");
@@ -154,6 +210,7 @@ export async function POST(req: NextRequest) {
         productName: variant.product.name,
         price: variant.price,
         quantity: item.quantity,
+        usesBaseStock: false,
       };
     });
 
@@ -235,19 +292,41 @@ export async function POST(req: NextRequest) {
       }
 
       for (const item of resolvedItems) {
-        const reserved = await tx.variant.updateMany({
-          where: {
-            id: item.variantId,
-            productId: item.productId,
-            stock: { gte: item.quantity },
-          },
-          data: {
-            stock: { decrement: item.quantity },
-          },
-        });
+        if (item.usesBaseStock) {
+          if (item.variantId) {
+            throw new Error("Invalid product selection");
+          }
 
-        if (reserved.count === 0) {
-          throw new Error("Some items are no longer available in the requested quantity");
+          if (defaultProductMap.get(item.productId)?.baseStock != null) {
+            const reserved = await tx.product.updateMany({
+              where: {
+                id: item.productId,
+                baseStock: { gte: item.quantity },
+              },
+              data: {
+                baseStock: { decrement: item.quantity },
+              },
+            });
+
+            if (reserved.count === 0) {
+              throw new Error("Some items are no longer available in the requested quantity");
+            }
+          }
+        } else {
+          const reserved = await tx.variant.updateMany({
+            where: {
+              id: item.variantId ?? "",
+              productId: item.productId,
+              stock: { gte: item.quantity },
+            },
+            data: {
+              stock: { decrement: item.quantity },
+            },
+          });
+
+          if (reserved.count === 0) {
+            throw new Error("Some items are no longer available in the requested quantity");
+          }
         }
       }
 

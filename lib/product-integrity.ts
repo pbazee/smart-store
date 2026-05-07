@@ -1,3 +1,4 @@
+import { getAllCategories } from "@/lib/category-service";
 import type { Prisma } from "@prisma/client";
 import type { Category } from "../types";
 
@@ -83,37 +84,59 @@ export function resolveCanonicalProductSubcategory(
 
 export async function resolveAdminProductCatalogAssignment(input: {
   categoryId?: string | null;
-  subcategory: string;
+  category?: string | null;
+  subcategory?: string | null;
 }) {
-  const { getActiveCategories } = await import("./category-service");
-  const parentCategoryId = input.categoryId?.trim();
-  if (!parentCategoryId) {
+  const categoryId = input.categoryId?.trim();
+  const requestedCategory = input.category?.trim() ?? "";
+  if (!categoryId) {
     throw new Error("Select a category before saving this product.");
   }
 
-  const categories = await getActiveCategories();
-  const parentCategory = categories.find(
-    (category) => category.id === parentCategoryId && !category.parentId
-  );
+  const categories = await getAllCategories();
+  const explicitlySelectedCategory = categories.find((category) => category.id === categoryId) ?? null;
+  const explicitlySelectedChild =
+    explicitlySelectedCategory?.parentId ? explicitlySelectedCategory : null;
+
+  const parentCategory =
+    (explicitlySelectedChild
+      ? categories.find((category) => category.id === explicitlySelectedChild.parentId) ?? null
+      : explicitlySelectedCategory && !explicitlySelectedCategory.parentId
+        ? explicitlySelectedCategory
+        : null) ??
+    categories.find((category) => {
+      if (category.parentId) {
+        return false;
+      }
+
+      const requestedToken = normalizeCatalogToken(requestedCategory);
+      if (!requestedToken) {
+        return false;
+      }
+
+      return [category.name, category.slug]
+        .map((value) => normalizeCatalogToken(value))
+        .includes(requestedToken);
+    });
 
   if (!parentCategory) {
     throw new Error("The selected category is no longer available. Refresh and try again.");
   }
 
   const childCategories = categories.filter((category) => category.parentId === parentCategory.id);
-  const resolvedSubcategory = resolveCanonicalProductSubcategory(
-    parentCategory,
-    input.subcategory,
-    childCategories
-  );
+  const requestedSubcategory = input.subcategory?.trim() ?? "";
+  const resolvedSubcategory =
+    resolveCanonicalProductSubcategory(parentCategory, requestedSubcategory, childCategories) ??
+    explicitlySelectedChild?.name ??
+    null;
 
-  if (!resolvedSubcategory) {
+  if (requestedSubcategory.length > 0 && !resolvedSubcategory) {
     throw new Error("Select a valid subcategory for the chosen category.");
   }
 
   return {
     categoryId: parentCategory.id,
     category: parentCategory.slug,
-    subcategory: resolvedSubcategory,
+    subcategory: resolvedSubcategory ?? parentCategory.name,
   };
 }

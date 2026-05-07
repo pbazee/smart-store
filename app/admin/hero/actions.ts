@@ -76,7 +76,7 @@ function normalizeHeroSlideInput(input: AdminHeroSlideInput) {
 
 function revalidateHeroPaths() {
   revalidateTag('hero-slides');
-  revalidateTag('homepage-shell');
+  revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");

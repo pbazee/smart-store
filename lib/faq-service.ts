@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { ensureFAQStorage } from "@/lib/runtime-schema-repair";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import type { FAQ } from "@/types";
 
@@ -8,7 +7,6 @@ export async function getFAQs(options: { onlyActive?: boolean } = {}) {
     return [];
   }
 
-  await ensureFAQStorage();
 
   const faqs = await prisma.fAQ.findMany({
     where: options.onlyActive ? { isActive: true } : undefined,
@@ -19,7 +17,6 @@ export async function getFAQs(options: { onlyActive?: boolean } = {}) {
 }
 
 export async function createFAQ(data: { question: string; answer: string; order?: number }) {
-  await ensureFAQStorage();
 
   const maxOrder = await prisma.fAQ.aggregate({
     _max: { order: true },
@@ -40,7 +37,6 @@ export async function updateFAQ(
   id: string,
   data: { question?: string; answer?: string; order?: number; isActive?: boolean }
 ) {
-  await ensureFAQStorage();
 
   const faq = await prisma.fAQ.update({
     where: { id },
@@ -51,7 +47,6 @@ export async function updateFAQ(
 }
 
 export async function deleteFAQ(id: string) {
-  await ensureFAQStorage();
 
   await prisma.fAQ.delete({ where: { id } });
   return true;
