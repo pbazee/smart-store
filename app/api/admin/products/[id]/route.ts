@@ -22,7 +22,6 @@ const updateProductSchema = z.object({
   subcategory: z.string().optional().nullable().default(""),
   gender: z.enum(["men", "women", "unisex", "children", "male", "female"]),
   basePrice: z.number().int().positive(),
-  baseStock: z.number().int().nonnegative().nullable().optional(),
   images: z.array(z.string().min(1)).min(1),
   tags: z.array(z.string()).default([]),
   isFeatured: z.boolean().optional(),
@@ -39,7 +38,6 @@ const updateProductSchema = z.object({
         size: z.string().min(1),
         stock: z.number().int().nonnegative(),
         price: z.number().int().positive(),
-        variantImageUrl: z.string().trim().optional().nullable(),
       })
     )
     .default([]),
@@ -113,8 +111,6 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (!existingProduct) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
-
-    const previousBaseStock = existingProduct.baseStock ?? null;
     const previousVariantStock = existingProduct.variants.reduce((sum, variant) => sum + variant.stock, 0);
     const requestedSubcategory = validatedData.subcategory?.trim() ?? "";
     const catalogAssignment = await resolveAdminProductCatalogAssignment({
@@ -131,7 +127,6 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         description: validatedData.description,
         gender: validatedData.gender,
         basePrice: validatedData.basePrice,
-        baseStock: validatedData.baseStock ?? null,
         images: validatedData.images,
         tags: validatedData.tags,
         isFeatured: validatedData.isFeatured ?? false,
@@ -148,7 +143,6 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
             size: variant.size,
             stock: variant.stock,
             price: variant.price,
-            variantImageUrl: variant.variantImageUrl ?? null,
           })),
         },
       },
@@ -156,24 +150,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     });
 
     const nextVariantStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
-    const stockIncreased =
-      (validatedData.variants.length === 0
-        ? (validatedData.baseStock ?? null) !== null &&
-          (validatedData.baseStock ?? 0) > (previousBaseStock ?? 0)
-        : nextVariantStock > previousVariantStock);
-    const pendingRestockCount = stockIncreased
-      ? await prisma.restockNotification.count({
-          where: {
-            productId: product.id,
-            notified: false,
-          },
-        })
-      : 0;
+    const stockIncreased = nextVariantStock > previousVariantStock;
 
     revalidateProductSurfaces(product, existingProduct.slug);
 
     return NextResponse.json(
-      { success: true, data: product, meta: { pendingRestockCount } },
+      { success: true, data: product, meta: { pendingRestockCount: 0 } },
       {
         headers: {
           "Cache-Control": "no-store",

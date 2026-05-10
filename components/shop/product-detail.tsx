@@ -31,7 +31,6 @@ import {
 import { useSessionUser } from "@/hooks/use-session-user";
 import {
   createDefaultProductVariant,
-  getBaseStockMessage,
   hasRealVariants,
 } from "@/lib/product-stock";
 import {
@@ -101,32 +100,7 @@ export function ProductDetail({
       ),
     [currentProduct.variants, selectedColor, selectedSize]
   );
-  const activeVariantImageUrl = useMemo(() => {
-    if (!selectedColor) {
-      return "";
-    }
-
-    const selectedVariantImage = selectedVariant?.variantImageUrl?.trim();
-    if (selectedVariantImage) {
-      return selectedVariantImage;
-    }
-
-    return (
-      currentProduct.variants.find(
-        (variant) => variant.color === selectedColor && variant.variantImageUrl?.trim()
-      )?.variantImageUrl?.trim() || ""
-    );
-  }, [currentProduct.variants, selectedColor, selectedVariant]);
-  const displayImages = useMemo(() => {
-    if (!activeVariantImageUrl) {
-      return currentProduct.images;
-    }
-
-    return [
-      activeVariantImageUrl,
-      ...currentProduct.images.filter((image) => image !== activeVariantImageUrl),
-    ];
-  }, [activeVariantImageUrl, currentProduct.images]);
+  const displayImages = currentProduct.images;
   const blurDataUrl = useMemo(
     () =>
       createBlurDataURL({
@@ -189,8 +163,7 @@ export function ProductDetail({
   const allSizesOutOfStock = sizesForColor.length > 0 && inStockSizes.length === 0;
   const singleSizeRemaining =
     inStockSizes.length === 1 && uniqueSizes.length > 1 ? inStockSizes[0] : null;
-  const baseStockMessage = hasVariants ? null : getBaseStockMessage(currentProduct.baseStock);
-  const defaultProductOutOfStock = !hasVariants && currentProduct.baseStock === 0;
+  const defaultProductOutOfStock = false;
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) {
@@ -268,7 +241,7 @@ export function ProductDetail({
 
   useEffect(() => {
     setSelectedImage(0);
-  }, [activeVariantImageUrl, selectedColor]);
+  }, [selectedColor]);
 
   useEffect(() => {
     const hasSelectedColor = currentProduct.variants.some((variant) => variant.color === selectedColor);
@@ -489,7 +462,7 @@ export function ProductDetail({
                 </span>
               )}
               {((hasVariants && selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5) ||
-                (!hasVariants && currentProduct.baseStock != null && currentProduct.baseStock > 0 && currentProduct.baseStock <= 5)) && (
+                false) && (
                 <span className="rounded-full bg-amber-400/90 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-black">
                   Low stock
                 </span>
@@ -694,11 +667,6 @@ export function ProductDetail({
               <p className="text-sm text-muted-foreground">
                 This product is sold as a single item with no size or color selection required.
               </p>
-              {baseStockMessage ? (
-                <p className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400">
-                  {baseStockMessage}
-                </p>
-              ) : null}
             </div>
           )}
 

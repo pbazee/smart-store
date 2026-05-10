@@ -54,7 +54,6 @@ function ProductCardComponent({
   const addItem = useCartStore((state) => state.addItem);
   const { toast } = useToast();
   const [heartAnimating, setHeartAnimating] = useState(false);
-  const [hoveredVariantImageUrl, setHoveredVariantImageUrl] = useState<string | null>(null);
 
   const firstVariant = getCartVariantForProduct(product);
   const productHref = buildProductHref(product);
@@ -67,14 +66,13 @@ function ProductCardComponent({
             {
               color: variant.color,
               hex: variant.colorHex,
-              variantImageUrl: variant.variantImageUrl ?? null,
             },
           ])
         ).values()
       ).slice(0, 4),
     [product.variants]
   );
-  const cardImage = hoveredVariantImageUrl || product.images[0] || "/images/product-placeholder.png";
+  const cardImage = product.images[0] || "/images/product-placeholder.png";
 
   const prefetchProduct = () => {
     prefetchProductRoute(router, productHref, hasPrefetchedRef);
@@ -238,10 +236,6 @@ function ProductCardComponent({
                     key={`${swatch.color}-${swatch.hex}`}
                     className="h-3 w-3 rounded-full border border-border"
                     style={{ backgroundColor: swatch.hex }}
-                    onMouseEnter={() =>
-                      setHoveredVariantImageUrl(swatch.variantImageUrl?.trim() || null)
-                    }
-                    onMouseLeave={() => setHoveredVariantImageUrl(null)}
                   />
                 ))}
               </div>

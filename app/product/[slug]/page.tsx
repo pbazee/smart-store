@@ -69,6 +69,7 @@ export async function generateMetadata({
       url: productUrl,
       siteName: storeName,
       type: "website",
+      locale: "en_KE",
       images: [
         {
           url: imageUrl,
@@ -83,6 +84,10 @@ export async function generateMetadata({
       title: normalizedSocialTitle,
       description,
       images: [imageUrl],
+    },
+    other: {
+      "og:price:amount": String(product.basePrice),
+      "og:price:currency": "KES",
     },
   };
 }

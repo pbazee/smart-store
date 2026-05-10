@@ -215,7 +215,6 @@ const CATALOG_VARIANT_SELECT = {
   size: true,
   stock: true,
   price: true,
-  variantImageUrl: true,
 } satisfies Prisma.VariantSelect;
 
 const CATALOG_PRODUCT_SELECT = {
@@ -229,7 +228,6 @@ const CATALOG_PRODUCT_SELECT = {
   gender: true,
   tags: true,
   basePrice: true,
-  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,

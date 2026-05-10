@@ -42,11 +42,7 @@ type ProductsResponse = {
 };
 
 function getTotalStock(product: Product) {
-  if (product.variants.length > 0) {
-    return product.variants.reduce((sum, variant) => sum + variant.stock, 0);
-  }
-
-  return product.baseStock ?? 0;
+  return product.variants.reduce((sum, variant) => sum + variant.stock, 0);
 }
 
 function buildProductsUrl(page: number, limit: number, search: string) {

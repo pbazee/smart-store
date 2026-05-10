@@ -30,7 +30,6 @@ const adminVariantSchema = z.object({
   size: z.string().min(1, "Size is required"),
   stock: z.number().int().nonnegative(),
   price: z.number().int().positive(),
-  variantImageUrl: z.string().trim().optional().nullable(),
 });
 
 const adminProductSchema = z.object({
@@ -43,7 +42,6 @@ const adminProductSchema = z.object({
   categoryId: z.string().optional().nullable(),
   gender: z.enum(["men", "women", "unisex", "children"]),
   basePrice: z.number().int().positive(),
-  baseStock: z.number().int().nonnegative().nullable().optional(),
   images: z.array(z.string().min(1)).min(1, "At least one image is required"),
   tags: z.array(z.string()).default([]),
   isFeatured: z.boolean().default(false),
@@ -65,7 +63,6 @@ const adminProductListSelect = {
   gender: true,
   tags: true,
   basePrice: true,
-  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,
@@ -84,7 +81,6 @@ const adminProductListSelect = {
       size: true,
       stock: true,
       price: true,
-      variantImageUrl: true,
     },
   },
 } as const;
@@ -296,7 +292,6 @@ export async function updateAdminProductAction(input: AdminProductInput) {
       gender: normalizedData.gender,
       tags: normalizedData.tags,
       basePrice: normalizedData.basePrice,
-      baseStock: normalizedData.baseStock ?? null,
       images: normalizedData.images,
       isFeatured: normalizedData.isFeatured,
       isNew: normalizedData.isNew,
@@ -311,7 +306,6 @@ export async function updateAdminProductAction(input: AdminProductInput) {
           size: variant.size,
           stock: variant.stock,
           price: variant.price,
-          variantImageUrl: variant.variantImageUrl ?? null,
         })),
       },
     },

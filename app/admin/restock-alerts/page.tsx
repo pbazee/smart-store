@@ -1,52 +1,9 @@
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { RestockAlertsManager } from "./restock-alerts-manager";
-
 export const dynamic = "force-dynamic";
 
-type RestockAlertRow = Prisma.RestockNotificationGetPayload<{
-  include: {
-    product: {
-      select: {
-        id: true;
-        name: true;
-      };
-    };
-    variant: {
-      select: {
-        id: true;
-        color: true;
-        size: true;
-      };
-    };
-  };
-}>;
-
 export default async function AdminRestockAlertsPage() {
-  let notifications: RestockAlertRow[] = [];
-
-  try {
-    notifications = await prisma.restockNotification.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        variant: {
-          select: {
-            id: true,
-            color: true,
-            size: true,
-          },
-        },
-      },
-    });
-  } catch (error) {
-    console.error("[AdminRestockAlertsPage] Failed to load restock alerts:", error);
-  }
-
-  return <RestockAlertsManager initialNotifications={notifications} />;
+  return (
+    <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-8 text-zinc-200">
+      Restock alerts are temporarily disabled until the database tables are added.
+    </div>
+  );
 }

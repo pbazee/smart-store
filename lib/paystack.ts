@@ -131,26 +131,6 @@ export async function finalizePaystackPayment(input: {
     if (order.stockReleasedAt) {
       for (const item of order.items) {
         if (!item.variantId) {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { baseStock: true },
-          });
-
-          if (product?.baseStock != null) {
-            const reserved = await tx.product.updateMany({
-              where: {
-                id: item.productId,
-                baseStock: { gte: item.quantity },
-              },
-              data: {
-                baseStock: { decrement: item.quantity },
-              },
-            });
-
-            if (reserved.count === 0) {
-              throw new Error("Reservation expired and inventory is no longer available");
-            }
-          }
           continue;
         }
 

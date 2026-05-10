@@ -8,10 +8,15 @@ import {
   getBlogExcerpt,
   getBlogReadTime,
 } from "@/lib/default-blog-posts";
+import { getAppUrl } from "@/lib/app-url";
 import { getBlogPostBySlug } from "@/lib/blog-service";
 import { createBlurDataURL } from "@/lib/utils";
 
 export const revalidate = 60;
+
+function buildAbsoluteUrl(pathOrUrl: string) {
+  return new URL(pathOrUrl, getAppUrl()).toString();
+}
 
 export async function generateMetadata({
   params,
@@ -24,12 +29,44 @@ export async function generateMetadata({
   if (!post || !post.isPublished) {
     return {
       title: "Blog | Smartest Store KE",
+      description: "Stories, style ideas, and updates from Smartest Store KE.",
     };
   }
 
+  const postUrl = buildAbsoluteUrl(`/blog/${post.slug}`);
+  const imageUrl = buildAbsoluteUrl(post.imageUrl || "/og-image.jpg");
+  const description = getBlogExcerpt(post.content, 160);
+  const publishedTime = new Date(post.publishedAt || post.createdAt).toISOString();
+
   return {
     title: `${post.title} | Smartest Store KE`,
-    description: getBlogExcerpt(post.content, 160),
+    description,
+    alternates: {
+      canonical: postUrl,
+    },
+    openGraph: {
+      title: post.title,
+      description,
+      url: postUrl,
+      siteName: "Smartest Store KE",
+      type: "article",
+      locale: "en_KE",
+      publishedTime,
+      images: [
+        {
+          url: imageUrl,
+          alt: post.title,
+          width: 1200,
+          height: 630,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description,
+      images: [imageUrl],
+    },
   };
 }
 

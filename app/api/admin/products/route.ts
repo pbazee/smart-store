@@ -26,7 +26,6 @@ const createProductSchema = z.object({
   subcategory: z.string().optional().nullable().default(""),
   gender: genderSchema,
   basePrice: z.number().int().positive("Price must be positive"),
-  baseStock: z.number().int().nonnegative().nullable().optional(),
   images: z.array(z.string().min(1, "Image required")).min(1, "At least one image is required"),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().optional(),
@@ -43,7 +42,6 @@ const createProductSchema = z.object({
         size: z.string().min(1, "Size required"),
         stock: z.number().int().nonnegative(),
         price: z.number().int().positive(),
-        variantImageUrl: z.string().trim().optional().nullable(),
       })
     )
     .default([]),
@@ -60,7 +58,6 @@ const adminProductListSelect = {
   gender: true,
   tags: true,
   basePrice: true,
-  baseStock: true,
   images: true,
   rating: true,
   reviewCount: true,
@@ -79,7 +76,6 @@ const adminProductListSelect = {
       size: true,
       stock: true,
       price: true,
-      variantImageUrl: true,
     },
   },
 } as const;
@@ -194,42 +190,14 @@ export async function POST(req: NextRequest) {
       category: validatedData.category,
       subcategory: requestedSubcategory.length > 0 ? requestedSubcategory : null,
     });
-
-    let product;
-
-    try {
-      product = await prisma.product.create({
-        data: buildAdminProductCreateData({
-          ...validatedData,
-          slug: slugify(validatedData.slug || validatedData.name),
-          ...catalogAssignment,
-        }),
-        select: adminProductListSelect,
-      });
-    } catch (error) {
-      const missingBaseStockColumn =
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2022" &&
-        String(error.meta?.column ?? "").includes("baseStock");
-
-      if (!missingBaseStockColumn) {
-        throw error;
-      }
-
-      const retryData = buildAdminProductCreateData({
+    const product = await prisma.product.create({
+      data: buildAdminProductCreateData({
         ...validatedData,
-        baseStock: undefined,
         slug: slugify(validatedData.slug || validatedData.name),
         ...catalogAssignment,
-      });
-
-      const { baseStock: _baseStock, ...retryDataWithoutBaseStock } = retryData;
-
-      product = await prisma.product.create({
-        data: retryDataWithoutBaseStock,
-        select: adminProductListSelect,
-      });
-    }
+      }),
+      select: adminProductListSelect,
+    });
 
     revalidateProductSurfaces(product);
 

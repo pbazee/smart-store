@@ -177,10 +177,6 @@ export async function POST(req: NextRequest) {
           throw new Error("Cart pricing has changed. Please review your cart and try again.");
         }
 
-        if (product.baseStock != null && product.baseStock < item.quantity) {
-          throw new Error("Some items are no longer available in the requested quantity");
-        }
-
         return {
           productId: product.id,
           variantId: null,
@@ -295,22 +291,6 @@ export async function POST(req: NextRequest) {
         if (item.usesBaseStock) {
           if (item.variantId) {
             throw new Error("Invalid product selection");
-          }
-
-          if (defaultProductMap.get(item.productId)?.baseStock != null) {
-            const reserved = await tx.product.updateMany({
-              where: {
-                id: item.productId,
-                baseStock: { gte: item.quantity },
-              },
-              data: {
-                baseStock: { decrement: item.quantity },
-              },
-            });
-
-            if (reserved.count === 0) {
-              throw new Error("Some items are no longer available in the requested quantity");
-            }
           }
         } else {
           const reserved = await tx.variant.updateMany({

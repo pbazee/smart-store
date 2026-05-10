@@ -5,7 +5,6 @@ export interface ProductVariant {
   size: string;
   stock: number;
   price: number;
-  variantImageUrl?: string | null;
   isDefault?: boolean;
 }
 
@@ -20,7 +19,6 @@ export interface Product {
   gender: "men" | "women" | "unisex" | "children";
   tags: string[];
   basePrice: number;
-  baseStock?: number | null;
   images: string[];
   variants: ProductVariant[];
   rating: number;

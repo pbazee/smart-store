@@ -3,12 +3,10 @@
 import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { Camera, GripVertical, ImagePlus, Info, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { GripVertical, ImagePlus, Info, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import {
   cleanupProductImageAction,
-  cleanupProductVariantImageAction,
   uploadProductImageAction,
-  uploadProductVariantImageAction,
 } from "@/app/admin/products/actions";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { jsonFetcher } from "@/lib/fetcher";
@@ -30,7 +28,6 @@ type VariantFormState = {
   size: string;
   stock: string;
   price: string;
-  variantImageUrl?: string | null;
 };
 
 type ProductFormState = {
@@ -45,7 +42,6 @@ type ProductFormState = {
   subcategoryId?: string | null;
   gender: Product["gender"];
   basePrice: string;
-  baseStock: string;
   images: string[];
   tags: string;
   isFeatured: boolean;
@@ -57,7 +53,6 @@ type ProductFormState = {
 };
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
-const VARIANT_IMAGE_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
 
 function createProductDraftKey() {
   return `product-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -75,7 +70,6 @@ function createDefaultVariant(): VariantFormState {
     size: "",
     stock: "0",
     price: "",
-    variantImageUrl: null,
   };
 }
 
@@ -91,7 +85,6 @@ function createEmptyFormState(): ProductFormState {
     subcategoryId: null,
     gender: "unisex",
     basePrice: "",
-    baseStock: "",
     images: [],
     tags: "trending, nairobi",
     isFeatured: false,
@@ -131,7 +124,6 @@ function createQuickFillVariant(size: string): VariantFormState {
     size,
     stock: "0",
     price: "",
-    variantImageUrl: null,
   };
 }
 
@@ -205,7 +197,6 @@ function createFormState(product?: Product | null): ProductFormState {
     subcategoryId: null,
     gender: product.gender,
     basePrice: String(product.basePrice),
-    baseStock: product.baseStock == null ? "" : String(product.baseStock),
     images: product.images,
     tags: product.tags.join(", "),
     isFeatured: product.isFeatured,
@@ -220,7 +211,6 @@ function createFormState(product?: Product | null): ProductFormState {
       size: variant.size,
       stock: String(variant.stock),
       price: String(variant.price),
-      variantImageUrl: variant.variantImageUrl ?? null,
     })),
   };
 }
@@ -257,7 +247,6 @@ function toPayload(form: ProductFormState): AdminProductInput {
     categoryId: form.parentId || form.categoryId || null,
     gender: form.gender,
     basePrice,
-    baseStock: form.baseStock.trim() === "" ? null : Number(form.baseStock),
     images: form.images.filter(Boolean),
     tags: form.tags
       .split(",")
@@ -275,7 +264,6 @@ function toPayload(form: ProductFormState): AdminProductInput {
       size: variant.size.trim(),
       stock: Number(variant.stock),
       price: variant.price ? Number(variant.price) : basePrice,
-      variantImageUrl: variant.variantImageUrl?.trim() || null,
     })),
   };
 }
@@ -290,7 +278,6 @@ type AdminProductInput = {
   categoryId?: string | null;
   gender: Product["gender"];
   basePrice: number;
-  baseStock?: number | null;
   images: string[];
   tags: string[];
   isFeatured: boolean;
@@ -305,16 +292,11 @@ type AdminProductInput = {
     size: string;
     stock: number;
     price: number;
-    variantImageUrl?: string | null;
   }>;
 };
 
 function normalizeProductSubcategory(value?: string | null) {
   return slugify(value || "").replace(/-/g, "");
-}
-
-function getTotalVariantStock(variants: VariantFormState[]) {
-  return variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0);
 }
 
 type VariantRowProps = {
@@ -328,8 +310,6 @@ type VariantRowProps = {
   onDragEnd: () => void;
   onDrop: (index: number) => void;
   onCommit: (index: number, field: keyof VariantFormState, value: string) => void;
-  onUploadImage: (index: number, file: File) => Promise<void>;
-  onRemoveImage: (index: number) => Promise<void>;
   onRemove: (index: number) => void;
 };
 
@@ -344,20 +324,8 @@ const VariantRow = memo(function VariantRow({
   onDragEnd,
   onDrop,
   onCommit,
-  onUploadImage,
-  onRemoveImage,
   onRemove,
 }: VariantRowProps) {
-  const hasInlineVariantImage = Boolean(variant.variantImageUrl?.startsWith("data:"));
-  const [urlInput, setUrlInput] = useState(
-    hasInlineVariantImage ? "" : (variant.variantImageUrl ?? "")
-  );
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-
-  useEffect(() => {
-    setUrlInput(variant.variantImageUrl?.startsWith("data:") ? "" : (variant.variantImageUrl ?? ""));
-  }, [variant.variantImageUrl]);
-
   const fieldBorder = (fieldError?: string) =>
     fieldError
       ? "border-red-500/70 focus-within:border-red-500"
@@ -480,93 +448,6 @@ const VariantRow = memo(function VariantRow({
           {errors.price ? <p className="text-xs text-red-400">{errors.price}</p> : null}
         </label>
       </div>
-
-      <div className="grid gap-3 rounded-2xl border border-zinc-800/80 bg-black/35 p-4 lg:grid-cols-[4.5rem,minmax(0,1fr)]">
-        <div className="flex justify-center lg:justify-start">
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-700 bg-black">
-            {variant.variantImageUrl ? (
-              <Image
-                src={variant.variantImageUrl}
-                alt={`${variant.color || "Variant"} color preview`}
-                fill
-                className="object-cover"
-                sizes="56px"
-              />
-            ) : (
-              <Camera className="h-4 w-4 text-zinc-500" />
-            )}
-          </div>
-        </div>
-
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-zinc-200">Variant image</p>
-            {hasInlineVariantImage ? (
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200">
-                Inline fallback image stored
-              </span>
-            ) : null}
-          </div>
-
-            <input
-              value={urlInput}
-              onChange={(event) => setUrlInput(event.target.value)}
-              placeholder="Paste a hosted image URL for this color"
-              className="w-full rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-orange-400"
-            />
-
-            <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-800 bg-black px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-orange-400">
-                <Upload className="h-3.5 w-3.5" />
-                <span>{isUploadingImage ? "Uploading..." : "Upload image"}</span>
-                <input
-                  type="file"
-                  accept={VARIANT_IMAGE_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    event.target.value = "";
-                    if (!file) {
-                      return;
-                    }
-
-                    setIsUploadingImage(true);
-                    void onUploadImage(index, file).finally(() => {
-                      setIsUploadingImage(false);
-                    });
-                  }}
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onCommit(index, "variantImageUrl", urlInput.trim());
-                }}
-                className="rounded-xl border border-zinc-800 bg-black px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-orange-400"
-              >
-                Apply URL
-              </button>
-
-              {variant.variantImageUrl ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUrlInput("");
-                    void onRemoveImage(index);
-                  }}
-                  className="rounded-xl border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
-                >
-                  Remove image
-                </button>
-              ) : null}
-            </div>
-        </div>
-
-        <p className="text-xs text-zinc-500">
-          Add a dedicated color photo here. This image is what shoppers will see when they switch to this color.
-        </p>
-      </div>
     </motion.div>
   );
 }, (prevProps, nextProps) => {
@@ -581,7 +462,6 @@ const VariantRow = memo(function VariantRow({
     prevProps.variant.size === nextProps.variant.size &&
     prevProps.variant.stock === nextProps.variant.stock &&
     prevProps.variant.price === nextProps.variant.price &&
-    prevProps.variant.variantImageUrl === nextProps.variant.variantImageUrl &&
     prevProps.errors.size === nextProps.errors.size &&
     prevProps.errors.stock === nextProps.errors.stock &&
     prevProps.errors.price === nextProps.errors.price &&
@@ -614,8 +494,6 @@ export function ProductFormDialog({
   const [draggedVariantIndex, setDraggedVariantIndex] = useState<number | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [productAssetKey, setProductAssetKey] = useState(() => product?.id ?? createProductDraftKey());
-  const [restockBannerCount, setRestockBannerCount] = useState(0);
-
   const topLevelCategories = useMemo(() => {
     return categories
       .filter((category) => !category.parentId && category.isActive !== false)
@@ -666,9 +544,7 @@ export function ProductFormDialog({
     setVariantProductType(inferProductTypeFromForm(base, categories));
     setVariantErrors(validateVariantRows(base.variants));
     setSaveState("idle");
-    setProductAssetKey(product?.id ?? createProductDraftKey());
-    setRestockBannerCount(0);
-  }, [product, open, categories]);
+    setProductAssetKey(product?.id ?? createProductDraftKey());  }, [product, open, categories]);
 
   useEffect(() => {
     if (!form.parentId || form.subcategoryId || subcategoryOptions.length === 0) {
@@ -758,70 +634,6 @@ export function ProductFormDialog({
       };
     });
   }, [setFormDirty]);
-
-  const uploadVariantImage = useCallback(
-    async (index: number, file: File) => {
-      if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
-        toast({
-          title: "Upload failed",
-          description: "Please use a JPG, PNG, or WebP image.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Upload failed",
-          description: "Image too large — please use an image under 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const variantId = form.variants[index]?.id ?? createVariantDraftId();
-      if (!form.variants[index]?.id) {
-        updateVariant(index, "id", variantId);
-      }
-
-      try {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
-        uploadFormData.append("productId", productAssetKey);
-        uploadFormData.append("variantId", variantId);
-        const uploadResult = await uploadProductVariantImageAction(uploadFormData);
-        updateVariant(index, "variantImageUrl", uploadResult.imageUrl);
-      } catch (error) {
-        toast({
-          title: "Upload failed",
-          description:
-            error instanceof Error
-              ? error.message
-              : "The variant image could not be uploaded.",
-          variant: "destructive",
-        });
-      }
-    },
-    [form.variants, productAssetKey, toast, updateVariant]
-  );
-
-  const removeVariantImage = useCallback(
-    async (index: number) => {
-      const currentImageUrl = form.variants[index]?.variantImageUrl?.trim();
-      updateVariant(index, "variantImageUrl", "");
-
-      if (!currentImageUrl) {
-        return;
-      }
-
-      try {
-        await cleanupProductVariantImageAction(currentImageUrl);
-      } catch (error) {
-        console.error("Variant image cleanup failed:", error);
-      }
-    },
-    [form.variants, updateVariant]
-  );
 
   const uploadProductImages = useCallback(
     async (files: FileList) => {
@@ -914,16 +726,6 @@ export function ProductFormDialog({
   const variantValidation = useMemo(() => validateVariantRows(form.variants), [form.variants]);
   const hasValidationErrors = hasVariantErrors(variantValidation);
   const hasUnsavedChanges = !form.id || saveState === "dirty" || saveState === "error";
-  const previousTotalStock = useMemo(
-    () =>
-      product?.variants.length
-        ? product.variants.reduce((sum, variant) => sum + variant.stock, 0)
-        : (product?.baseStock ?? 0),
-    [product]
-  );
-  const currentTotalStock = form.variants.length
-    ? getTotalVariantStock(form.variants)
-    : (form.baseStock.trim() === "" ? null : Number(form.baseStock));
   const footwearLetterSizeWarning = useMemo(
     () =>
       isFootwearCategory &&
@@ -950,7 +752,7 @@ export function ProductFormDialog({
         try {
           setSaveState("saving");
           const payload = toPayload(form);
-          const response = await jsonFetcher<{ success: boolean; data: Product; meta?: { pendingRestockCount?: number } }>(
+          const response = await jsonFetcher<{ success: boolean; data: Product }>(
             form.id ? `/api/admin/products/${form.id}` : "/api/admin/products",
             {
               method: form.id ? "PATCH" : "POST",
@@ -969,11 +771,6 @@ export function ProductFormDialog({
           setVariantProductType(inferProductTypeFromForm(nextForm, categories));
           setVariantErrors(validateVariantRows(nextForm.variants));
           setSaveState("saved");
-          const nextPendingRestockCount =
-            (typeof currentTotalStock === "number" ? currentTotalStock : 0) > previousTotalStock
-              ? (response.meta?.pendingRestockCount ?? 0)
-              : 0;
-          setRestockBannerCount(nextPendingRestockCount);
           onSaved(savedProduct);
           toast({
             title: form.id ? "Product updated" : "Product created",
@@ -1156,28 +953,6 @@ export function ProductFormDialog({
               />
             </label>
 
-            <label className="space-y-2 text-sm">
-              <span className="font-medium text-zinc-300">Stock quantity</span>
-              <input
-                min="0"
-                type="number"
-                value={form.baseStock}
-                onChange={(event) =>
-                  setFormDirty((current) => ({ ...current, baseStock: event.target.value }))
-                }
-                placeholder="Leave blank for unlimited"
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-              <p className="text-xs text-zinc-500">
-                Total units available. Leave blank for unlimited. Only used when no variants are added.
-              </p>
-              {form.variants.length > 0 ? (
-                <p className="text-xs text-amber-300">
-                  Stock is managed per variant when variants are added. This field will be ignored.
-                </p>
-              ) : null}
-            </label>
-
             <label className="space-y-2 text-sm md:col-span-2">
               <span className="font-medium text-zinc-300">Tags</span>
               <input
@@ -1341,8 +1116,8 @@ export function ProductFormDialog({
                 </div>
                 <p className="text-sm text-zinc-400">
                   {isFootwearCategory
-                    ? "Color, swatch, EU shoe size, stock, price override, and optional color photo."
-                    : "Color, swatch, size, stock, price override, and optional color photo."}
+                    ? "Color, swatch, EU shoe size, stock, and optional price override."
+                    : "Color, swatch, size, stock, and optional price override."}
                 </p>
               </div>
               <button
@@ -1502,8 +1277,6 @@ export function ProductFormDialog({
                         onDragEnd={handleVariantDragEnd}
                         onDrop={handleVariantDrop}
                         onCommit={updateVariant}
-                        onUploadImage={uploadVariantImage}
-                        onRemoveImage={removeVariantImage}
                         onRemove={removeVariant}
                       />
                     );
@@ -1527,12 +1300,6 @@ export function ProductFormDialog({
                 : `Suggested apparel sizes: ${sizeSuggestions.join(", ")}.`}
             </p>
           </div>
-
-          {restockBannerCount > 0 ? (
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              {restockBannerCount} {restockBannerCount === 1 ? "customer is" : "customers are"} waiting for this product to be restocked — consider emailing them.
-            </div>
-          ) : null}
 
           <div className="flex items-center justify-end gap-3">
             {form.id ? (
