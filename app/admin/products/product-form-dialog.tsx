@@ -5,7 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { GripVertical, ImagePlus, Info, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import {
+  cleanupProductVariantImageAction,
   cleanupProductImageAction,
+  uploadProductVariantImageAction,
   uploadProductImageAction,
 } from "@/app/admin/products/actions";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -28,6 +30,7 @@ type VariantFormState = {
   size: string;
   stock: string;
   price: string;
+  variantImageUrl: string;
 };
 
 type ProductFormState = {
@@ -70,6 +73,7 @@ function createDefaultVariant(): VariantFormState {
     size: "",
     stock: "0",
     price: "",
+    variantImageUrl: "",
   };
 }
 
@@ -124,6 +128,7 @@ function createQuickFillVariant(size: string): VariantFormState {
     size,
     stock: "0",
     price: "",
+    variantImageUrl: "",
   };
 }
 
@@ -211,6 +216,7 @@ function createFormState(product?: Product | null): ProductFormState {
       size: variant.size,
       stock: String(variant.stock),
       price: String(variant.price),
+      variantImageUrl: variant.variantImageUrl ?? "",
     })),
   };
 }
@@ -264,6 +270,7 @@ function toPayload(form: ProductFormState): AdminProductInput {
       size: variant.size.trim(),
       stock: Number(variant.stock),
       price: variant.price ? Number(variant.price) : basePrice,
+      variantImageUrl: variant.variantImageUrl.trim() || null,
     })),
   };
 }
@@ -292,6 +299,7 @@ type AdminProductInput = {
     size: string;
     stock: number;
     price: number;
+    variantImageUrl?: string | null;
   }>;
 };
 
@@ -310,6 +318,8 @@ type VariantRowProps = {
   onDragEnd: () => void;
   onDrop: (index: number) => void;
   onCommit: (index: number, field: keyof VariantFormState, value: string) => void;
+  onUploadImage: (index: number, file: File) => Promise<void>;
+  onRemoveImage: (index: number) => Promise<void>;
   onRemove: (index: number) => void;
 };
 
@@ -324,6 +334,8 @@ const VariantRow = memo(function VariantRow({
   onDragEnd,
   onDrop,
   onCommit,
+  onUploadImage,
+  onRemoveImage,
   onRemove,
 }: VariantRowProps) {
   const fieldBorder = (fieldError?: string) =>
@@ -371,6 +383,68 @@ const VariantRow = memo(function VariantRow({
         >
           <Trash2 className="h-4 w-4" />
         </button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[auto,1fr]">
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-zinc-300">Variant image</span>
+          <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-zinc-800 bg-black">
+            {variant.variantImageUrl ? (
+              <Image
+                src={variant.variantImageUrl}
+                alt={variant.color || "Variant image"}
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[10px] text-zinc-500">
+                No image
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-800 px-3 py-2 text-sm text-zinc-100">
+              <Upload className="h-4 w-4" />
+              Upload Image
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) {
+                    return;
+                  }
+
+                  void onUploadImage(index, file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+            {variant.variantImageUrl ? (
+              <button
+                type="button"
+                onClick={() => void onRemoveImage(index)}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 px-3 py-2 text-sm text-red-300"
+              >
+                <X className="h-4 w-4" />
+                Remove
+              </button>
+            ) : null}
+          </div>
+          <input
+            value={variant.variantImageUrl}
+            onChange={(event) => onCommit(index, "variantImageUrl", event.target.value)}
+            placeholder="Paste URL"
+            className="w-full rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-orange-400"
+          />
+          <p className="text-xs text-zinc-500">
+            Color photo - customers see this when they select this color.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr),5.25rem,minmax(0,0.95fr),minmax(0,1fr),minmax(0,0.9fr),minmax(0,1fr)]">
@@ -462,6 +536,7 @@ const VariantRow = memo(function VariantRow({
     prevProps.variant.size === nextProps.variant.size &&
     prevProps.variant.stock === nextProps.variant.stock &&
     prevProps.variant.price === nextProps.variant.price &&
+    prevProps.variant.variantImageUrl === nextProps.variant.variantImageUrl &&
     prevProps.errors.size === nextProps.errors.size &&
     prevProps.errors.stock === nextProps.errors.stock &&
     prevProps.errors.price === nextProps.errors.price &&
@@ -634,6 +709,54 @@ export function ProductFormDialog({
       };
     });
   }, [setFormDirty]);
+
+  const uploadVariantImage = useCallback(
+    async (index: number, file: File) => {
+      if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+        throw new Error("Please use JPG, PNG, or WebP images only.");
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("Each image must be under 5MB.");
+      }
+
+      const variantId = form.variants[index]?.id;
+      if (!variantId) {
+        throw new Error("Variant is missing an identifier.");
+      }
+
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      uploadFormData.append("productId", productAssetKey);
+      uploadFormData.append("variantId", variantId);
+
+      const uploadResult = await uploadProductVariantImageAction(uploadFormData);
+      if (!uploadResult.imageUrl) {
+        throw new Error("Variant image upload failed.");
+      }
+
+      updateVariant(index, "variantImageUrl", uploadResult.imageUrl);
+    },
+    [form.variants, productAssetKey, updateVariant]
+  );
+
+  const removeVariantImage = useCallback(
+    async (index: number) => {
+      const imageUrl = form.variants[index]?.variantImageUrl?.trim() || "";
+      updateVariant(index, "variantImageUrl", "");
+
+      if (!imageUrl) {
+        return;
+      }
+
+      try {
+        await cleanupProductVariantImageAction(imageUrl);
+      } catch (error) {
+        console.error("Variant image cleanup failed:", error);
+      }
+    },
+    [form.variants, updateVariant]
+  );
 
   const uploadProductImages = useCallback(
     async (files: FileList) => {
@@ -1277,6 +1400,8 @@ export function ProductFormDialog({
                         onDragEnd={handleVariantDragEnd}
                         onDrop={handleVariantDrop}
                         onCommit={updateVariant}
+                        onUploadImage={uploadVariantImage}
+                        onRemoveImage={removeVariantImage}
                         onRemove={removeVariant}
                       />
                     );

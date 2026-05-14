@@ -1,9 +1,27 @@
+import { prisma } from "@/lib/prisma";
+import { RestockAlertsManager } from "@/app/admin/restock-alerts/restock-alerts-manager";
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminRestockAlertsPage() {
-  return (
-    <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-8 text-zinc-200">
-      Restock alerts are temporarily disabled until the database tables are added.
-    </div>
-  );
+  const notifications = await prisma.restockNotification.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      variant: {
+        select: {
+          id: true,
+          color: true,
+          size: true,
+        },
+      },
+    },
+  });
+
+  return <RestockAlertsManager initialNotifications={notifications} />;
 }

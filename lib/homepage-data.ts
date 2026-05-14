@@ -44,6 +44,7 @@ const HOMEPAGE_PRODUCT_VARIANT_SELECT = {
   size: true,
   stock: true,
   price: true,
+  variantImageUrl: true,
 } satisfies Prisma.VariantSelect;
 
 const HOMEPAGE_PRODUCT_SELECT = {
@@ -169,7 +170,7 @@ const getCachedHomepageCollectionProducts = (key: HomepageCollectionKey) =>
     },
     ["homepage-products", key],
     {
-      revalidate: 300,
+      revalidate: 120,
       tags: [HOMEPAGE_CACHE_TAG, "products", `homepage-products:${key}`],
     }
   );
@@ -194,14 +195,12 @@ export const getCachedHeroSlides = unstable_cache(
         ? lastKnownHomepageHeroSlides
         : getDefaultHeroSlides();
     } catch (error) {
-      console.error("[HeroSlides] DB error, using fallback:", error);
-      return lastKnownHomepageHeroSlides.length > 0
-        ? lastKnownHomepageHeroSlides
-        : getDefaultHeroSlides();
+      console.error("[HeroSlides] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["hero-slides"],
-  { revalidate: 120, tags: ["hero-slides", HOMEPAGE_CACHE_TAG] }
+  { revalidate: 60, tags: ["hero-slides", HOMEPAGE_CACHE_TAG] }
 );
 
 export const getCachedAnnouncements = unstable_cache(
@@ -228,12 +227,12 @@ export const getCachedAnnouncements = unstable_cache(
         },
       });
     } catch (error) {
-      console.error("[Announcements] DB error, using fallback:", error);
-      return [];
+      console.error("[Announcements] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["announcements"],
-  { revalidate: 300, tags: ["announcements", HOMEPAGE_CACHE_TAG] }
+  { revalidate: 60, tags: ["announcements", HOMEPAGE_CACHE_TAG] }
 );
 
 export const getCachedPromoBanners = unstable_cache(
@@ -241,8 +240,8 @@ export const getCachedPromoBanners = unstable_cache(
     try {
       return await getPromoBanners({ activeOnly: true, seedIfEmpty: false });
     } catch (error) {
-      console.error("[PromoBanners] DB error, using fallback:", error);
-      return [];
+      console.error("[PromoBanners] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["promo-banners"],
@@ -257,7 +256,7 @@ export const getCachedHomepageCriticalProducts = unstable_cache(
     return { featured, trending };
   },
   ["homepage-products", "critical"],
-  { revalidate: 300, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
+  { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
 );
 
 export const getCachedHomepageDeferredProducts = unstable_cache(
@@ -269,7 +268,7 @@ export const getCachedHomepageDeferredProducts = unstable_cache(
     return { newArrivals, alsoBought, cityInspired };
   },
   ["homepage-products", "deferred"],
-  { revalidate: 300, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
+  { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
 );
 
 export const getCachedHomepageProducts = unstable_cache(
@@ -284,19 +283,12 @@ export const getCachedHomepageProducts = unstable_cache(
         popular: critical.featured,
       };
     } catch (error) {
-      console.error("[HomepageProducts] DB error, using fallback:", error);
-      return {
-        featured: [],
-        trending: [],
-        newArrivals: [],
-        popular: [],
-        alsoBought: [],
-        cityInspired: [],
-      };
+      console.error("[HomepageProducts] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["homepage-products", "all"],
-  { revalidate: 300, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
+  { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
 );
 
 export const getCachedHomepageCategories = unstable_cache(
@@ -304,8 +296,8 @@ export const getCachedHomepageCategories = unstable_cache(
     try {
       return await getActiveHomepageCategories();
     } catch (error) {
-      console.error("[HomepageCategories] DB error, using fallback:", error);
-      return [];
+      console.error("[HomepageCategories] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["homepage-categories"],
@@ -318,20 +310,17 @@ export const getCachedStoreSettings = unstable_cache(
       if (shouldSkipLiveDataDuringBuild()) {
         return await getPersistedStoreSettings({
           seedIfEmpty: true,
-          fallbackOnError: true,
+          fallbackOnError: false,
         });
       }
 
       return await getPersistedStoreSettings({
         seedIfEmpty: true,
-        fallbackOnError: true,
+        fallbackOnError: false,
       });
     } catch (error) {
-      console.error("[StoreSettings] DB error, returning fallback:", error);
-      return await getPersistedStoreSettings({
-        seedIfEmpty: true,
-        fallbackOnError: true,
-      });
+      console.error("[StoreSettings] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["store-settings"],
@@ -367,8 +356,8 @@ export const getCachedPopups = unstable_cache(
         },
       });
     } catch (error) {
-      console.error("[Popups] DB error, using fallback:", error);
-      return [];
+      console.error("[Popups] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["popups"],
@@ -381,20 +370,17 @@ export const getCachedWhatsAppSettings = unstable_cache(
       if (shouldSkipLiveDataDuringBuild()) {
         return await getPersistedWhatsAppSettings({
           seedIfEmpty: true,
-          fallbackOnError: true,
+          fallbackOnError: false,
         });
       }
 
       return await getPersistedWhatsAppSettings({
         seedIfEmpty: true,
-        fallbackOnError: true,
+        fallbackOnError: false,
       });
     } catch (error) {
-      console.error("[WhatsAppSettings] DB error, returning fallback:", error);
-      return await getPersistedWhatsAppSettings({
-        seedIfEmpty: true,
-        fallbackOnError: true,
-      });
+      console.error("[WhatsAppSettings] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["whatsapp-settings"],
@@ -404,14 +390,10 @@ export const getCachedWhatsAppSettings = unstable_cache(
 export const getCachedSocialLinks = unstable_cache(
   async () => {
     try {
-      return await getPersistedSocialLinks({
-        seedIfEmpty: true,
-      });
+      return await getPersistedSocialLinks({ seedIfEmpty: true, fallbackOnError: false });
     } catch (error) {
-      console.error("[SocialLinks] DB error, returning fallback list:", error);
-      return await getPersistedSocialLinks({
-        seedIfEmpty: true,
-      });
+      console.error("[SocialLinks] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["social-links"],
@@ -427,8 +409,8 @@ export const getCachedHomepageBlogPosts = unstable_cache(
 
       return await getPublishedBlogPosts(4);
     } catch (error) {
-      console.error("[HomepageBlogPosts] DB error, using fallback:", error);
-      return await getPublishedBlogPosts(4);
+      console.error("[HomepageBlogPosts] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["homepage-blog-posts"],
@@ -463,12 +445,12 @@ export const getCachedHomepageLatestReviews = unstable_cache(
         },
       });
     } catch (error) {
-      console.error("[HomepageLatestReviews] DB error, using fallback:", error);
-      return [];
+      console.error("[HomepageLatestReviews] DB error, not caching fallback:", error);
+      throw error;
     }
   },
   ["homepage-latest-reviews"],
-  { revalidate: 300, tags: ["reviews", HOMEPAGE_CACHE_TAG] }
+  { revalidate: 120, tags: ["reviews", HOMEPAGE_CACHE_TAG] }
 );
 
 export async function getHomepageShellData() {

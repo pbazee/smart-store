@@ -28,9 +28,9 @@ async function ensureSocialLinksSeeded() {
   });
 }
 
-export async function getSocialLinks(options: { seedIfEmpty?: boolean } = {}) {
-  const { seedIfEmpty = false } = options;
-  const requestKey = seedIfEmpty ? "seed" : "noseed";
+export async function getSocialLinks(options: { seedIfEmpty?: boolean; fallbackOnError?: boolean } = {}) {
+  const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;
+  const requestKey = `${seedIfEmpty ? "seed" : "noseed"}:${fallbackOnError ? "fallback" : "strict"}`;
   const existingRequest = pendingSocialLinkRequests.get(requestKey);
 
   if (existingRequest) {
@@ -55,6 +55,9 @@ export async function getSocialLinks(options: { seedIfEmpty?: boolean } = {}) {
         console.warn("[SocialLinks] Database unavailable, returning fallback social links.");
       } else {
         console.error("[SocialLinks] Query failed:", error);
+      }
+      if (!fallbackOnError) {
+        throw error;
       }
       return getSocialLinksFallback();
     }

@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSessionUser } from "@/hooks/use-session-user";
+import { buildProductHref } from "@/lib/product-routes";
 import {
   createDefaultProductVariant,
   hasRealVariants,
@@ -69,6 +70,9 @@ export function ProductDetail({
   const { sessionUser } = useSessionUser();
   const [liveProduct, setLiveProduct] = useState(product);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [displayedImage, setDisplayedImage] = useState(
+    product.images[0] || "/images/product-placeholder.png"
+  );
   const [zoomed, setZoomed] = useState(false);
   const [heartAnimating, setHeartAnimating] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
@@ -78,6 +82,7 @@ export function ProductDetail({
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyMessage, setNotifyMessage] = useState<string | null>(null);
   const [notifyPending, setNotifyPending] = useState(false);
+  const preferredShareBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
 
   const currentProduct = liveProduct;
   const hasVariants = hasRealVariants(currentProduct);
@@ -100,7 +105,16 @@ export function ProductDetail({
       ),
     [currentProduct.variants, selectedColor, selectedSize]
   );
-  const displayImages = currentProduct.images;
+  const displayImages = useMemo(() => {
+    const variantImage =
+      selectedVariant?.variantImageUrl ||
+      currentProduct.variants.find((variant) => variant.color === selectedColor)?.variantImageUrl ||
+      "";
+
+    return Array.from(
+      new Set([variantImage, displayedImage, ...currentProduct.images].filter(Boolean))
+    );
+  }, [currentProduct.images, currentProduct.variants, displayedImage, selectedColor, selectedVariant]);
   const blurDataUrl = useMemo(
     () =>
       createBlurDataURL({
@@ -113,20 +127,11 @@ export function ProductDetail({
   const averageRating = currentProduct.rating;
   const isFootwearProduct = isFootwearProductLike(currentProduct);
   const sharePrice = selectedVariant?.price ?? currentProduct.basePrice;
-  const shareSummary = `${currentProduct.name} — ${formatKES(sharePrice)} at Smartest Store KE`;
-  const shareMessage = pageUrl
-    ? `Check out ${currentProduct.name} — ${formatKES(sharePrice)} at Smartest Store KE. ${pageUrl}`
-    : `Check out ${currentProduct.name} — ${formatKES(sharePrice)} at Smartest Store KE.`;
-  const whatsappShareUrl = pageUrl
-    ? `https://wa.me/?text=${encodeURIComponent(shareMessage)}`
-    : "";
-  const twitterShareUrl = pageUrl
-    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareSummary)}&url=${encodeURIComponent(pageUrl)}`
-    : "";
-  const normalizedShareSummary = `${currentProduct.name} - ${formatKES(sharePrice)} at Smartest Store KE`;
+  const sharePriceLabel = `Ksh ${sharePrice.toLocaleString()}`;
+  const normalizedShareSummary = `${currentProduct.name} - ${sharePriceLabel}`;
   const normalizedShareMessage = pageUrl
-    ? `Check out ${currentProduct.name} - ${formatKES(sharePrice)} at Smartest Store KE. ${pageUrl}`
-    : `Check out ${currentProduct.name} - ${formatKES(sharePrice)} at Smartest Store KE.`;
+    ? `Check out ${currentProduct.name} - ${sharePriceLabel}\n\n${pageUrl}`
+    : `Check out ${currentProduct.name} - ${sharePriceLabel}`;
   const normalizedWhatsappShareUrl = pageUrl
     ? `https://wa.me/?text=${encodeURIComponent(normalizedShareMessage)}`
     : "";
@@ -183,6 +188,7 @@ export function ProductDetail({
 
   useEffect(() => {
     setLiveProduct(product);
+    setDisplayedImage(product.images[0] || "/images/product-placeholder.png");
   }, [product]);
 
   useEffect(() => {
@@ -221,27 +227,24 @@ export function ProductDetail({
       return;
     }
 
-    setPageUrl(window.location.href);
+    const publicBaseUrl =
+      preferredShareBaseUrl &&
+      !preferredShareBaseUrl.includes("localhost") &&
+      !preferredShareBaseUrl.includes("127.0.0.1")
+        ? preferredShareBaseUrl.replace(/\/$/, "")
+        : "";
 
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
-    const syncShareCapability = () => {
-      setCanUseNativeShare(Boolean(window.navigator.share) && mediaQuery.matches);
-    };
+    setPageUrl(publicBaseUrl ? `${publicBaseUrl}${buildProductHref(product)}` : window.location.href);
 
-    syncShareCapability();
-
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", syncShareCapability);
-      return () => mediaQuery.removeEventListener("change", syncShareCapability);
-    }
-
-    mediaQuery.addListener(syncShareCapability);
-    return () => mediaQuery.removeListener(syncShareCapability);
-  }, []);
+    setCanUseNativeShare(Boolean(window.navigator.share));
+  }, [preferredShareBaseUrl, product]);
 
   useEffect(() => {
-    setSelectedImage(0);
-  }, [selectedColor]);
+    if (!displayImages.includes(displayedImage)) {
+      setDisplayedImage(displayImages[0] || "/images/product-placeholder.png");
+    }
+    setSelectedImage(Math.max(0, displayImages.indexOf(displayedImage)));
+  }, [displayImages, displayedImage]);
 
   useEffect(() => {
     const hasSelectedColor = currentProduct.variants.some((variant) => variant.color === selectedColor);
@@ -409,16 +412,21 @@ export function ProductDetail({
     });
   };
 
-  const handleNativeShare = async () => {
-    if (!canUseNativeShare || !pageUrl || !navigator.share) {
+  const handleShare = async () => {
+    if (!pageUrl) {
       return;
     }
 
-    await navigator.share({
-      title: normalizedShareSummary,
-      text: normalizedShareMessage,
-      url: pageUrl,
-    });
+    if (navigator.share) {
+      await navigator.share({
+        title: currentProduct.name,
+        text: normalizedShareMessage,
+        url: pageUrl,
+      });
+      return;
+    }
+
+    openShareWindow(normalizedWhatsappShareUrl);
   };
 
   return (
@@ -433,7 +441,7 @@ export function ProductDetail({
             onMouseMove={handleMouseMove}
           >
             <Image
-              src={displayImages[selectedImage] || "/images/product-placeholder.png"}
+              src={displayedImage || "/images/product-placeholder.png"}
               alt={currentProduct.name}
               fill
               priority
@@ -482,10 +490,13 @@ export function ProductDetail({
               <button
                 key={`${image}-${index}`}
                 type="button"
-                onClick={() => setSelectedImage(index)}
+                onClick={() => {
+                  setSelectedImage(index);
+                  setDisplayedImage(image);
+                }}
                 className={cn(
                   "relative aspect-square overflow-hidden rounded-2xl border-2 transition-all",
-                  selectedImage === index
+                  displayedImage === image
                     ? "border-brand-500 shadow-[0_0_0_3px_rgba(249,115,22,0.15)]"
                     : "border-transparent opacity-70 hover:opacity-100"
                 )}
@@ -566,7 +577,11 @@ export function ProductDetail({
                               (item) => item.color === color && item.stock > 0
                             ) ?? currentProduct.variants.find((item) => item.color === color);
                           setSelectedSize(nextVariant?.size ?? "");
-                          setSelectedImage(0);
+                          setDisplayedImage(
+                            nextVariant?.variantImageUrl ||
+                              currentProduct.images[0] ||
+                              "/images/product-placeholder.png"
+                          );
                           setNotifyOpen(false);
                           setNotifyMessage(null);
                         }}
@@ -625,6 +640,11 @@ export function ProductDetail({
                             }
 
                             setSelectedSize(variant.size);
+                            setDisplayedImage(
+                              variant.variantImageUrl ||
+                                currentProduct.images[0] ||
+                                "/images/product-placeholder.png"
+                            );
                             setNotifyOpen(false);
                             setNotifyMessage(null);
                           }}
@@ -832,7 +852,7 @@ export function ProductDetail({
                   <DropdownMenuItem
                     className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
                     onSelect={() => {
-                      void handleNativeShare();
+                      void handleShare();
                     }}
                   >
                     <Send className="h-4 w-4 text-orange-400" />
@@ -893,3 +913,5 @@ function ReviewsPanelFallback() {
     </section>
   );
 }
+
+

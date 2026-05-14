@@ -51,7 +51,7 @@ async function hydrateCartItems(items: StoredCartItem[]): Promise<CartItem[]> {
   const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
   const productsById = new Map(products.map((product) => [product.id, product]));
 
-  return items.flatMap((item) => {
+  return items.flatMap<CartItem>((item) => {
     const defaultProductId = getProductIdFromDefaultVariantId(item.variantId);
     if (defaultProductId) {
       const product = productsById.get(defaultProductId);

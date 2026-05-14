@@ -143,6 +143,11 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
     defaultValues: emptyValues,
   });
 
+  const reloadCategories = async () => {
+    const response = await jsonFetcher<{ success: boolean; data: Category[] }>("/api/admin/categories");
+    setCategories(response.data);
+  };
+
   useEffect(() => {
     if (!editing) {
       form.reset(emptyValues);
@@ -182,11 +187,7 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
         body: JSON.stringify(payload),
       });
       const saved = response.data;
-      setCategories((prev) => {
-        const existing = prev.find((c) => c.id === saved.id);
-        if (existing) return prev.map((c) => (c.id === saved.id ? saved : c));
-        return [...prev, saved];
-      });
+      await reloadCategories();
       setEditing(null);
       form.reset(emptyValues);
       toast({ title: "Category saved", description: saved.name });
@@ -202,12 +203,16 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
   });
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this category?")) {
+      return;
+    }
+
     setSaving(true);
     try {
       await jsonFetcher<{ success: boolean }>(`/api/admin/categories/${id}`, {
         method: "DELETE",
       });
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      await reloadCategories();
       if (editing === id) setEditing(null);
       toast({ title: "Category deleted" });
     } catch (error) {

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
 import { requireAdminAuth } from "@/lib/auth-utils";
@@ -9,7 +10,6 @@ import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { prisma } from "@/lib/prisma";
 import {
   buildInvalidCatalogProductWhere,
-  buildValidCatalogProductWhere,
   resolveAdminProductCatalogAssignment,
 } from "@/lib/product-integrity";
 import {
@@ -20,7 +20,6 @@ import {
 } from "@/lib/supabase-storage";
 import { slugify } from "@/lib/utils";
 import { getChildCategories } from "@/lib/category-service";
-import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import type { Category, Product } from "@/types";
 
 const adminVariantSchema = z.object({
@@ -30,6 +29,7 @@ const adminVariantSchema = z.object({
   size: z.string().min(1, "Size is required"),
   stock: z.number().int().nonnegative(),
   price: z.number().int().positive(),
+  variantImageUrl: z.string().trim().url().nullable().optional(),
 });
 
 const adminProductSchema = z.object({
@@ -81,6 +81,7 @@ const adminProductListSelect = {
       size: true,
       stock: true,
       price: true,
+      variantImageUrl: true,
     },
   },
 } as const;
@@ -132,53 +133,38 @@ async function normalizeAdminProductUpdateInput(
 export async function fetchAdminProducts(params?: { skip?: number; take?: number; search?: string }) {
   await ensureAdmin();
   const { skip, take, search } = params || {};
+  const where: Prisma.ProductWhereInput = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { slug: { contains: search, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
 
-  try {
-    return (await prisma.product.findMany({
-      where: search 
-        ? buildValidCatalogProductWhere({
-            OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { slug: { contains: search, mode: "insensitive" } },
-            ],
-          })
-        : buildValidCatalogProductWhere(),
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-      select: adminProductListSelect,
-    })) as Product[];
-  } catch (error) {
-    if (isPrismaConnectionError(error)) {
-      console.warn("[AdminProducts] Database unavailable, returning empty product list.");
-      return [];
-    }
+  console.log("[AdminProductsAction] Fetching products", { skip, take, search, where });
 
-    throw error;
-  }
+  return (await prisma.product.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip,
+    take,
+    select: adminProductListSelect,
+  })) as Product[];
 }
 
 export async function fetchAdminProductCount(search?: string) {
-    await ensureAdmin();
-    try {
-      return await prisma.product.count({
-          where: search 
-            ? buildValidCatalogProductWhere({
-                OR: [
-                    { name: { contains: search, mode: "insensitive" } },
-                    { slug: { contains: search, mode: "insensitive" } },
-                ],
-              })
-            : buildValidCatalogProductWhere(),
-      });
-    } catch (error) {
-      if (isPrismaConnectionError(error)) {
-        console.warn("[AdminProducts] Database unavailable, returning product count 0.");
-        return 0;
-      }
-
-      throw error;
-    }
+  await ensureAdmin();
+  return prisma.product.count({
+    where: search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { slug: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {},
+  });
 }
 
 export async function fetchInvalidAdminProductCount() {
@@ -306,6 +292,7 @@ export async function updateAdminProductAction(input: AdminProductInput) {
           size: variant.size,
           stock: variant.stock,
           price: variant.price,
+          variantImageUrl: variant.variantImageUrl ?? null,
         })),
       },
     },

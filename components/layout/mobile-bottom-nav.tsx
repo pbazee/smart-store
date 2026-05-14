@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Heart, Home, ShoppingBag, ShoppingCart, User } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useShallow } from "zustand/react/shallow";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -17,11 +16,9 @@ const links = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { hasHydrated, cartCount } = useCartStore(
-    useShallow((state) => ({
-      hasHydrated: state.hasHydrated,
-      cartCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
-    }))
+  const hasHydrated = useCartStore((state) => state.hasHydrated);
+  const cartCount = useCartStore((state) =>
+    state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
   const count = hasHydrated ? cartCount : 0;
 

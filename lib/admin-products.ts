@@ -32,6 +32,7 @@ export function buildAdminProductCreateData(input: {
     size: string;
     stock: number;
     price: number;
+    variantImageUrl?: string | null;
   }>;
 }) {
   return {
@@ -59,6 +60,7 @@ export function buildAdminProductCreateData(input: {
         size: variant.size,
         stock: variant.stock,
         price: variant.price,
+        variantImageUrl: variant.variantImageUrl ?? null,
       })),
     },
   };

@@ -7,11 +7,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
-import {
-  buildValidCatalogProductWhere,
-  resolveAdminProductCatalogAssignment,
-} from "@/lib/product-integrity";
-import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
+import { resolveAdminProductCatalogAssignment } from "@/lib/product-integrity";
 import { slugify } from "@/lib/utils";
 
 const genderSchema = z.enum(["men", "women", "unisex", "children", "male", "female"]);
@@ -42,6 +38,7 @@ const createProductSchema = z.object({
         size: z.string().min(1, "Size required"),
         stock: z.number().int().nonnegative(),
         price: z.number().int().positive(),
+        variantImageUrl: z.string().trim().url().nullable().optional(),
       })
     )
     .default([]),
@@ -76,6 +73,7 @@ const adminProductListSelect = {
       size: true,
       stock: true,
       price: true,
+      variantImageUrl: true,
     },
   },
 } as const;
@@ -96,15 +94,15 @@ function revalidateProductSurfaces(product?: { slug?: string | null }) {
 
 function buildAdminProductSearchWhere(search?: string) {
   if (!search?.trim()) {
-    return buildValidCatalogProductWhere();
+    return {};
   }
 
-  return buildValidCatalogProductWhere({
+  return {
     OR: [
       { name: { contains: search.trim(), mode: "insensitive" as const } },
       { slug: { contains: search.trim(), mode: "insensitive" as const } },
     ],
-  });
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -119,6 +117,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.max(1, Number(req.nextUrl.searchParams.get("limit") || 20));
     const skip = (page - 1) * limit;
     const where = buildAdminProductSearchWhere(search);
+    console.log("[AdminProductsApi] Fetching products", { search, page, limit, skip, where });
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
@@ -150,27 +149,11 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    if (isPrismaConnectionError(error)) {
-      console.warn("[AdminProductsApi] Database unavailable, returning empty product list.");
-      const search = req.nextUrl.searchParams.get("search")?.trim() || "";
-      const page = Math.max(1, Number(req.nextUrl.searchParams.get("page") || 1));
-      const limit = Math.max(1, Number(req.nextUrl.searchParams.get("limit") || 20));
-
-      return NextResponse.json({
-        success: true,
-        data: [],
-        meta: {
-          page,
-          limit,
-          total: 0,
-          totalPages: 1,
-          search,
-        },
-      });
-    }
-
     console.error("Error fetching admin products:", error);
-    return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to fetch products" },
+      { status: 500 }
+    );
   }
 }
 

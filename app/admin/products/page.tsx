@@ -39,6 +39,17 @@ export default async function AdminProductsPage({
     console.error("[AdminProductsPage] Failed to load invalid product count:", invalidCountResult.reason);
   }
 
+  const initialError =
+    productsResult.status === "rejected"
+      ? productsResult.reason instanceof Error
+        ? productsResult.reason.message
+        : "Failed to load products."
+      : totalResult.status === "rejected"
+        ? totalResult.reason instanceof Error
+          ? totalResult.reason.message
+          : "Failed to load product count."
+        : null;
+
   const products = productsResult.status === "fulfilled" ? productsResult.value : [];
   const total = totalResult.status === "fulfilled" ? totalResult.value : 0;
   const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
@@ -54,6 +65,7 @@ export default async function AdminProductsPage({
       search={search}
       categories={categories}
       invalidProductCount={invalidProductCount}
+      initialError={initialError}
     />
   );
 }

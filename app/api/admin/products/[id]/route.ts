@@ -5,10 +5,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { buildAdminProductDeleteOperations } from "@/lib/admin-products";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
-import {
-  buildValidCatalogProductWhere,
-  resolveAdminProductCatalogAssignment,
-} from "@/lib/product-integrity";
+import { resolveAdminProductCatalogAssignment } from "@/lib/product-integrity";
 import { slugify } from "@/lib/utils";
 import { z } from "zod";
 
@@ -38,6 +35,7 @@ const updateProductSchema = z.object({
         size: z.string().min(1),
         stock: z.number().int().nonnegative(),
         price: z.number().int().positive(),
+        variantImageUrl: z.string().trim().url().nullable().optional(),
       })
     )
     .default([]),
@@ -71,7 +69,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
     const { id } = await params;
     const product = await prisma.product.findFirst({
-      where: buildValidCatalogProductWhere({ id }),
+      where: { id },
       include: { variants: true },
     });
 
@@ -104,7 +102,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const validatedData = updateProductSchema.parse(body);
     const { id } = await params;
     const existingProduct = await prisma.product.findFirst({
-      where: buildValidCatalogProductWhere({ id }),
+      where: { id },
       include: { variants: true },
     });
 
@@ -143,6 +141,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
             size: variant.size,
             stock: variant.stock,
             price: variant.price,
+            variantImageUrl: variant.variantImageUrl ?? null,
           })),
         },
       },

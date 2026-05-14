@@ -27,6 +27,7 @@ type ProductsManagerProps = {
   search?: string;
   categories: Category[];
   invalidProductCount: number;
+  initialError?: string | null;
 };
 
 type ProductsResponse = {
@@ -65,6 +66,7 @@ export function ProductsManager({
   limit,
   search: initialSearch = "",
   categories,
+  initialError = null,
 }: ProductsManagerProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -78,7 +80,7 @@ export function ProductsManager({
   const [isPending, startTransition] = useTransition();
 
   const productsUrl = buildProductsUrl(currentPage, pageSize, querySearch);
-  const { data, isLoading, isValidating, mutate } = useSWR<ProductsResponse>(
+  const { data, error, isLoading, isValidating, mutate } = useSWR<ProductsResponse>(
     productsUrl,
     jsonFetcher,
     {
@@ -107,6 +109,7 @@ export function ProductsManager({
     totalPages: Math.max(1, Math.ceil(totalProducts / limit)),
     search: initialSearch,
   };
+  const loadError = error instanceof Error ? error.message : initialError;
 
   useEffect(() => {
     setSearchInput(initialSearch);
@@ -352,6 +355,11 @@ export function ProductsManager({
       </div>
 
       <div className="overflow-hidden rounded-[2.5rem] border border-zinc-800 bg-zinc-900/40 p-8 shadow-2xl">
+        {loadError ? (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {loadError}
+          </div>
+        ) : null}
         {isLoading ? (
           <InlineLoader label="Loading products..." />
         ) : (
