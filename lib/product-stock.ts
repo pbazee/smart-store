@@ -1,6 +1,8 @@
 import type { Product, ProductVariant } from "@/types";
 
 const DEFAULT_PRODUCT_VARIANT_PREFIX = "__product__";
+const HIDDEN_DEFAULT_COLOR = "Default";
+const HIDDEN_DEFAULT_SIZE = "One Size";
 
 export function createDefaultProductVariantId(productId: string) {
   return `${DEFAULT_PRODUCT_VARIANT_PREFIX}${productId}`;
@@ -19,7 +21,16 @@ export function getProductIdFromDefaultVariantId(variantId?: string | null) {
 }
 
 export function hasRealVariants(product: Pick<Product, "variants">) {
-  return product.variants.length > 0;
+  if (product.variants.length === 0) {
+    return false;
+  }
+
+  if (product.variants.length === 1) {
+    const [variant] = product.variants;
+    return !isHiddenDefaultVariant(variant);
+  }
+
+  return true;
 }
 
 export function getEffectiveProductStock(product: Pick<Product, "variants">) {
@@ -27,15 +38,29 @@ export function getEffectiveProductStock(product: Pick<Product, "variants">) {
 }
 
 export function createDefaultProductVariant(product: Pick<Product, "id" | "basePrice">) {
+  const defaultBackedVariant =
+    "variants" in product && Array.isArray(product.variants)
+      ? product.variants.find((variant) => isHiddenDefaultVariant(variant))
+      : null;
+
   return {
-    id: createDefaultProductVariantId(product.id),
-    color: "",
-    colorHex: "#000000",
-    size: "Single item",
-    stock: 999999,
-    price: product.basePrice,
+    id: defaultBackedVariant?.id ?? createDefaultProductVariantId(product.id),
+    color: defaultBackedVariant?.color ?? HIDDEN_DEFAULT_COLOR,
+    colorHex: defaultBackedVariant?.colorHex ?? "#000000",
+    size: defaultBackedVariant?.size ?? HIDDEN_DEFAULT_SIZE,
+    stock: defaultBackedVariant?.stock ?? 999999,
+    price: defaultBackedVariant?.price ?? product.basePrice,
     isDefault: true,
   } satisfies ProductVariant;
+}
+
+export function isHiddenDefaultVariant(
+  variant: Pick<ProductVariant, "color" | "size"> | null | undefined
+) {
+  return (
+    variant?.color.trim().toLowerCase() === HIDDEN_DEFAULT_COLOR.toLowerCase() &&
+    variant?.size.trim().toLowerCase() === HIDDEN_DEFAULT_SIZE.toLowerCase()
+  );
 }
 
 export function getCartVariantForProduct(product: Product) {

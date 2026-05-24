@@ -6,9 +6,10 @@ import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isCheckoutRoute = pathname.startsWith('/checkout');
   
-  // Minimal session check for admin routes
-  if (pathname.startsWith('/admin')) {
+  if (isAdminRoute || isCheckoutRoute) {
     // Check for common auth cookies
     const hasSession = request.cookies.getAll().some(
       cookie => (cookie.name.startsWith('sb-') && cookie.name.includes('auth-token')) || 
@@ -18,7 +19,7 @@ export async function middleware(request: NextRequest) {
     
     if (!hasSession) {
       const loginUrl = new URL('/sign-in', request.url);
-      loginUrl.searchParams.set('redirect_url', pathname);
+      loginUrl.searchParams.set(isCheckoutRoute ? 'redirect' : 'redirect_url', pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
@@ -27,6 +28,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only run on admin routes to minimize impact on site performance
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/checkout', '/checkout/:path*'],
 };

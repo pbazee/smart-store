@@ -6,6 +6,7 @@ import { buildAdminProductDeleteOperations } from "@/lib/admin-products";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
 import { resolveAdminProductCatalogAssignment } from "@/lib/product-integrity";
+import { isHiddenDefaultVariant } from "@/lib/product-stock";
 import { slugify } from "@/lib/utils";
 import { z } from "zod";
 
@@ -44,6 +45,28 @@ const updateProductSchema = z.object({
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+function normalizeVariantInput(
+  variants: Array<{
+    id?: string;
+    color: string;
+    colorHex: string;
+    size: string;
+    stock: number;
+    price: number;
+    variantImageUrl?: string | null;
+  }>,
+  basePrice: number
+) {
+  return variants.map((variant) => ({
+    color: variant.color,
+    colorHex: variant.colorHex,
+    size: variant.size,
+    stock: variant.stock,
+    price: isHiddenDefaultVariant(variant) ? basePrice : variant.price,
+    variantImageUrl: variant.variantImageUrl ?? null,
+  }));
+}
 
 function revalidateProductSurfaces(product?: { slug?: string | null }, previousSlug?: string | null) {
   revalidateTag(PRODUCTS_CACHE_TAG);
@@ -135,14 +158,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         ...catalogAssignment,
         variants: {
           deleteMany: {},
-          create: validatedData.variants.map((variant) => ({
-            color: variant.color,
-            colorHex: variant.colorHex,
-            size: variant.size,
-            stock: variant.stock,
-            price: variant.price,
-            variantImageUrl: variant.variantImageUrl ?? null,
-          })),
+          create: normalizeVariantInput(validatedData.variants, validatedData.basePrice),
         },
       },
       include: { variants: true },

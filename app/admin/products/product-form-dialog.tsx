@@ -52,6 +52,7 @@ type ProductFormState = {
   isPopular: boolean;
   isTrending: boolean;
   isRecommended: boolean;
+  singleItemStock: string;
   variants: VariantFormState[];
 };
 
@@ -96,6 +97,7 @@ function createEmptyFormState(): ProductFormState {
     isPopular: true,
     isTrending: true,
     isRecommended: true,
+    singleItemStock: "0",
     variants: [],
   };
 }
@@ -190,6 +192,13 @@ function createFormState(product?: Product | null): ProductFormState {
     return createEmptyFormState();
   }
 
+  const hiddenDefaultVariant =
+    product.variants.length === 1 &&
+    product.variants[0]?.color.trim().toLowerCase() === "default" &&
+    product.variants[0]?.size.trim().toLowerCase() === "one size"
+      ? product.variants[0]
+      : null;
+
   return {
     id: product.id,
     name: product.name,
@@ -209,15 +218,18 @@ function createFormState(product?: Product | null): ProductFormState {
     isPopular: product.isPopular,
     isTrending: product.isTrending,
     isRecommended: product.isRecommended,
-    variants: product.variants.map((variant) => ({
-      id: variant.id || createVariantDraftId(),
-      color: variant.color,
-      colorHex: variant.colorHex,
-      size: variant.size,
-      stock: String(variant.stock),
-      price: String(variant.price),
-      variantImageUrl: variant.variantImageUrl ?? "",
-    })),
+    singleItemStock: hiddenDefaultVariant ? String(hiddenDefaultVariant.stock) : "0",
+    variants: hiddenDefaultVariant
+      ? []
+      : product.variants.map((variant) => ({
+          id: variant.id || createVariantDraftId(),
+          color: variant.color,
+          colorHex: variant.colorHex,
+          size: variant.size,
+          stock: String(variant.stock),
+          price: String(variant.price),
+          variantImageUrl: variant.variantImageUrl ?? "",
+        })),
   };
 }
 
@@ -263,15 +275,27 @@ function toPayload(form: ProductFormState): AdminProductInput {
     isPopular: form.isPopular,
     isTrending: form.isTrending,
     isRecommended: form.isRecommended,
-    variants: form.variants.map((variant) => ({
-      id: variant.id,
-      color: variant.color.trim(),
-      colorHex: variant.colorHex,
-      size: variant.size.trim(),
-      stock: Number(variant.stock),
-      price: variant.price ? Number(variant.price) : basePrice,
-      variantImageUrl: variant.variantImageUrl.trim() || null,
-    })),
+    variants:
+      form.variants.length > 0
+        ? form.variants.map((variant) => ({
+            id: variant.id,
+            color: variant.color.trim(),
+            colorHex: variant.colorHex,
+            size: variant.size.trim(),
+            stock: Number(variant.stock),
+            price: variant.price ? Number(variant.price) : basePrice,
+            variantImageUrl: variant.variantImageUrl.trim() || null,
+          }))
+        : [
+            {
+              color: "Default",
+              colorHex: "#000000",
+              size: "One Size",
+              stock: Number(form.singleItemStock || "0"),
+              price: basePrice,
+              variantImageUrl: null,
+            },
+          ],
   };
 }
 
@@ -562,6 +586,8 @@ export function ProductFormDialog({
   const [form, setForm] = useState<ProductFormState>(() => createFormState(product));
   const [slugTouched, setSlugTouched] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<Category[]>(categories);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
   const [variantProductType, setVariantProductType] = useState<AdminVariantProductType>(() =>
     inferProductTypeFromForm(createFormState(product), categories)
   );
@@ -570,25 +596,25 @@ export function ProductFormDialog({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [productAssetKey, setProductAssetKey] = useState(() => product?.id ?? createProductDraftKey());
   const topLevelCategories = useMemo(() => {
-    return categories
+    return availableCategories
       .filter((category) => !category.parentId && category.isActive !== false)
       .sort((left, right) =>
         (left.order ?? 0) === (right.order ?? 0)
           ? left.name.localeCompare(right.name)
           : (left.order ?? 0) - (right.order ?? 0)
       );
-  }, [categories]);
+  }, [availableCategories]);
 
   const subcategoryOptions = useMemo(
     () =>
-      categories
+      availableCategories
         .filter((category) => category.parentId === form.parentId && category.isActive !== false)
         .sort((left, right) =>
           (left.order ?? 0) === (right.order ?? 0)
             ? left.name.localeCompare(right.name)
             : (left.order ?? 0) - (right.order ?? 0)
         ),
-    [categories, form.parentId]
+    [availableCategories, form.parentId]
   );
   const selectedParentCategory = useMemo(
     () => topLevelCategories.find((category) => category.id === form.parentId) ?? null,
@@ -612,14 +638,53 @@ export function ProductFormDialog({
   );
 
   useEffect(() => {
-    const base = hydrateFormState(product, categories);
+    const base = hydrateFormState(product, availableCategories);
     setForm(base);
     setSlugTouched(false);
     setImageUrlInput("");
-    setVariantProductType(inferProductTypeFromForm(base, categories));
+    setVariantProductType(inferProductTypeFromForm(base, availableCategories));
     setVariantErrors(validateVariantRows(base.variants));
     setSaveState("idle");
-    setProductAssetKey(product?.id ?? createProductDraftKey());  }, [product, open, categories]);
+    setProductAssetKey(product?.id ?? createProductDraftKey());
+  }, [availableCategories, open, product]);
+
+  useEffect(() => {
+    setAvailableCategories(categories);
+  }, [categories]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let cancelled = false;
+    setIsCategoriesLoading(true);
+
+    void fetch("/api/admin/categories", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { categories?: Category[]; data?: Category[] }) => {
+        if (cancelled) {
+          return;
+        }
+
+        const nextCategories = data.categories || data.data || [];
+        if (nextCategories.length > 0) {
+          setAvailableCategories(nextCategories);
+        }
+      })
+      .catch((error) => {
+        console.error("[ProductFormDialog] Failed to load categories:", error);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsCategoriesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!form.parentId || form.subcategoryId || subcategoryOptions.length === 0) {
@@ -886,12 +951,12 @@ export function ProductFormDialog({
             }
           );
           const savedProduct = response.data;
-          const nextForm = hydrateFormState(savedProduct, categories);
+          const nextForm = hydrateFormState(savedProduct, availableCategories);
 
           setForm(nextForm);
           setProductAssetKey(savedProduct.id);
           setSlugTouched(false);
-          setVariantProductType(inferProductTypeFromForm(nextForm, categories));
+          setVariantProductType(inferProductTypeFromForm(nextForm, availableCategories));
           setVariantErrors(validateVariantRows(nextForm.variants));
           setSaveState("saved");
           onSaved(savedProduct);
@@ -1006,7 +1071,9 @@ export function ProductFormDialog({
                 }}
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
-                <option value="">Select top-level</option>
+                <option value="">
+                  {isCategoriesLoading ? "Loading categories..." : "Select top-level"}
+                </option>
                 {topLevelCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -1033,7 +1100,11 @@ export function ProductFormDialog({
                 className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
               >
                 <option value="">
-                  {form.parentId ? "Use parent only" : "Select category first"}
+                  {isCategoriesLoading
+                    ? "Loading subcategories..."
+                    : form.parentId
+                      ? "Use parent only"
+                      : "Select category first"}
                 </option>
                 {subcategoryOptions.map((subcategory) => (
                   <option key={subcategory.id} value={subcategory.id}>
@@ -1377,6 +1448,24 @@ export function ProductFormDialog({
                   <Plus className="h-6 w-6" />
                 </div>
                 <h4 className="mt-4 text-lg font-semibold text-zinc-100">No variants added</h4>
+                <div className="mx-auto mt-6 max-w-sm text-left">
+                  <label className="space-y-2 text-sm">
+                    <span className="font-medium text-zinc-300">How many units do you have?</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.singleItemStock}
+                      onChange={(event) =>
+                        setFormDirty((current) => ({
+                          ...current,
+                          singleItemStock: event.target.value,
+                        }))
+                      }
+                      placeholder="e.g. 50"
+                      className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                    />
+                  </label>
+                </div>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-400">
                   No variants added — this product will be sold as a single item. Add variants if this product comes in multiple sizes or colors.
                 </p>

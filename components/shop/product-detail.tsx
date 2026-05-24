@@ -129,9 +129,12 @@ export function ProductDetail({
   const sharePrice = selectedVariant?.price ?? currentProduct.basePrice;
   const sharePriceLabel = `Ksh ${sharePrice.toLocaleString()}`;
   const normalizedShareSummary = `${currentProduct.name} - ${sharePriceLabel}`;
+  const shareDescription = currentProduct.description?.trim()
+    ? `${currentProduct.description.trim().slice(0, 100)}${currentProduct.description.trim().length > 100 ? "..." : ""}`
+    : "";
   const normalizedShareMessage = pageUrl
-    ? `Check out ${currentProduct.name} - ${sharePriceLabel}\n\n${pageUrl}`
-    : `Check out ${currentProduct.name} - ${sharePriceLabel}`;
+    ? `🛍️ *${currentProduct.name}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}\n\n👉 Shop here: ${pageUrl}`
+    : `🛍️ *${currentProduct.name}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}`;
   const normalizedWhatsappShareUrl = pageUrl
     ? `https://wa.me/?text=${encodeURIComponent(normalizedShareMessage)}`
     : "";
@@ -407,8 +410,8 @@ export function ProductDetail({
 
     await navigator.clipboard.writeText(pageUrl);
     toast({
-      title: "Copied!",
-      description: "Product link copied to your clipboard.",
+      title: "Link copied!",
+      description: "The full product URL is ready to share.",
     });
   };
 

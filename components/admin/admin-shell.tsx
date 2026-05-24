@@ -46,22 +46,33 @@ type AdminShellProps = {
   initialStoreSettings?: StoreSettings | null;
 };
 
+type NotificationCountsResponse = {
+  unreadMessages: number;
+  pendingOrders: number;
+  totalSubscribers: number;
+};
+
 type AdminNavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   count?: number;
+  badgeCount?: number;
 };
 
-function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
+function getAdminNavItems(input: {
+  subscriberCount: number;
+  unreadMessages: number;
+  pendingOrders: number;
+}): AdminNavItem[] {
   return [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
     { href: "/admin/homepage-categories", label: "Homepage Categories", icon: LayoutGrid },
     { href: "/admin/users", label: "Users", icon: Users },
-    { href: "/admin/messages", label: "Messages", icon: Mail },
-    { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/admin/messages", label: "Messages", icon: Mail, badgeCount: input.unreadMessages },
+    { href: "/admin/orders", label: "Orders", icon: ShoppingCart, badgeCount: input.pendingOrders },
     { href: "/admin/restock-alerts", label: "Restock Alerts", icon: Bell },
     { href: "/admin/hero", label: "Hero Slides", icon: Sparkles },
     { href: "/admin/promo-banners", label: "Promotional Banners", icon: ImagePlus },
@@ -70,11 +81,15 @@ function getAdminNavItems(subscriberCount: number): AdminNavItem[] {
     { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
     { href: "/admin/shipping-rules", label: "Shipping Rules", icon: MapPin },
     { href: "/admin/popups", label: "Popups", icon: Sparkles },
-    { href: "/admin/newsletter", label: "Subscribers", icon: Users, count: subscriberCount },
+    { href: "/admin/newsletter", label: "Subscribers", icon: Users, count: input.subscriberCount },
     { href: "/admin/social-links", label: "Social Links", icon: Share },
     { href: "/admin/reviews", label: "Reviews", icon: MessageCircleMore },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
+}
+
+function formatBadgeCount(count: number) {
+  return count > 99 ? "99+" : String(count);
 }
 
 function isActiveAdminPath(pathname: string, href: string) {
@@ -99,13 +114,20 @@ function getInitials(label: string) {
 function AdminNav({
   pathname,
   subscriberCount,
+  unreadMessages,
+  pendingOrders,
   onNavigate,
 }: {
   pathname: string;
   subscriberCount: number;
+  unreadMessages: number;
+  pendingOrders: number;
   onNavigate?: () => void;
 }) {
-  const navItems = useMemo(() => getAdminNavItems(subscriberCount), [subscriberCount]);
+  const navItems = useMemo(
+    () => getAdminNavItems({ subscriberCount, unreadMessages, pendingOrders }),
+    [pendingOrders, subscriberCount, unreadMessages]
+  );
 
   return (
     <nav className="space-y-2">
@@ -127,13 +149,18 @@ function AdminNav({
             <span className="flex min-w-0 items-center gap-3">
               <span
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-xl border transition-colors",
+                  "relative flex h-9 w-9 items-center justify-center rounded-xl border transition-colors",
                   isActive
                     ? "border-brand-400/30 bg-brand-500/15 text-brand-300"
                     : "border-zinc-800 bg-zinc-900 text-zinc-500 group-hover:border-zinc-700 group-hover:text-zinc-200"
                 )}
               >
                 <item.icon className="h-4 w-4" />
+                {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
+                  <span className="absolute -right-2 -top-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-[0_8px_24px_rgba(249,115,22,0.4)]">
+                    {formatBadgeCount(item.badgeCount)}
+                  </span>
+                ) : null}
               </span>
               <span className="min-w-0 truncate">{item.label}</span>
             </span>
@@ -160,6 +187,8 @@ function AdminNav({
 function AdminSidebarContent({
   pathname,
   subscriberCount,
+  unreadMessages,
+  pendingOrders,
   sessionLabel,
   sessionEmail,
   storeSettings,
@@ -167,6 +196,8 @@ function AdminSidebarContent({
 }: {
   pathname: string;
   subscriberCount: number;
+  unreadMessages: number;
+  pendingOrders: number;
   sessionLabel: string;
   sessionEmail: string;
   storeSettings?: StoreSettings | null;
@@ -204,6 +235,8 @@ function AdminSidebarContent({
         <AdminNav
           pathname={pathname}
           subscriberCount={subscriberCount}
+          unreadMessages={unreadMessages}
+          pendingOrders={pendingOrders}
           onNavigate={onNavigate}
         />
       </div>
@@ -245,7 +278,24 @@ export function AdminShell({
       revalidateOnFocus: false,
     }
   );
+  const { data: notificationCounts } = useSWR<NotificationCountsResponse>(
+    "/api/admin/notification-counts",
+    jsonFetcher,
+    {
+      fallbackData: {
+        unreadMessages: 0,
+        pendingOrders: 0,
+        totalSubscribers: subscriberCount,
+      },
+      refreshInterval: 30_000,
+      dedupingInterval: 30_000,
+      revalidateOnFocus: true,
+    }
+  );
   const storeSettings = storeSettingsResponse?.data ?? initialStoreSettings;
+  const unreadMessages = notificationCounts?.unreadMessages ?? 0;
+  const pendingOrders = notificationCounts?.pendingOrders ?? 0;
+  const resolvedSubscriberCount = notificationCounts?.totalSubscribers ?? subscriberCount;
   const sessionLabel = sessionUser?.fullName || sessionUser?.email || "Admin session";
   const sessionEmail = sessionUser?.email || "Manage the storefront";
   const sessionInitials = getInitials(sessionLabel);
@@ -274,7 +324,9 @@ export function AdminShell({
         <aside className="hidden border-r border-zinc-800/80 bg-zinc-950/95 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
           <AdminSidebarContent
             pathname={pathname}
-            subscriberCount={subscriberCount}
+            subscriberCount={resolvedSubscriberCount}
+            unreadMessages={unreadMessages}
+            pendingOrders={pendingOrders}
             sessionLabel={sessionLabel}
             sessionEmail={sessionEmail}
             storeSettings={storeSettings}
@@ -306,7 +358,7 @@ export function AdminShell({
 
               <div className="hidden items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-300 md:inline-flex">
                 <Mail className="h-3.5 w-3.5 text-brand-400" />
-                {subscriberCount} Subscribers
+                {resolvedSubscriberCount} Subscribers
               </div>
 
               <div className="flex items-center gap-3">
@@ -356,7 +408,9 @@ export function AdminShell({
 
               <AdminSidebarContent
                 pathname={pathname}
-                subscriberCount={subscriberCount}
+                subscriberCount={resolvedSubscriberCount}
+                unreadMessages={unreadMessages}
+                pendingOrders={pendingOrders}
                 sessionLabel={sessionLabel}
                 sessionEmail={sessionEmail}
                 storeSettings={storeSettings}

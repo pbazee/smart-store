@@ -363,6 +363,15 @@ export async function POST(req: NextRequest) {
     let paystackTransaction;
 
     try {
+      console.log("[Paystack] Initializing transaction", {
+        email: validatedData.email,
+        amountInKobo: computedTotal * 100,
+        amountInKes: computedTotal,
+        currency: "KES",
+        paymentMethod: validatedData.paymentMethod,
+        publicKeyPrefix: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY?.slice(0, 8) ?? "missing",
+      });
+
       paystackTransaction = await initializePaystackTransaction({
         email: validatedData.email,
         amountInSubunit: computedTotal * 100,
@@ -416,6 +425,12 @@ export async function POST(req: NextRequest) {
         orderNumber,
         reference,
         error: error instanceof Error ? error.message : String(error),
+        email: validatedData.email,
+        amountInKobo: computedTotal * 100,
+        amountInKes: computedTotal,
+        currency: "KES",
+        paymentMethod: validatedData.paymentMethod,
+        publicKeyPrefix: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY?.slice(0, 8) ?? "missing",
         timestamp: new Date().toISOString(),
       });
 

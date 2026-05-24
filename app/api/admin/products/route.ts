@@ -8,6 +8,7 @@ import { buildAdminProductCreateData } from "@/lib/admin-products";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
 import { resolveAdminProductCatalogAssignment } from "@/lib/product-integrity";
+import { isHiddenDefaultVariant } from "@/lib/product-stock";
 import { slugify } from "@/lib/utils";
 
 const genderSchema = z.enum(["men", "women", "unisex", "children", "male", "female"]);
@@ -77,6 +78,28 @@ const adminProductListSelect = {
     },
   },
 } as const;
+
+function normalizeVariantInput(
+  variants: Array<{
+    id?: string;
+    color: string;
+    colorHex: string;
+    size: string;
+    stock: number;
+    price: number;
+    variantImageUrl?: string | null;
+  }>,
+  basePrice: number
+) {
+  return variants.map((variant) => ({
+    color: variant.color,
+    colorHex: variant.colorHex,
+    size: variant.size,
+    stock: variant.stock,
+    price: isHiddenDefaultVariant(variant) ? basePrice : variant.price,
+    variantImageUrl: variant.variantImageUrl ?? null,
+  }));
+}
 
 function revalidateProductSurfaces(product?: { slug?: string | null }) {
   revalidateTag(PRODUCTS_CACHE_TAG);
@@ -176,6 +199,7 @@ export async function POST(req: NextRequest) {
     const product = await prisma.product.create({
       data: buildAdminProductCreateData({
         ...validatedData,
+        variants: normalizeVariantInput(validatedData.variants, validatedData.basePrice),
         slug: slugify(validatedData.slug || validatedData.name),
         ...catalogAssignment,
       }),

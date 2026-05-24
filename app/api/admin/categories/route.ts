@@ -42,7 +42,7 @@ export async function GET() {
     });
 
     return NextResponse.json(
-      { success: true, data: categories },
+      { success: true, data: categories, categories },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {

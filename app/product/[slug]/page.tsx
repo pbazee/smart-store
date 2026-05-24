@@ -12,9 +12,11 @@ import { formatKES } from "@/lib/utils";
 import { ProductRecommendations } from "./product-recommendations";
 
 export const revalidate = 300;
+const PRODUCT_SHARE_BASE_URL = "https://smart-store-iota.vercel.app";
 
 function buildAbsoluteUrl(pathOrUrl: string) {
-  return new URL(pathOrUrl, getAppUrl()).toString();
+  const baseUrl = getAppUrl().includes("localhost") ? PRODUCT_SHARE_BASE_URL : getAppUrl();
+  return new URL(pathOrUrl, baseUrl).toString();
 }
 
 function buildProductDescription(
@@ -50,7 +52,9 @@ export async function generateMetadata({
 
   const storeName = branding?.storeName || "Smartest Store KE";
   const productUrl = buildAbsoluteUrl(buildProductHref(product));
-  const imageUrl = buildAbsoluteUrl(product.images[0] || "/og-image.jpg");
+  const imageUrl = product.images?.[0]
+    ? buildAbsoluteUrl(product.images[0])
+    : buildAbsoluteUrl("/og-image.jpg");
   const description = buildProductDescription(product, storeName);
   const title = `${product.name} | ${storeName}`;
   const socialTitle = `${product.name} — ${formatKES(product.basePrice)} at ${storeName}`;
@@ -70,14 +74,16 @@ export async function generateMetadata({
       siteName: storeName,
       type: "website",
       locale: "en_KE",
-      images: [
-        {
-          url: imageUrl,
-          alt: product.name,
-          width: 800,
-          height: 800,
-        },
-      ],
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              alt: product.name,
+              width: 800,
+              height: 800,
+            },
+          ]
+        : [],
     },
     twitter: {
       card: "summary_large_image",

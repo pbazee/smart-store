@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { useShallow } from "zustand/react/shallow";
+import { useSessionUser } from "@/hooks/use-session-user";
 import {
   buildCheckoutPayload,
   getCheckoutCartValidationError,
@@ -64,6 +65,7 @@ const steps = [
   { id: "payment", title: "Payment", description: "Choose payment method" },
   { id: "review", title: "Review", description: "Confirm your order" },
 ] as const;
+const CHECKOUT_CART_BACKUP_KEY = "checkout-auth-cart";
 
 type PaystackChannel = "mobile_money" | "card";
 type PaystackConfig = {
@@ -187,13 +189,15 @@ async function validateCouponRequest(input: {
 }
 
 export default function CheckoutPage() {
-  const { hasHydrated, items, cartTotal } = useCartStore(
+  const { hasHydrated, items, cartTotal, replaceItems } = useCartStore(
     useShallow((state) => ({
       hasHydrated: state.hasHydrated,
       items: state.items,
       cartTotal: state.items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0),
+      replaceItems: state.replaceItems,
     }))
   );
+  const { isLoaded: isSessionLoaded, isSignedIn } = useSessionUser();
   const { toast } = useToast();
   const popupStateRef = useRef<{
     completed: boolean;
@@ -270,6 +274,34 @@ export default function CheckoutPage() {
       setIsShippingQuoting(false);
     }
   };
+
+  useEffect(() => {
+    if (!hasHydrated || !isSessionLoaded) {
+      return;
+    }
+
+    if (!isSignedIn) {
+      localStorage.setItem(CHECKOUT_CART_BACKUP_KEY, JSON.stringify(items));
+      window.location.replace("/sign-in?redirect=/checkout");
+      return;
+    }
+
+    const savedCart = localStorage.getItem(CHECKOUT_CART_BACKUP_KEY);
+    if (!savedCart) {
+      return;
+    }
+
+    try {
+      const parsedItems = JSON.parse(savedCart);
+      if (Array.isArray(parsedItems) && parsedItems.length > 0 && items.length === 0) {
+        replaceItems(parsedItems);
+      }
+    } catch (error) {
+      console.error("Failed to restore checkout cart backup", error);
+    } finally {
+      localStorage.removeItem(CHECKOUT_CART_BACKUP_KEY);
+    }
+  }, [hasHydrated, isSessionLoaded, isSignedIn, items, replaceItems]);
 
   useEffect(() => {
     const saved = localStorage.getItem("checkout-data");
@@ -445,15 +477,15 @@ export default function CheckoutPage() {
     void handlePlaceOrder();
   };
 
-  const handlePaymentAbort = async (reference?: string) => {
+  const handlePaymentAbort = async (reference?: string, message: string = GENERIC_PAYMENT_ERROR) => {
     await releasePendingCheckout(reference);
     clearPopupWatcher();
     localStorage.removeItem("pending-checkout");
     setIsProcessing(false);
-    setCheckoutError(GENERIC_PAYMENT_ERROR);
+    setCheckoutError(message);
     toast({
       title: "Payment failed",
-      description: GENERIC_PAYMENT_ERROR,
+      description: message,
       variant: "destructive",
     });
   };
@@ -501,6 +533,7 @@ export default function CheckoutPage() {
 
       const data = (await response.json()) as InitializePaymentResponse;
       if (!response.ok || !data.data) {
+        console.error("[Paystack] Error:", data.error || "Payment initialization failed");
         throw new Error(data.error || "Payment initialization failed");
       }
 
@@ -537,8 +570,9 @@ export default function CheckoutPage() {
       if (popupWindow) {
         popupWindow.close();
       }
-      console.error("Checkout payment initialization failed:", error);
-      await handlePaymentAbort();
+      console.error("[Paystack] Error:", error);
+      const message = error instanceof Error ? error.message : GENERIC_PAYMENT_ERROR;
+      await handlePaymentAbort(undefined, `Payment failed: ${message}`);
     }
   };
 
@@ -586,7 +620,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!hasHydrated) {
+  if (!hasHydrated || !isSessionLoaded || !isSignedIn) {
     return <div className="p-20 text-center text-foreground">Loading checkout...</div>;
   }
 
