@@ -70,16 +70,7 @@ export async function generateMetadata({
       siteName: storeName,
       type: "website",
       locale: "en_KE",
-      images: imageUrl
-        ? [
-            {
-              url: imageUrl,
-              alt: product.name,
-              width: 1200,
-              height: 630,
-            },
-          ]
-        : [],
+      images: imageUrl ? [imageUrl] : [],
     },
     twitter: {
       card: "summary_large_image",

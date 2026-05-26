@@ -70,90 +70,118 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
   }[mode];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fff1df,transparent_42%),linear-gradient(180deg,#fffaf4_0%,#f6f6f3_100%)] text-zinc-950">
-      <div className="mx-auto grid min-h-screen max-w-7xl lg:grid-cols-[minmax(320px,42%)_minmax(0,58%)]">
-        <aside className="relative overflow-hidden bg-[linear-gradient(160deg,#f97316_0%,#fb923c_34%,#7c2d12_100%)] px-6 py-10 text-white sm:px-10 lg:px-12">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(255,237,213,0.18),transparent_35%)]" />
-          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:48px_48px]" />
-          <div className="relative flex h-full flex-col justify-between">
-            <div>
-              <Link href="/" className="inline-flex items-center gap-4">
-                {branding.logoDarkUrl || branding.logoUrl ? (
-                  <div className="relative h-14 w-36 overflow-hidden rounded-2xl bg-white/10 p-2 backdrop-blur">
-                    <Image
-                      src={branding.logoDarkUrl || branding.logoUrl || ""}
-                      alt={branding.storeName}
-                      fill
-                      sizes="144px"
-                      className="object-contain p-2"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-white text-lg font-black text-orange-500 shadow-[0_18px_44px_rgba(124,45,18,0.24)]">
-                    SK
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.24em] text-white/70">
-                    {branding.storeName}
-                  </p>
-                  <p className="text-sm font-semibold text-white/90">
-                    Kenya&apos;s smartest fashion destination
-                  </p>
+    <div className="min-h-screen bg-zinc-50 text-zinc-950">
+      <div className="flex min-h-screen">
+        <aside className="relative hidden w-full max-w-2xl flex-col justify-between overflow-hidden bg-zinc-950 p-12 lg:flex">
+          {/* Abstract deep background elements */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.05),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 grayscale" />
+          <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          
+          <div className="relative z-10 flex flex-col gap-12">
+            <Link href="/" className="inline-flex items-center gap-4 group">
+              {branding.logoDarkUrl || branding.logoUrl ? (
+                <div className="relative h-12 w-32 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-105">
+                  <Image
+                    src={branding.logoDarkUrl || branding.logoUrl || ""}
+                    alt={branding.storeName}
+                    fill
+                    sizes="128px"
+                    className="object-contain"
+                  />
                 </div>
-              </Link>
-
-              <div className="mt-12 max-w-md">
-                <p className="text-xs font-black uppercase tracking-[0.28em] text-orange-100/80">
-                  {content.formEyebrow}
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-lg font-black text-white shadow-lg transition-transform duration-300 group-hover:scale-105">
+                  SK
+                </div>
+              )}
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">
+                  {branding.storeName}
                 </p>
-                <h1 className="mt-4 text-4xl font-black leading-tight sm:text-5xl">
-                  {content.title}
-                </h1>
-                <p className="mt-4 max-w-sm text-sm leading-7 text-orange-50/88">
-                  {content.subtitle}
+                <p className="text-xs font-medium text-zinc-500">
+                  Kenya&apos;s smartest fashion destination
                 </p>
               </div>
-            </div>
+            </Link>
 
-            <div className="mt-10 rounded-[2rem] border border-white/20 bg-white/10 p-6 backdrop-blur">
-              <p className="text-sm font-semibold text-white">Fast checkout. Secure payments.</p>
-              <p className="mt-2 text-sm leading-6 text-orange-50/82">
-                Sign in once and we&apos;ll keep your cart, delivery flow, and order history ready
-                across devices.
+            <div className="max-w-md mt-16">
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 mb-6 backdrop-blur-md">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">
+                  {content.formEyebrow}
+                </span>
+              </div>
+              <h1 className="font-display text-5xl font-black leading-[1.1] tracking-tight text-white">
+                {content.title}
+              </h1>
+              <p className="mt-6 text-base leading-relaxed text-zinc-400">
+                {content.subtitle}
               </p>
             </div>
           </div>
+
+          <div className="relative z-10 max-w-md rounded-[2rem] border border-white/5 bg-white/[0.02] p-8 backdrop-blur-xl transition-all hover:bg-white/[0.04]">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10 text-brand-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <p className="text-sm font-bold text-white">Fast, secure checkout</p>
+            </div>
+            <p className="text-sm leading-relaxed text-zinc-400">
+              Sign in once and we&apos;ll keep your cart, delivery flow, and order history ready across all your devices.
+            </p>
+          </div>
         </aside>
 
-        <main className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
-          <div className="w-full max-w-xl rounded-[2.4rem] border border-white/80 bg-white/95 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur sm:p-8">
+        <main className="flex w-full flex-1 items-center justify-center p-6 sm:p-10 lg:p-12">
+          <div className="w-full max-w-[440px]">
             {shouldShowCheckoutBanner ? (
-              <div className="mb-6 rounded-[1.5rem] border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-700">
+              <div className="mb-8 rounded-2xl border border-brand-200/50 bg-brand-50/50 px-5 py-4 text-sm font-semibold text-brand-700 shadow-sm backdrop-blur-sm">
                 Sign in to complete your purchase.
               </div>
             ) : null}
 
-            <div className="rounded-[1.8rem] border border-orange-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fff1e6_100%)] p-6">
-              <p className="text-xs font-black uppercase tracking-[0.26em] text-orange-500">
-                {content.formEyebrow}
-              </p>
-              <h2 className="mt-3 text-3xl font-black text-zinc-950 sm:text-[2.2rem]">
-                {content.title}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-zinc-600">{content.subtitle}</p>
+            <div className="mb-10 lg:hidden">
+              <Link href="/" className="inline-flex items-center gap-3">
+                {branding.logoDarkUrl || branding.logoUrl ? (
+                  <div className="relative h-10 w-28 overflow-hidden rounded-lg">
+                    <Image
+                      src={branding.logoDarkUrl || branding.logoUrl || ""}
+                      alt={branding.storeName}
+                      fill
+                      sizes="112px"
+                      className="object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-sm font-black text-white shadow-md">
+                    SK
+                  </div>
+                )}
+              </Link>
             </div>
 
-            <div className="mt-8">{children}</div>
+            <div className="mb-10 space-y-3">
+              <h2 className="text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl">
+                {content.title}
+              </h2>
+              <p className="text-sm text-zinc-500">{content.subtitle}</p>
+            </div>
 
-            <div className="mt-8 border-t border-orange-100 pt-5 text-center text-sm text-zinc-600">
-              {alternateAction.prompt}{" "}
-              <Link
-                href={buildAuthHref(alternateAction.href, redirectPath)}
-                className="font-semibold text-orange-500 transition-colors hover:text-orange-600"
-              >
-                {alternateAction.label}
-              </Link>
+            <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-6 sm:p-8 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)]">
+              {children}
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-zinc-500">
+                {alternateAction.prompt}{" "}
+                <Link
+                  href={buildAuthHref(alternateAction.href, redirectPath)}
+                  className="font-semibold text-zinc-950 decoration-brand-500 decoration-2 underline-offset-4 transition-all hover:underline"
+                >
+                  {alternateAction.label}
+                </Link>
+              </p>
             </div>
           </div>
         </main>

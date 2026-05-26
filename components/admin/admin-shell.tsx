@@ -26,6 +26,7 @@ import {
   TicketPercent,
   Users,
 } from "lucide-react";
+import { BrandMark } from "@/components/layout/navbar";
 import {
   Sheet,
   SheetContent,
@@ -209,24 +210,9 @@ function AdminSidebarContent({
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-zinc-800/80 px-5 py-5">
         <Link href="/admin" onClick={onNavigate} className="flex items-center gap-3">
-          {branding.logoDarkUrl || branding.logoUrl ? (
-            <div className="relative h-10 w-[132px]">
-              <Image
-                src={branding.logoDarkUrl || branding.logoUrl || ""}
-                alt={branding.storeName}
-                fill
-                sizes="132px"
-                className="object-contain"
-              />
-            </div>
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-sm font-black text-white shadow-[0_0_28px_rgba(249,115,22,0.24)]">
-              SK
-            </div>
-          )}
+          <BrandMark storeSettings={storeSettings} mobile={false} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-white">{branding.storeName}</p>
-            <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Admin Panel</p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">Admin</p>
           </div>
         </Link>
       </div>
@@ -346,12 +332,10 @@ export function AdminShell({
               </button>
 
               <div className="min-w-0 flex-1">
-                <div className="lg:hidden">
-                  <p className="truncate text-sm font-black text-white sm:text-base">
-                    {branding.storeName}
-                  </p>
-                  <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
-                    Admin Panel
+                <div className="lg:hidden flex items-center gap-2">
+                  <BrandMark storeSettings={storeSettings} mobile={true} />
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 mt-1">
+                    Admin
                   </p>
                 </div>
               </div>

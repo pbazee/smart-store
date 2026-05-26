@@ -332,7 +332,7 @@ export async function POST(req: NextRequest) {
           couponCode: appliedCoupon?.code ?? null,
           total: computedTotal,
           orderStatus: "pending",
-          paymentStatus: "unpaid",
+          paymentStatus: "pending",
           paystackReference: reference,
           stockReservedAt: reservationCreatedAt,
           reservationExpiresAt,

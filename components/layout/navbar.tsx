@@ -138,7 +138,7 @@ function HeaderIconLink({
   );
 }
 
-function BrandMark({
+export function BrandMark({
   storeSettings,
   mobile = false,
 }: {
