@@ -37,6 +37,20 @@ const nextConfig: NextConfig = {
   experimental: {
     ppr: false,
   },
+  serverExternalPackages: ["jspdf"],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        jsdom: false,
+        "html-encoding-sniffer": false,
+        "@exodus/bytes": false,
+        "isomorphic-dompurify": false,
+      };
+    }
+
+    return config;
+  },
   async headers() {
     return [
       {

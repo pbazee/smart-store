@@ -1,4 +1,4 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 function escapeHtml(value: string) {
   return value
@@ -62,10 +62,29 @@ export function convertLegacyRichTextToHtml(content: string) {
     .join("");
 }
 
+const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    ...sanitizeHtml.defaults.allowedTags,
+    "img",
+    "h1",
+    "h2",
+    "h3",
+    "figure",
+    "figcaption",
+  ],
+  allowedAttributes: {
+    ...sanitizeHtml.defaults.allowedAttributes,
+    a: ["href", "name", "target", "rel"],
+    img: ["src", "alt", "title", "width", "height"],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  allowedSchemesByTag: {
+    img: ["http", "https", "data"],
+  },
+};
+
 export function sanitizeRichHtml(content: string) {
-  return DOMPurify.sanitize(content, {
-    USE_PROFILES: { html: true },
-  });
+  return sanitizeHtml(content, SANITIZE_OPTIONS);
 }
 
 export function normalizeRichTextHtml(content: string) {
