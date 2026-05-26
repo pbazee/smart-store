@@ -14,7 +14,7 @@ export async function GET() {
       }),
       prisma.order.count({
         where: {
-          status: "pending",
+          orderStatus: "pending",
         },
       }),
       prisma.newsletterSubscriber.count(),

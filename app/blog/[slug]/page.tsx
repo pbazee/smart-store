@@ -3,13 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import {
-  getBlogContentBlocks,
-  getBlogExcerpt,
-  getBlogReadTime,
-} from "@/lib/default-blog-posts";
+import { getBlogExcerpt, getBlogReadTime } from "@/lib/default-blog-posts";
 import { getAppUrl } from "@/lib/app-url";
 import { getBlogPostBySlug } from "@/lib/blog-service";
+import { ShareButton } from "@/components/shared/share-button";
+import { sanitizeRichHtml } from "@/lib/rich-text";
 import { createBlurDataURL } from "@/lib/utils";
 
 export const revalidate = 60;
@@ -34,18 +32,18 @@ export async function generateMetadata({
   }
 
   const postUrl = buildAbsoluteUrl(`/blog/${post.slug}`);
-  const imageUrl = buildAbsoluteUrl(post.imageUrl || "/og-image.jpg");
-  const description = getBlogExcerpt(post.content, 160);
+  const imageUrl = buildAbsoluteUrl(post.ogImage || post.imageUrl || "/og-image.jpg");
+  const description = post.metaDescription || getBlogExcerpt(post.content, 160);
   const publishedTime = new Date(post.publishedAt || post.createdAt).toISOString();
 
   return {
-    title: `${post.title} | Smartest Store KE`,
+    title: post.metaTitle || `${post.title} | Smartest Store KE`,
     description,
     alternates: {
-      canonical: postUrl,
+      canonical: post.canonicalUrl || postUrl,
     },
     openGraph: {
-      title: post.title,
+      title: post.metaTitle || post.title,
       description,
       url: postUrl,
       siteName: "Smartest Store KE",
@@ -63,7 +61,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: post.title,
+      title: post.metaTitle || post.title,
       description,
       images: [imageUrl],
     },
@@ -75,7 +73,6 @@ export default async function BlogPostPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-
   const { slug } = await params;
   const post = await getBlogPostBySlug(slug);
 
@@ -83,7 +80,8 @@ export default async function BlogPostPage({
     notFound();
   }
 
-  const blocks = getBlogContentBlocks(post.content);
+  const postUrl = buildAbsoluteUrl(`/blog/${post.slug}`);
+  const safeContent = sanitizeRichHtml(post.content);
 
   return (
     <article className="bg-[linear-gradient(180deg,_rgba(255,255,255,1)_0%,_rgba(248,250,252,1)_100%)] dark:bg-[linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)]">
@@ -106,13 +104,23 @@ export default async function BlogPostPage({
               })}
             </span>
             <span>{getBlogReadTime(post.content)}</span>
+            {post.focusKeyword ? <span>{post.focusKeyword}</span> : null}
           </div>
           <h1 className="mt-5 font-display text-4xl font-black tracking-tight text-zinc-950 sm:text-6xl dark:text-zinc-50">
             {post.title}
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-zinc-700 dark:text-zinc-400">
-            {getBlogExcerpt(post.content, 220)}
+            {post.metaDescription || getBlogExcerpt(post.content, 220)}
           </p>
+          <div className="mt-6">
+            <ShareButton
+              title={post.title}
+              text={post.metaDescription || getBlogExcerpt(post.content, 160)}
+              url={postUrl}
+              label="Share article"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-brand-400 hover:text-zinc-950 dark:border-zinc-700 dark:text-zinc-300 dark:hover:text-white"
+            />
+          </div>
         </div>
 
         <div className="relative mt-10 overflow-hidden rounded-[2.5rem] border border-zinc-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
@@ -133,25 +141,12 @@ export default async function BlogPostPage({
           </div>
         </div>
 
-        <div className="mt-12 space-y-6">
-          {blocks.map((block, index) =>
-            block.type === "heading" ? (
-              <section
-                key={`${block.type}-${index}`}
-                className="rounded-[2rem] border border-zinc-200 bg-white/95 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-8 dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none"
-              >
-                <h2 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{block.text}</h2>
-              </section>
-            ) : (
-              <section
-                key={`${block.type}-${index}`}
-                className="rounded-[2rem] border border-zinc-200 bg-white/95 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-8 dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none"
-              >
-                <p className="text-base leading-8 text-zinc-700 dark:text-zinc-400">{block.text}</p>
-              </section>
-            )
-          )}
-        </div>
+        <section className="mt-12 rounded-[2rem] border border-zinc-200 bg-white/95 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-8 dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none">
+          <div
+            className="prose prose-lg max-w-none prose-headings:font-black prose-a:text-brand-500 dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: safeContent }}
+          />
+        </section>
       </div>
     </article>
   );

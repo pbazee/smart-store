@@ -13,29 +13,49 @@ import {
   Package,
   Phone,
   Receipt,
-  Save,
   ShieldCheck,
   User,
 } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 import type { AdminOrderDetail } from "@/lib/data-service";
 import { useToast } from "@/lib/use-toast";
 import { cn, formatKES } from "@/lib/utils";
 
-const STATUS_OPTIONS = ["pending", "processing", "shipped", "delivered", "cancelled"] as const;
-const PAYMENT_OPTIONS = ["pending", "paid", "failed", "refunded"] as const;
+const ORDER_STATUS_OPTIONS = [
+  "pending",
+  "processing",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+  "returned",
+] as const;
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+const PAYMENT_OPTIONS = [
+  "unpaid",
+  "pending",
+  "paid",
+  "partially_paid",
+  "failed",
+  "refunded",
+] as const;
+
+const ORDER_STATUS_STYLES: Record<string, string> = {
+  pending: "border-zinc-600 bg-zinc-700/20 text-zinc-200",
   processing: "border-sky-500/30 bg-sky-500/10 text-sky-300",
   shipped: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+  out_for_delivery: "border-orange-500/30 bg-orange-500/10 text-orange-300",
   delivered: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  cancelled: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+  cancelled: "border-red-500/30 bg-red-500/10 text-red-300",
+  returned: "border-rose-500/30 bg-rose-500/10 text-rose-300",
 };
 
 const PAYMENT_STYLES: Record<string, string> = {
+  unpaid: "border-red-500/30 bg-red-500/10 text-red-300",
   pending: "border-amber-500/30 bg-amber-500/10 text-amber-300",
   paid: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  failed: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+  partially_paid: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  failed: "border-red-500/30 bg-red-500/10 text-red-300",
   refunded: "border-zinc-700 bg-zinc-800/80 text-zinc-200",
 };
 
@@ -48,6 +68,10 @@ function formatDateTime(value?: string | Date | null) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function prettifyStatus(status: string) {
+  return status.replace(/_/g, " ");
 }
 
 function SummaryCard({
@@ -89,7 +113,7 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [order, setOrder] = useState(initialOrder);
-  const [status, setStatus] = useState(initialOrder.status);
+  const [orderStatus, setOrderStatus] = useState(initialOrder.orderStatus);
   const [paymentStatus, setPaymentStatus] = useState(initialOrder.paymentStatus);
 
   const subtotal =
@@ -106,7 +130,7 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
           const response = await fetch(`/api/admin/orders/${order.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status, paymentStatus }),
+            body: JSON.stringify({ orderStatus, paymentStatus }),
           });
 
           const payload = (await response.json().catch(() => null)) as
@@ -118,10 +142,10 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
           }
 
           setOrder(payload.data);
-          setStatus(payload.data.status);
+          setOrderStatus(payload.data.orderStatus);
           setPaymentStatus(payload.data.paymentStatus);
           toast({
-            title: "Order updated",
+            title: "Saved successfully",
             description: `Order ${payload.data.orderNumber} has been updated.`,
           });
         } catch (error) {
@@ -161,11 +185,12 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
         <div className="flex flex-wrap items-center gap-3">
           <span
             className={cn(
-              "inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]",
-              STATUS_STYLES[order.status]
+              "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]",
+              ORDER_STATUS_STYLES[order.orderStatus]
             )}
           >
-            {order.status}
+            {prettifyStatus(order.orderStatus)}
+            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           </span>
           <span
             className={cn(
@@ -173,7 +198,7 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
               PAYMENT_STYLES[order.paymentStatus]
             )}
           >
-            {order.paymentStatus}
+            {prettifyStatus(order.paymentStatus)}
           </span>
         </div>
       </div>
@@ -269,8 +294,8 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
 
             <div className="mt-6 grid gap-3 rounded-[1.5rem] border border-zinc-800 bg-zinc-950/80 p-5">
               <DetailRow label="Payment method" value={order.paymentMethod} />
-              <DetailRow label="Payment status" value={order.paymentStatus} />
-              <DetailRow label="Order status" value={order.status} />
+              <DetailRow label="Payment status" value={prettifyStatus(order.paymentStatus)} />
+              <DetailRow label="Order status" value={prettifyStatus(order.orderStatus)} />
               <DetailRow label="Shipping rule" value={order.shippingRuleName || "Manual / default"} />
               <DetailRow label="Payment verified" value={formatDateTime(order.paymentVerifiedAt)} />
               <DetailRow label="Reserved stock" value={formatDateTime(order.stockReservedAt)} />
@@ -288,9 +313,7 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
               </div>
               <div>
                 <h2 className="text-xl font-black text-white">Update Status</h2>
-                <p className="text-sm text-zinc-400">
-                  Change payment and fulfillment state for this order.
-                </p>
+                <p className="text-sm text-zinc-400">Change payment and fulfillment state for this order.</p>
               </div>
             </div>
 
@@ -298,13 +321,15 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
               <label className="space-y-2 text-sm">
                 <span className="font-medium text-zinc-300">Order status</span>
                 <select
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value as AdminOrderDetail["status"])}
+                  value={orderStatus}
+                  onChange={(event) =>
+                    setOrderStatus(event.target.value as AdminOrderDetail["orderStatus"])
+                  }
                   className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
                 >
-                  {STATUS_OPTIONS.map((option) => (
+                  {ORDER_STATUS_OPTIONS.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {prettifyStatus(option)}
                     </option>
                   ))}
                 </select>
@@ -321,21 +346,21 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
                 >
                   {PAYMENT_OPTIONS.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {prettifyStatus(option)}
                     </option>
                   ))}
                 </select>
               </label>
 
-              <button
+              <LoadingButton
                 type="button"
                 onClick={handleSave}
-                disabled={isPending}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                isLoading={isPending}
+                loadingText="Saving..."
+                className="w-full rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-600"
               >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {isPending ? "Saving..." : "Save changes"}
-              </button>
+                Save changes
+              </LoadingButton>
             </div>
           </section>
 
@@ -355,14 +380,14 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
                 <User className="mt-0.5 h-4 w-4 text-zinc-500" />
                 <div>
                   <p className="font-semibold text-zinc-100">{order.customerName}</p>
-                  {order.user?.id && (
+                  {order.user?.id ? (
                     <Link
                       href={`/admin/users/${order.user.id}`}
                       className="text-xs font-semibold text-brand-400 hover:text-brand-300"
                     >
                       Open user profile
                     </Link>
-                  )}
+                  ) : null}
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -402,25 +427,6 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
               <p className="whitespace-pre-wrap text-sm leading-7 text-zinc-200">
                 {order.notes?.trim() || "No customer notes were added to this order."}
               </p>
-            </div>
-          </section>
-
-          <section className="rounded-[2rem] border border-zinc-800 bg-zinc-900/80 p-6 shadow-xl shadow-black/25">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-300">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-white">References</h2>
-                <p className="text-sm text-zinc-400">Traceability fields for support and reconciliation.</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3 rounded-[1.5rem] border border-zinc-800 bg-zinc-950/80 p-5">
-              <DetailRow label="Internal id" value={order.id} />
-              <DetailRow label="Order number" value={order.orderNumber} />
-              <DetailRow label="Paystack reference" value={order.paystackReference || "Not attached"} />
-              <DetailRow label="Updated" value={formatDateTime(order.updatedAt)} />
             </div>
           </section>
         </div>

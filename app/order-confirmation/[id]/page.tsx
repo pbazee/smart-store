@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { formatKES } from "@/lib/utils";
 import { CheckCircle, Package, Truck, MapPin, Calendar, ArrowRight } from "lucide-react";
 
@@ -21,8 +20,8 @@ interface Order {
   customerName: string;
   customerEmail: string;
   total: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  orderStatus: "pending" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled" | "returned";
+  paymentStatus: "unpaid" | "pending" | "paid" | "partially_paid" | "failed" | "refunded";
   items: OrderItem[];
   address: string;
   city: string;
@@ -80,10 +79,11 @@ export default function OrderConfirmationPage() {
     { label: "Order Placed", status: "pending", icon: Package },
     { label: "Processing", status: "processing", icon: Package },
     { label: "Shipped", status: "shipped", icon: Truck },
+    { label: "Out for Delivery", status: "out_for_delivery", icon: Truck },
     { label: "Delivered", status: "delivered", icon: CheckCircle },
   ];
 
-  const currentStepIndex = statusSteps.findIndex((s) => s.status === order.status);
+  const currentStepIndex = statusSteps.findIndex((s) => s.status === order.orderStatus);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">

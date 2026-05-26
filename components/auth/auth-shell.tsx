@@ -13,13 +13,13 @@ type AuthShellProps = {
 
 const authContent = {
   "sign-in": {
-    title: "Sign in with Google first",
-    subtitle: "Use Google for the fastest checkout, or continue with email below.",
+    title: "Sign in to Smartest Store KE",
+    subtitle: "Access your orders, saved items, and checkout details in one place.",
     formEyebrow: "Sign In",
   },
   "sign-up": {
     title: "Create your account",
-    subtitle: "Start with Google, or continue with email and password below.",
+    subtitle: "Join Smartest Store KE for faster checkout, saved orders, and wishlist sync.",
     formEyebrow: "Sign Up",
   },
   "forgot-password": {
@@ -70,8 +70,8 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
   }[mode];
 
   return (
-    <div className="min-h-screen bg-[#fff8f1] text-zinc-950">
-      <div className="mx-auto grid min-h-screen max-w-7xl lg:grid-cols-[minmax(320px,40%)_minmax(0,60%)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fff1df,transparent_42%),linear-gradient(180deg,#fffaf4_0%,#f6f6f3_100%)] text-zinc-950">
+      <div className="mx-auto grid min-h-screen max-w-7xl lg:grid-cols-[minmax(320px,42%)_minmax(0,58%)]">
         <aside className="relative overflow-hidden bg-[linear-gradient(160deg,#f97316_0%,#fb923c_34%,#7c2d12_100%)] px-6 py-10 text-white sm:px-10 lg:px-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(255,237,213,0.18),transparent_35%)]" />
           <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:48px_48px]" />
@@ -127,14 +127,14 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
         </aside>
 
         <main className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-orange-100 bg-white p-6 shadow-[0_30px_80px_rgba(249,115,22,0.12)] sm:p-8">
+          <div className="w-full max-w-xl rounded-[2.4rem] border border-white/80 bg-white/95 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur sm:p-8">
             {shouldShowCheckoutBanner ? (
               <div className="mb-6 rounded-[1.5rem] border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-700">
-                Sign in to complete your purchase 🛍️
+                Sign in to complete your purchase.
               </div>
             ) : null}
 
-            <div className="rounded-[1.6rem] border border-orange-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fff1e6_100%)] p-6">
+            <div className="rounded-[1.8rem] border border-orange-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fff1e6_100%)] p-6">
               <p className="text-xs font-black uppercase tracking-[0.26em] text-orange-500">
                 {content.formEyebrow}
               </p>

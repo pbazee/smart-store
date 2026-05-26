@@ -12,8 +12,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { fetchAdminStoreSettings } from "@/app/admin/settings/actions";
+import { fetchAdminSiteSettings } from "@/app/admin/settings/actions";
 import { fetchAdminFAQs } from "@/app/admin/settings/faq-actions";
 import { FAQManager } from "@/app/admin/settings/faq-manager";
+import { LegalPoliciesForm } from "@/app/admin/settings/legal-policies-form";
 import { StoreSettingsForm } from "@/app/admin/settings/store-settings-form";
 import { fetchAdminWhatsAppSettings } from "@/app/admin/whatsapp-settings/actions";
 import { WhatsAppSettingsForm } from "@/app/admin/whatsapp-settings/whatsapp-settings-form";
@@ -52,13 +54,15 @@ export default async function AdminSettingsPage() {
     redirect("/sign-in?redirect_url=%2Fadmin%2Fsettings");
   }
 
-  const [settingsResult, faqsResult, whatsAppResult] = await Promise.allSettled([
+  const [settingsResult, legalResult, faqsResult, whatsAppResult] = await Promise.allSettled([
     fetchAdminStoreSettings(),
+    fetchAdminSiteSettings(),
     fetchAdminFAQs(),
     fetchAdminWhatsAppSettings(),
   ]);
 
   const settings = settingsResult.status === "fulfilled" ? settingsResult.value : null;
+  const legalSettings = legalResult.status === "fulfilled" ? legalResult.value : null;
   const faqs = faqsResult.status === "fulfilled" ? faqsResult.value : [];
   const whatsAppSettings = whatsAppResult.status === "fulfilled" ? whatsAppResult.value : null;
 
@@ -134,6 +138,8 @@ export default async function AdminSettingsPage() {
 
         <StoreSettingsForm initialSettings={settings} showHeading={false} />
       </section>
+
+      <LegalPoliciesForm initialSettings={legalSettings} />
 
       <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950/80 p-6 shadow-xl shadow-black/25 sm:p-8">
         <div className="mb-6 flex items-start gap-4">

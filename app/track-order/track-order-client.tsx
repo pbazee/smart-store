@@ -5,7 +5,7 @@ import { formatKES } from "@/lib/utils";
 
 type MockOrder = {
   orderNumber: string;
-  status: string;
+  orderStatus: string;
   customerName: string;
   items: Array<{ name: string; quantity: number; price: number }>;
   total: number;
@@ -35,7 +35,7 @@ export function TrackOrderClient({
     setTimeout(() => {
       const mockOrder: MockOrder = {
         orderNumber: orderNumber.toUpperCase(),
-        status: "shipped",
+        orderStatus: "shipped",
         customerName: "John Doe",
         items: [
           { name: "Nairobi Air Max", quantity: 1, price: 8999 },
@@ -129,14 +129,14 @@ export function TrackOrderClient({
                 <p className="text-muted-foreground">Placed for {order.customerName}</p>
               </div>
               <span
-                className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(order.status)}`}
+                className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(order.orderStatus)}`}
               >
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
               </span>
             </div>
 
             <div className="mb-6 flex items-center justify-between">
-              {getStatusSteps(order.status).map((step, index) => (
+              {getStatusSteps(order.orderStatus).map((step, index) => (
                 <div key={step.name} className="flex items-center">
                   <div
                     className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
@@ -165,7 +165,7 @@ export function TrackOrderClient({
               ))}
             </div>
 
-            {order.status === "shipped" && (
+            {order.orderStatus === "shipped" && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
                 <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
                   Out for Delivery

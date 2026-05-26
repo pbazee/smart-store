@@ -176,7 +176,7 @@ export async function Footer({
               <Link href="/privacy-policy" className="transition-colors hover:text-white">
                 Privacy
               </Link>
-              <Link href="/privacy-policy" className="transition-colors hover:text-white">
+              <Link href="/terms" className="transition-colors hover:text-white">
                 Terms
               </Link>
               <span className="font-semibold text-brand-500">Made in Kenya</span>

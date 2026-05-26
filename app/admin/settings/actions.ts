@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { normalizeCheckoutPhoneNumber } from "@/lib/checkout-payload";
+import { getSiteSettings, updateSiteSettings } from "@/lib/site-settings";
 import { getStoreSettings, STORE_SETTINGS_CACHE_TAG, upsertStoreSettings } from "@/lib/store-settings";
 import type { StoreSettings } from "@/types";
 
@@ -39,12 +40,13 @@ function normalizeOptionalPhone(phone?: string) {
 }
 
 function revalidateStorefront() {
-  revalidateTag('store-settings');
+  revalidateTag(STORE_SETTINGS_CACHE_TAG);
   revalidateTag(HOMEPAGE_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/contact");
   revalidatePath("/faq");
+  revalidatePath("/terms");
   revalidatePath("/privacy-policy");
   revalidatePath("/returns");
   revalidatePath("/track-order");
@@ -52,6 +54,33 @@ function revalidateStorefront() {
   revalidatePath("/admin");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+}
+
+const legalSettingsSchema = z.object({
+  termsContent: z.string().trim().min(1, "Terms of Service content is required"),
+  privacyContent: z.string().trim().min(1, "Privacy Policy content is required"),
+});
+
+export async function fetchAdminSiteSettings() {
+  const isAdmin = await requireAdminAuth();
+  if (!isAdmin) return null;
+  return getSiteSettings();
+}
+
+export async function updateAdminSiteSettingsAction(input: {
+  termsContent: string;
+  privacyContent: string;
+}) {
+  const isAdmin = await requireAdminAuth();
+  if (!isAdmin) {
+    return { success: false as const, error: "Unauthorized" };
+  }
+
+  const data = legalSettingsSchema.parse(input);
+  const settings = await updateSiteSettings(data);
+  revalidateStorefront();
+
+  return { success: true as const, data: settings };
 }
 
 export async function fetchAdminStoreSettings() {

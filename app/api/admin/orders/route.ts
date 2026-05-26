@@ -7,14 +7,17 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
 
     const search = request.nextUrl.searchParams.get("search")?.trim() || "";
-    const status = request.nextUrl.searchParams.get("status")?.trim() || "all";
+    const orderStatus = request.nextUrl.searchParams.get("orderStatus")?.trim() || "all";
+    const paymentStatus = request.nextUrl.searchParams.get("paymentStatus")?.trim() || "all";
+    const dateFrom = request.nextUrl.searchParams.get("dateFrom")?.trim() || "";
+    const dateTo = request.nextUrl.searchParams.get("dateTo")?.trim() || "";
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") || 1));
     const limit = Math.max(1, Number(request.nextUrl.searchParams.get("limit") || 10));
     const skip = (page - 1) * limit;
 
     const [orders, filteredTotal, totalOrders] = await Promise.all([
-      getAdminOrders({ search, status, skip, take: limit }),
-      getAdminOrdersCount({ search, status }),
+      getAdminOrders({ search, orderStatus, paymentStatus, dateFrom, dateTo, skip, take: limit }),
+      getAdminOrdersCount({ search, orderStatus, paymentStatus, dateFrom, dateTo }),
       getCountOrders(),
     ]);
 
@@ -29,7 +32,10 @@ export async function GET(request: NextRequest) {
           totalOrders,
           totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
           search,
-          status,
+          orderStatus,
+          paymentStatus,
+          dateFrom,
+          dateTo,
         },
       },
       {

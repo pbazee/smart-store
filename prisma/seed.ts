@@ -11,6 +11,8 @@ import { DEFAULT_STORE_SETTINGS } from "../lib/default-store-settings";
 import { DEFAULT_SHIPPING_RULES } from "../lib/default-shipping-rules";
 import { buildInvalidCatalogProductWhere } from "../lib/product-integrity";
 import { hashPassword } from "../lib/password";
+import { DEFAULT_PRIVACY_CONTENT, DEFAULT_TERMS_CONTENT } from "../lib/site-settings";
+import { normalizeRichTextHtml } from "../lib/rich-text";
 
 loadEnvConfig(process.cwd());
 
@@ -196,6 +198,11 @@ async function main() {
           title: post.title,
           content: post.content,
           imageUrl: post.imageUrl,
+          metaTitle: post.metaTitle ?? post.title,
+          metaDescription: post.metaDescription ?? null,
+          ogImage: post.ogImage ?? post.imageUrl,
+          focusKeyword: post.focusKeyword ?? post.title,
+          canonicalUrl: post.canonicalUrl || null,
           isPublished: post.isPublished,
           publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
         },
@@ -205,6 +212,11 @@ async function main() {
           slug: post.slug,
           content: post.content,
           imageUrl: post.imageUrl,
+          metaTitle: post.metaTitle ?? post.title,
+          metaDescription: post.metaDescription ?? null,
+          ogImage: post.ogImage ?? post.imageUrl,
+          focusKeyword: post.focusKeyword ?? post.title,
+          canonicalUrl: post.canonicalUrl || null,
           isPublished: post.isPublished,
           publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
         },
@@ -285,6 +297,21 @@ async function main() {
       },
     });
     console.log("Seeded store settings");
+
+    console.log("Seeding site settings...");
+    await prisma.siteSettings.upsert({
+      where: { id: "default" },
+      update: {
+        termsContent: normalizeRichTextHtml(DEFAULT_TERMS_CONTENT),
+        privacyContent: normalizeRichTextHtml(DEFAULT_PRIVACY_CONTENT),
+      },
+      create: {
+        id: "default",
+        termsContent: normalizeRichTextHtml(DEFAULT_TERMS_CONTENT),
+        privacyContent: normalizeRichTextHtml(DEFAULT_PRIVACY_CONTENT),
+      },
+    });
+    console.log("Seeded site settings");
 
     console.log("Seeding shipping rules...");
     for (const rule of DEFAULT_SHIPPING_RULES) {

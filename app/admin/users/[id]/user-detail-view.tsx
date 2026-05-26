@@ -213,10 +213,10 @@ export function UserDetailView({ user }: UserDetailViewProps) {
                                                         })}
                                                     </span>
                                                     <span className="h-1 w-1 rounded-full bg-zinc-800" />
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${order.status === "delivered" ? "text-emerald-400" :
-                                                        order.status === "cancelled" ? "text-rose-400" : "text-amber-400"
-                                                        }`}>
-                                                        {order.status}
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${order.orderStatus === "delivered" ? "text-emerald-400" :
+                                                        order.orderStatus === "cancelled" ? "text-rose-400" : "text-amber-400"
+                                                    }`}>
+                                                        {order.orderStatus}
                                                     </span>
                                                 </div>
                                             </div>

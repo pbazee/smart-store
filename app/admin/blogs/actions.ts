@@ -6,6 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
 import { getBlogPosts } from "@/lib/blog-service";
 import { prisma } from "@/lib/prisma";
+import { normalizeRichTextHtml } from "@/lib/rich-text";
 import { deleteBlogImage, uploadBlogImage } from "@/lib/supabase-storage";
 import { slugify } from "@/lib/utils";
 import type { BlogPost } from "@/types";
@@ -28,6 +29,11 @@ const adminBlogSchema = z.object({
   slug: z.string().trim().min(2, "Slug is required").max(180, "Keep it under 180 characters"),
   content: z.string().trim().min(40, "Content is too short"),
   imageUrl: imageUrlSchema,
+  metaTitle: z.string().trim().max(160, "Keep it under 160 characters").optional(),
+  metaDescription: z.string().trim().max(220, "Keep it under 220 characters").optional(),
+  ogImage: z.string().trim().optional(),
+  focusKeyword: z.string().trim().max(120, "Keep it under 120 characters").optional(),
+  canonicalUrl: z.string().trim().optional(),
   isPublished: z.boolean().default(false),
 });
 
@@ -44,8 +50,13 @@ function normalizeBlogInput(input: AdminBlogInput) {
     id: data.id,
     title: data.title.trim(),
     slug: slugify(data.slug || data.title),
-    content: data.content.trim(),
+    content: normalizeRichTextHtml(data.content.trim()),
     imageUrl: data.imageUrl.trim(),
+    metaTitle: data.metaTitle?.trim() || null,
+    metaDescription: data.metaDescription?.trim() || null,
+    ogImage: data.ogImage?.trim() || null,
+    focusKeyword: data.focusKeyword?.trim() || null,
+    canonicalUrl: data.canonicalUrl?.trim() || null,
     isPublished: data.isPublished,
   };
 }
@@ -94,6 +105,11 @@ export async function createAdminBlogAction(input: AdminBlogInput) {
       slug: data.slug,
       content: data.content,
       imageUrl: data.imageUrl,
+      metaTitle: data.metaTitle,
+      metaDescription: data.metaDescription,
+      ogImage: data.ogImage,
+      focusKeyword: data.focusKeyword,
+      canonicalUrl: data.canonicalUrl,
       isPublished: data.isPublished,
       publishedAt,
     },
@@ -118,6 +134,11 @@ export async function updateAdminBlogAction(input: AdminBlogInput) {
       slug: normalized.slug,
       content: normalized.content,
       imageUrl: normalized.imageUrl,
+      metaTitle: normalized.metaTitle,
+      metaDescription: normalized.metaDescription,
+      ogImage: normalized.ogImage,
+      focusKeyword: normalized.focusKeyword,
+      canonicalUrl: normalized.canonicalUrl,
       isPublished: normalized.isPublished,
       publishedAt: normalized.isPublished ? existingPost.publishedAt ?? new Date() : null,
     },

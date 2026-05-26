@@ -55,20 +55,16 @@ export async function generateMetadata({
   const imageUrl = product.images?.[0]
     ? buildAbsoluteUrl(product.images[0])
     : buildAbsoluteUrl("/og-image.jpg");
-  const description = buildProductDescription(product, storeName);
-  const title = `${product.name} | ${storeName}`;
-  const socialTitle = `${product.name} — ${formatKES(product.basePrice)} at ${storeName}`;
-
-  const normalizedSocialTitle = `${product.name} - ${formatKES(product.basePrice)} at ${storeName}`;
+  const description = product.description?.slice(0, 160) || buildProductDescription(product, storeName);
 
   return {
-    title,
+    title: `${product.name} | ${storeName}`,
     description,
     alternates: {
       canonical: productUrl,
     },
     openGraph: {
-      title: normalizedSocialTitle,
+      title: product.name,
       description,
       url: productUrl,
       siteName: storeName,
@@ -79,15 +75,15 @@ export async function generateMetadata({
             {
               url: imageUrl,
               alt: product.name,
-              width: 800,
-              height: 800,
+              width: 1200,
+              height: 630,
             },
           ]
         : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: normalizedSocialTitle,
+      title: product.name,
       description,
       images: [imageUrl],
     },

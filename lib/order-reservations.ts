@@ -22,7 +22,7 @@ const DEFAULT_TRANSACTION_MAX_WAIT_MS = 5_000;
 
 const reservableOrderSelect = {
   id: true,
-  status: true,
+  orderStatus: true,
   paymentStatus: true,
   notes: true,
   paymentVerifiedAt: true,
@@ -58,7 +58,7 @@ export async function releaseOrderReservationInTransaction(
   tx: TransactionClient,
   order: ReservableOrder,
   note: string,
-  paymentStatus: "pending" | "failed" = "failed"
+  paymentStatus: "unpaid" | "pending" | "failed" = "failed"
 ) {
   if (order.paymentVerifiedAt || order.stockReleasedAt || !order.stockReservedAt) {
     return false;
@@ -80,7 +80,7 @@ export async function releaseOrderReservationInTransaction(
   await tx.order.update({
     where: { id: order.id },
     data: {
-      status: "cancelled",
+      orderStatus: "cancelled",
       paymentStatus,
       reservationExpiresAt: null,
       stockReleasedAt: new Date(),
@@ -96,7 +96,9 @@ export async function releaseOrderReservationInTransaction(
 export async function releaseExpiredReservationsInTransaction(tx: TransactionClient) {
   const expiredOrders = await tx.order.findMany({
     where: {
-      paymentStatus: "pending",
+      paymentStatus: {
+        in: ["unpaid", "pending"],
+      },
       paymentVerifiedAt: null,
       stockReservedAt: { not: null },
       stockReleasedAt: null,

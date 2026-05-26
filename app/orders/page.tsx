@@ -17,8 +17,8 @@ interface Order {
   id: string;
   orderNumber: string;
   total: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  orderStatus: "pending" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled" | "returned";
+  paymentStatus: "unpaid" | "pending" | "paid" | "partially_paid" | "failed" | "refunded";
   items: OrderItem[];
   createdAt: string;
 }
@@ -27,8 +27,10 @@ const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   processing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
   shipped: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  out_for_delivery: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
   delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  returned: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400",
 };
 
 export default function OrdersPage() {
@@ -102,10 +104,10 @@ export default function OrdersPage() {
                   <h3 className="font-bold text-lg">{order.orderNumber}</h3>
                   <span
                     className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      statusColors[order.status]
+                      statusColors[order.orderStatus]
                     }`}
                   >
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    {order.orderStatus.replace(/_/g, " ")}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground flex items-center gap-1.5">

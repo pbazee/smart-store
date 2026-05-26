@@ -235,8 +235,21 @@ export interface BlogPost {
   slug: string;
   content: string;
   imageUrl: string;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogImage?: string | null;
+  focusKeyword?: string | null;
+  canonicalUrl?: string | null;
   isPublished: boolean;
   publishedAt?: string | Date | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface SiteSettings {
+  id: string;
+  termsContent: string;
+  privacyContent: string;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -289,8 +302,21 @@ export interface Order {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  orderStatus:
+    | "pending"
+    | "processing"
+    | "shipped"
+    | "out_for_delivery"
+    | "delivered"
+    | "cancelled"
+    | "returned";
+  paymentStatus:
+    | "unpaid"
+    | "pending"
+    | "paid"
+    | "partially_paid"
+    | "failed"
+    | "refunded";
   paymentMethod: "mpesa" | "card" | "cash" | string;
   subtotal?: number;
   shippingAmount?: number;

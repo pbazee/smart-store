@@ -45,7 +45,7 @@ export type AdminDashboardStats = {
     customerName: string | null;
     customerEmail: string | null;
     total: number;
-    status: string;
+    orderStatus: string;
     createdAt: string | Date;
   }>;
   topProducts: Array<{
@@ -401,7 +401,7 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                         </td>
                         <td className="py-4">
                           <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.16em] text-zinc-300">
-                            {order.status}
+                            {order.orderStatus}
                           </span>
                         </td>
                         <td className="py-4 text-xs text-zinc-500" suppressHydrationWarning>
@@ -437,7 +437,7 @@ export function AdminDashboardView({ stats: initialStats }: { stats: AdminDashbo
                         </p>
                       </div>
                       <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
-                        {order.status}
+                        {order.orderStatus}
                       </span>
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm">

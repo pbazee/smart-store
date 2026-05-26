@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ShareButton } from "@/components/shared/share-button";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { buildProductHref } from "@/lib/product-routes";
 import {
@@ -800,74 +801,24 @@ export function ProductDetail({
             </p>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Share className="h-4 w-4" />
-                Share this product
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="w-[19rem] rounded-[1.35rem] border-orange-500/30 bg-zinc-950 p-2 text-zinc-100 shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+          {pageUrl ? (
+            <ShareButton
+              title={currentProduct.name}
+              text={`Check out ${currentProduct.name} on Smartest Store KE${shareDescription ? `. ${shareDescription}` : ""}`}
+              url={pageUrl}
+              label="Share this product"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            />
+          ) : (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+              disabled
             >
-              <DropdownMenuLabel className="text-[11px] tracking-[0.22em] text-orange-300/80">
-                Share Product
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
-                onSelect={() => openShareWindow(normalizedWhatsappShareUrl)}
-              >
-                <MessageCircle className="h-4 w-4 text-orange-400" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Share via WhatsApp</span>
-                  <span className="text-xs text-zinc-400">Preview-ready link with message</span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
-                onSelect={() => openShareWindow(normalizedTwitterShareUrl)}
-              >
-                <Twitter className="h-4 w-4 text-orange-400" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Share on Twitter/X</span>
-                  <span className="text-xs text-zinc-400">Post with title, price, and link</span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
-                onSelect={() => {
-                  void handleCopyLink();
-                }}
-              >
-                <Link className="h-4 w-4 text-orange-400" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Copy link</span>
-                  <span className="text-xs text-zinc-400">Copies the product URL instantly</span>
-                </div>
-              </DropdownMenuItem>
-              {canUseNativeShare ? (
-                <>
-                  <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem
-                    className="rounded-2xl text-zinc-100 hover:bg-orange-500/10 focus:bg-orange-500/10"
-                    onSelect={() => {
-                      void handleShare();
-                    }}
-                  >
-                    <Send className="h-4 w-4 text-orange-400" />
-                    <div className="flex flex-col">
-                      <span className="font-semibold">More options</span>
-                      <span className="text-xs text-zinc-400">Open your device share sheet</span>
-                    </div>
-                  </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <Share className="h-4 w-4" />
+              Share this product
+            </button>
+          )}
         </div>
       </div>
 

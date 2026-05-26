@@ -156,7 +156,7 @@ export async function finalizePaystackPayment(input: {
       where: { id: order.id },
       data: {
         paymentStatus: "paid",
-        status: "processing",
+        orderStatus: "processing",
         paymentVerifiedAt: now,
         reservationExpiresAt: null,
         stockReservedAt: order.stockReservedAt ?? now,

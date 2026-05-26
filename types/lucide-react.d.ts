@@ -61,8 +61,14 @@ declare module 'lucide-react' {
   export const Settings: LucideIcon;
   export const Database: LucideIcon;
   export const Bell: LucideIcon;
+  export const Bold: LucideIcon;
   export const Calendar: LucideIcon;
   export const Clock: LucideIcon;
+  export const Code: LucideIcon;
+  export const Heading1: LucideIcon;
+  export const Heading2: LucideIcon;
+  export const Heading3: LucideIcon;
+  export const Italic: LucideIcon;
   export const Instagram: LucideIcon;
   export const Facebook: LucideIcon;
   export const Youtube: LucideIcon;
@@ -92,6 +98,7 @@ declare module 'lucide-react' {
   export const Receipt: LucideIcon;
   export const ExternalLink: LucideIcon;
   export const Link: LucideIcon;
+  export const Link2: LucideIcon;
   export const Copy: LucideIcon;
   export const Clipboard: LucideIcon;
   export const FileText: LucideIcon;
@@ -139,6 +146,12 @@ declare module 'lucide-react' {
   export const Store: LucideIcon;
   export const MessageCircle: LucideIcon;
   export const MessageCircleMore: LucideIcon;
+  export const ListOrdered: LucideIcon;
+  export const Quote: LucideIcon;
+  export const Redo2: LucideIcon;
+  export const Share2: LucideIcon;
+  export const Underline: LucideIcon;
+  export const Undo2: LucideIcon;
   export const CornerUpLeft: LucideIcon;
   export const CornerUpRight: LucideIcon;
   export const CornerDownLeft: LucideIcon;

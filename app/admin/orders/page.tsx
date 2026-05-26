@@ -9,9 +9,25 @@ import {
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; limit?: string; search?: string; status?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    limit?: string;
+    search?: string;
+    orderStatus?: string;
+    paymentStatus?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>;
 }) {
-  const { page = "1", limit = "10", search = "", status = "all" } = await searchParams;
+  const {
+    page = "1",
+    limit = "10",
+    search = "",
+    orderStatus = "all",
+    paymentStatus = "all",
+    dateFrom = "",
+    dateTo = "",
+  } = await searchParams;
   const pageNum = Math.max(1, parseInt(page));
   const limitNum = Math.max(1, parseInt(limit));
   
@@ -23,11 +39,14 @@ export default async function AdminOrdersPage({
     const results = await Promise.all([
       getAdminOrders({
         search,
-        status,
+        orderStatus,
+        paymentStatus,
+        dateFrom,
+        dateTo,
         skip: (pageNum - 1) * limitNum,
         take: limitNum,
       }),
-      getAdminOrdersCount({ search, status }),
+      getAdminOrdersCount({ search, orderStatus, paymentStatus, dateFrom, dateTo }),
       getCountOrders(),
     ]);
     [orders, filteredTotal, totalOrders] = results;
@@ -42,7 +61,10 @@ export default async function AdminOrdersPage({
       filteredTotal={filteredTotal}
       totalOrders={totalOrders}
       initialSearch={search}
-      initialStatus={status}
+      initialOrderStatus={orderStatus}
+      initialPaymentStatus={paymentStatus}
+      initialDateFrom={dateFrom}
+      initialDateTo={dateTo}
       page={pageNum}
       limit={limitNum}
     />

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         id: true,
         orderNumber: true,
         total: true,
-        status: true,
+        orderStatus: true,
         paymentStatus: true,
         createdAt: true,
         items: {

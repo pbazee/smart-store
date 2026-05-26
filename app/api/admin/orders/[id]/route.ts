@@ -6,8 +6,18 @@ import { ADMIN_STATS_CACHE_TAG } from "@/lib/data-service";
 import { z } from "zod";
 
 const updateOrderSchema = z.object({
-  status: z.enum(["pending", "processing", "shipped", "delivered", "cancelled"]),
-  paymentStatus: z.enum(["pending", "paid", "failed", "refunded"]).optional(),
+  orderStatus: z.enum([
+    "pending",
+    "processing",
+    "shipped",
+    "out_for_delivery",
+    "delivered",
+    "cancelled",
+    "returned",
+  ]),
+  paymentStatus: z
+    .enum(["unpaid", "pending", "paid", "partially_paid", "failed", "refunded"])
+    .optional(),
 });
 
 type RouteContext = {
@@ -28,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const order = await prisma.order.update({
       where: { id },
       data: {
-        status: validatedData.status,
+        orderStatus: validatedData.orderStatus,
         paymentStatus: validatedData.paymentStatus,
       },
       include: {

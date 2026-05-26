@@ -1,4 +1,5 @@
 import { blogPosts as staticBlogPosts } from "@/lib/site-content";
+import { convertLegacyRichTextToHtml, getExcerptFromRichText, stripHtml } from "@/lib/rich-text";
 import type { BlogPost } from "@/types";
 
 export type BlogSeed = Omit<BlogPost, "createdAt" | "updatedAt">;
@@ -9,15 +10,24 @@ function createSeedContent(content: Array<{ heading: string; paragraphs: string[
     .join("\n\n");
 }
 
-export const DEFAULT_BLOG_POST_SEEDS: BlogSeed[] = staticBlogPosts.map((post) => ({
-  id: `seed-blog-${post.slug}`,
-  title: post.title,
-  slug: post.slug,
-  content: createSeedContent(post.content),
-  imageUrl: post.image,
-  isPublished: true,
-  publishedAt: new Date(post.publishedAt),
-}));
+export const DEFAULT_BLOG_POST_SEEDS: BlogSeed[] = staticBlogPosts.map((post) => {
+  const legacyContent = createSeedContent(post.content);
+
+  return {
+    id: `seed-blog-${post.slug}`,
+    title: post.title,
+    slug: post.slug,
+    content: convertLegacyRichTextToHtml(legacyContent),
+    imageUrl: post.image,
+    metaTitle: post.title,
+    metaDescription: getExcerptFromRichText(legacyContent, 160),
+    ogImage: post.image,
+    focusKeyword: post.title,
+    canonicalUrl: "",
+    isPublished: true,
+    publishedAt: new Date(post.publishedAt),
+  };
+});
 
 export function createBlogSeed(
   seed: BlogSeed,
@@ -31,21 +41,11 @@ export function createBlogSeed(
 }
 
 export function getBlogExcerpt(content: string, maxLength = 100) {
-  const plainText = content
-    .replace(/^##\s+/gm, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (plainText.length <= maxLength) {
-    return plainText;
-  }
-
-  return `${plainText.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+  return getExcerptFromRichText(content, maxLength);
 }
 
 export function getBlogReadTime(content: string) {
-  const wordCount = content
-    .replace(/^##\s+/gm, "")
+  const wordCount = stripHtml(convertLegacyRichTextToHtml(content))
     .split(/\s+/)
     .filter(Boolean).length;
 
@@ -53,13 +53,5 @@ export function getBlogReadTime(content: string) {
 }
 
 export function getBlogContentBlocks(content: string) {
-  return content
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-    .map((block) =>
-      block.startsWith("## ")
-        ? { type: "heading" as const, text: block.replace(/^##\s+/, "").trim() }
-        : { type: "paragraph" as const, text: block.trim() }
-    );
+  return convertLegacyRichTextToHtml(content);
 }

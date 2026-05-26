@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         paymentMethod: true,
         paymentStatus: true,
         paymentVerifiedAt: true,
-        status: true,
+        orderStatus: true,
         shippingAmount: true,
         shippingRuleName: true,
         address: true,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ImagePlus, Loader2, Save } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 import {
   cleanupBlogImageAction,
   createAdminBlogAction,
@@ -9,6 +9,8 @@ import {
   uploadBlogImageAction,
   type AdminBlogInput,
 } from "@/app/admin/blogs/actions";
+import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +18,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { convertLegacyRichTextToHtml } from "@/lib/rich-text";
 import { useToast } from "@/lib/use-toast";
 import { slugify } from "@/lib/utils";
 import type { BlogPost } from "@/types";
+
+const BLOG_SHARE_BASE_URL = "https://smart-store-iota.vercel.app";
 
 type BlogFormState = {
   id?: string;
@@ -26,6 +31,11 @@ type BlogFormState = {
   slug: string;
   content: string;
   imageUrl: string;
+  metaTitle: string;
+  metaDescription: string;
+  ogImage: string;
+  focusKeyword: string;
+  canonicalUrl: string;
   isPublished: boolean;
 };
 
@@ -33,8 +43,13 @@ function createEmptyFormState(): BlogFormState {
   return {
     title: "",
     slug: "",
-    content: "",
+    content: "<p></p>",
     imageUrl: "",
+    metaTitle: "",
+    metaDescription: "",
+    ogImage: "",
+    focusKeyword: "",
+    canonicalUrl: "",
     isPublished: false,
   };
 }
@@ -48,8 +63,13 @@ function createFormState(post?: BlogPost | null): BlogFormState {
     id: post.id,
     title: post.title,
     slug: post.slug,
-    content: post.content,
+    content: convertLegacyRichTextToHtml(post.content),
     imageUrl: post.imageUrl,
+    metaTitle: post.metaTitle || "",
+    metaDescription: post.metaDescription || "",
+    ogImage: post.ogImage || "",
+    focusKeyword: post.focusKeyword || "",
+    canonicalUrl: post.canonicalUrl || "",
     isPublished: post.isPublished,
   };
 }
@@ -61,8 +81,29 @@ function toPayload(form: BlogFormState, imageUrl: string): AdminBlogInput {
     slug: slugify(form.slug || form.title),
     content: form.content.trim(),
     imageUrl,
+    metaTitle: form.metaTitle.trim(),
+    metaDescription: form.metaDescription.trim(),
+    ogImage: form.ogImage.trim(),
+    focusKeyword: form.focusKeyword.trim(),
+    canonicalUrl: form.canonicalUrl.trim(),
     isPublished: form.isPublished,
   };
+}
+
+function CharacterCount({
+  current,
+  limit,
+}: {
+  current: number;
+  limit: number;
+}) {
+  const over = current > limit;
+
+  return (
+    <span className={`text-xs ${over ? "text-red-400" : "text-zinc-500"}`}>
+      {current}/{limit}
+    </span>
+  );
 }
 
 export function BlogFormDialog({
@@ -134,8 +175,8 @@ export function BlogFormDialog({
           onSaved(savedPost);
           onOpenChange(false);
           toast({
-            title: form.id ? "Blog post updated" : "Blog post created",
-            description: "The blog landing page and homepage teaser will refresh automatically.",
+            title: "Saved successfully",
+            description: "The blog content and metadata are now updated.",
           });
         } catch (error) {
           if (uploadedImageUrl) {
@@ -159,92 +200,155 @@ export function BlogFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-zinc-800 bg-zinc-950 text-zinc-100">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-zinc-800 bg-zinc-950 text-zinc-100 sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{post ? "Edit blog post" : "Create new blog post"}</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Publish style notes and trend pieces without leaving admin.
+            Publish styled editorial content with search and social metadata in one place.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Title</span>
-              <input
-                required
-                value={form.title}
-                onChange={(event) => {
-                  const title = event.target.value;
-                  setForm((current) => ({
-                    ...current,
-                    title,
-                    slug: slugTouched ? current.slug : slugify(title),
-                  }));
-                }}
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm md:col-span-2">
+                  <span className="font-medium text-zinc-300">Title</span>
+                  <input
+                    required
+                    value={form.title}
+                    onChange={(event) => {
+                      const title = event.target.value;
+                      setForm((current) => ({
+                        ...current,
+                        title,
+                        metaTitle: current.metaTitle || title,
+                        slug: slugTouched ? current.slug : slugify(title),
+                      }));
+                    }}
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
 
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Slug</span>
-              <input
-                required
-                value={form.slug}
-                onChange={(event) => {
-                  setSlugTouched(true);
-                  setForm((current) => ({ ...current, slug: slugify(event.target.value) }));
-                }}
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
+                <label className="space-y-2 text-sm md:col-span-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-zinc-300">Slug</span>
+                    <span className="text-xs text-zinc-500">
+                      {BLOG_SHARE_BASE_URL}/blog/{form.slug || "post-slug"}
+                    </span>
+                  </div>
+                  <input
+                    required
+                    value={form.slug}
+                    onChange={(event) => {
+                      setSlugTouched(true);
+                      setForm((current) => ({ ...current, slug: slugify(event.target.value) }));
+                    }}
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
 
-            <div className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Featured image</span>
-              <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
-                <ImagePlus className="h-4 w-4" />
-                <span>{selectedFile ? selectedFile.name : "Choose blog cover image"}</span>
+                <div className="space-y-2 text-sm md:col-span-2">
+                  <span className="font-medium text-zinc-300">Featured image</span>
+                  <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
+                    <ImagePlus className="h-4 w-4" />
+                    <span>{selectedFile ? selectedFile.name : "Choose blog cover image"}</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/avif"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null;
+                        setSelectedFile(file);
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <label className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-zinc-300">Meta title</span>
+                    <CharacterCount current={form.metaTitle.length} limit={60} />
+                  </div>
+                  <input
+                    value={form.metaTitle}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, metaTitle: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Focus keyword</span>
+                  <input
+                    value={form.focusKeyword}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, focusKeyword: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-zinc-300">Meta description</span>
+                    <CharacterCount current={form.metaDescription.length} limit={160} />
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={form.metaDescription}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, metaDescription: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">OG image URL</span>
+                  <input
+                    value={form.ogImage}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, ogImage: event.target.value }))
+                    }
+                    placeholder="Defaults to featured image if empty"
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Canonical URL</span>
+                  <input
+                    value={form.canonicalUrl}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, canonicalUrl: event.target.value }))
+                    }
+                    placeholder="Optional"
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <span className="font-medium text-zinc-300">Content</span>
+                <RichTextEditor value={form.content} onChange={(content) => setForm((current) => ({ ...current, content }))} />
+              </div>
+
+              <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
                 <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/avif"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] || null;
-                    setSelectedFile(file);
-                  }}
+                  type="checkbox"
+                  checked={form.isPublished}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, isPublished: event.target.checked }))
+                  }
                 />
+                Publish this post
               </label>
             </div>
 
-            <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Content</span>
-              <textarea
-                required
-                rows={12}
-                value={form.content}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, content: event.target.value }))
-                }
-                placeholder="Use plain text or simple markdown. Prefix headings with ## for section titles."
-                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
-              />
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300 md:col-span-2">
-              <input
-                type="checkbox"
-                checked={form.isPublished}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, isPublished: event.target.checked }))
-                }
-              />
-              Publish this post
-            </label>
-          </div>
-
-          <div className="rounded-[1.75rem] border border-zinc-800 bg-black/50 p-5">
-            <p className="text-sm font-medium text-zinc-300">Preview</p>
-            <div className="mt-4 grid gap-4 lg:grid-cols-[220px,1fr]">
+            <aside className="space-y-5 rounded-[1.75rem] border border-zinc-800 bg-black/40 p-5">
+              <p className="text-sm font-medium text-zinc-300">Preview</p>
               <div
                 className="relative min-h-[220px] overflow-hidden rounded-2xl bg-zinc-900"
                 style={
@@ -263,21 +367,19 @@ export function BlogFormDialog({
                   <p className="mt-1 text-base text-zinc-100">{form.title || "Post title"}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-zinc-300">Slug</p>
-                  <p className="mt-1 break-all">{form.slug || "post-slug"}</p>
+                  <p className="font-medium text-zinc-300">Meta title</p>
+                  <p className="mt-1 text-zinc-200">{form.metaTitle || form.title || "Meta title"}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-zinc-300">Excerpt preview</p>
-                  <p className="mt-1">
-                    {(form.content || "Start writing your post to preview the teaser.")
-                      .replace(/^##\s+/gm, "")
-                      .replace(/\s+/g, " ")
-                      .trim()
-                      .slice(0, 140)}
-                  </p>
+                  <p className="font-medium text-zinc-300">Meta description</p>
+                  <p className="mt-1">{form.metaDescription || "Add a concise search preview description."}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-zinc-300">Share URL</p>
+                  <p className="mt-1 break-all">{BLOG_SHARE_BASE_URL}/blog/{form.slug || "post-slug"}</p>
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
 
           <div className="flex items-center justify-end gap-3">
@@ -288,14 +390,14 @@ export function BlogFormDialog({
             >
               Cancel
             </button>
-            <button
+            <LoadingButton
               type="submit"
-              disabled={isPending}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              isLoading={isPending}
+              loadingText="Saving..."
+              className="rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-600"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isPending ? "Saving..." : post ? "Save changes" : "Create post"}
-            </button>
+              {post ? "Save changes" : "Create post"}
+            </LoadingButton>
           </div>
         </form>
       </DialogContent>

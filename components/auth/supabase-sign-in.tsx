@@ -40,7 +40,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className="w-full min-h-[72px] rounded-[1.6rem] border border-white/75 bg-white px-5 text-slate-950 shadow-[0_18px_44px_rgba(249,115,22,0.26)] ring-1 ring-white/60 transition-all duration-200 hover:scale-[1.02] hover:bg-orange-50 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.85),0_24px_54px_rgba(249,115,22,0.3)]"
+        className="w-full min-h-[60px] rounded-[1.2rem] border border-zinc-200 bg-white px-5 text-slate-950 shadow-sm transition-all duration-200 hover:bg-orange-50 hover:shadow-md"
       >
         <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24" width="20" height="20">
           <path
@@ -63,14 +63,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         <span className="text-base font-black">Continue with Google</span>
       </Button>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/12" />
-        </div>
-        <div className="relative flex justify-center text-xs font-bold uppercase tracking-[0.24em]">
-          <span className="bg-black/20 px-4 text-white/72">Or continue with email</span>
-        </div>
-      </div>
+      <p className="text-center text-sm text-zinc-500">Continue with email</p>
 
       {errorMessage && (
         <div className="rounded-[1.1rem] border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
@@ -80,19 +73,15 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
           </div>
         </div>
       )}
-
-
-
-
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="redirectUrl" value={redirectUrl || "/"} />
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-white/88">
+          <Label htmlFor="email" className="text-sm font-medium text-zinc-700">
             Email
           </Label>
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <Input
               id="email"
               name="email"
@@ -101,14 +90,14 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 pl-11 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
+              className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
             />
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="password" className="text-sm font-medium text-white/88">
+            <Label htmlFor="password" className="text-sm font-medium text-zinc-700">
               Password
             </Label>
             <Link
@@ -117,7 +106,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
                   ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
                   : "/forgot-password"
               }
-              className="text-xs font-semibold text-orange-300 hover:text-orange-200"
+              className="text-xs font-semibold text-orange-500 hover:text-orange-600"
             >
               Forgot password?
             </Link>
@@ -130,7 +119,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="........"
             required
-            className="h-12 rounded-[1.1rem] border border-white/12 bg-black/35 text-white placeholder:text-white/45 focus:border-orange-400 focus:ring-orange-400/20"
+            className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
           />
         </div>
 
@@ -150,11 +139,11 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-white/55">
+      <p className="text-center text-sm text-zinc-500">
         Don&apos;t have an account?{" "}
         <Link
           href={redirectUrl ? `/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}` : "/sign-up"}
-          className="font-semibold text-orange-300 hover:text-orange-200"
+          className="font-semibold text-orange-500 hover:text-orange-600"
         >
           Sign up
         </Link>

@@ -22,13 +22,14 @@ export type AdminOrderListItem = Pick<
   | "id"
   | "orderNumber"
   | "customerName"
-  | "customerEmail"
-  | "paymentMethod"
+  | "customerPhone"
   | "paymentStatus"
-  | "status"
+  | "orderStatus"
   | "total"
   | "createdAt"
->;
+> & {
+  items: Array<Pick<Order["items"][number], "productName" | "quantity">>;
+};
 
 export type ProductQueryFilters = {
   category?: string;
@@ -449,7 +450,10 @@ export async function getCountOrders() {
 
 export type AdminOrdersQuery = {
   search?: string;
-  status?: string;
+  orderStatus?: string;
+  paymentStatus?: string;
+  dateFrom?: string;
+  dateTo?: string;
   skip?: number;
   take?: number;
 };
@@ -458,32 +462,54 @@ const adminOrderListSelect = {
   id: true,
   orderNumber: true,
   customerName: true,
-  customerEmail: true,
-  paymentMethod: true,
+  customerPhone: true,
   paymentStatus: true,
-  status: true,
+  orderStatus: true,
   total: true,
+  items: {
+    select: {
+      productName: true,
+      quantity: true,
+    },
+  },
   createdAt: true,
 } satisfies Prisma.OrderSelect;
 
 function buildAdminOrdersWhere(query: AdminOrdersQuery = {}): Prisma.OrderWhereInput {
   const clauses: Prisma.OrderWhereInput[] = [];
   const search = query.search?.trim();
-  const status = query.status?.trim().toLowerCase();
+  const orderStatus = query.orderStatus?.trim().toLowerCase();
+  const paymentStatus = query.paymentStatus?.trim().toLowerCase();
+  const dateFrom = query.dateFrom?.trim();
+  const dateTo = query.dateTo?.trim();
   const normalizedSearch = search?.toLowerCase();
-  const orderStatuses = new Set(["pending", "processing", "shipped", "delivered", "cancelled"]);
-  const paymentStatuses = new Set(["pending", "paid", "failed", "refunded"]);
+  const orderStatuses = new Set([
+    "pending",
+    "processing",
+    "shipped",
+    "out_for_delivery",
+    "delivered",
+    "cancelled",
+    "returned",
+  ]);
+  const paymentStatuses = new Set([
+    "unpaid",
+    "pending",
+    "paid",
+    "partially_paid",
+    "failed",
+    "refunded",
+  ]);
 
   if (search) {
     const orClauses: Prisma.OrderWhereInput[] = [
       { orderNumber: { contains: search, mode: "insensitive" } },
       { customerName: { contains: search, mode: "insensitive" } },
-      { customerEmail: { contains: search, mode: "insensitive" } },
-      { paymentMethod: { contains: search, mode: "insensitive" } },
+      { customerPhone: { contains: search, mode: "insensitive" } },
     ];
 
     if (normalizedSearch && orderStatuses.has(normalizedSearch)) {
-      orClauses.push({ status: normalizedSearch as Order["status"] });
+      orClauses.push({ orderStatus: normalizedSearch as Order["orderStatus"] });
     }
 
     if (normalizedSearch && paymentStatuses.has(normalizedSearch)) {
@@ -495,18 +521,21 @@ function buildAdminOrdersWhere(query: AdminOrdersQuery = {}): Prisma.OrderWhereI
     });
   }
 
-  if (status && status !== "all") {
-    if (status === "paid") {
-      clauses.push({ paymentStatus: "paid" });
-    } else if (
-      status === "pending" ||
-      status === "processing" ||
-      status === "shipped" ||
-      status === "delivered" ||
-      status === "cancelled"
-    ) {
-      clauses.push({ status });
-    }
+  if (orderStatus && orderStatus !== "all" && orderStatuses.has(orderStatus)) {
+    clauses.push({ orderStatus: orderStatus as Order["orderStatus"] });
+  }
+
+  if (paymentStatus && paymentStatus !== "all" && paymentStatuses.has(paymentStatus)) {
+    clauses.push({ paymentStatus: paymentStatus as Order["paymentStatus"] });
+  }
+
+  if (dateFrom || dateTo) {
+    clauses.push({
+      createdAt: {
+        gte: dateFrom ? new Date(`${dateFrom}T00:00:00.000Z`) : undefined,
+        lte: dateTo ? new Date(`${dateTo}T23:59:59.999Z`) : undefined,
+      },
+    });
   }
 
   if (clauses.length === 0) {
@@ -623,7 +652,7 @@ async function loadAdminDashboardStats() {
         customerName: true,
         total: true,
         paymentMethod: true,
-        status: true,
+        orderStatus: true,
         createdAt: true,
       },
     }),
@@ -633,10 +662,10 @@ async function loadAdminDashboardStats() {
       orderBy: { _sum: { quantity: "desc" } },
       take: 3,
     }),
-    prisma.order.count({ where: { status: "pending" } }),
+    prisma.order.count({ where: { orderStatus: "pending" } }),
     prisma.order.count({
       where: {
-        status: "pending",
+        orderStatus: "pending",
         createdAt: { lt: yesterday },
       },
     }),
