@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { AlertCircle, Loader2, Lock, Mail } from "lucide-react";
+import { AlertCircle, KeyRound, Loader2, Mail } from "lucide-react";
 import { signInCustomerAction, signInWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
@@ -119,7 +119,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <KeyRound className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               id="password"
               name="password"
