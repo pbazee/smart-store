@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Shield, Truck, WalletCards } from "lucide-react";
+import { CreditCard, Shield, Truck } from "lucide-react";
 import { AuthThemeToggle } from "@/components/auth/auth-theme-toggle";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
 import type { StoreSettings } from "@/types";
@@ -146,7 +146,7 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
               </div>
               <div className="flex gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-400">
-                  <WalletCards className="h-5 w-5" />
+                  <CreditCard className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">Fast Checkout</p>
