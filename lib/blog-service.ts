@@ -1,4 +1,5 @@
 import { DEFAULT_BLOG_POST_SEEDS, createBlogSeed } from "@/lib/default-blog-posts";
+import { isProductionRuntime } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { BlogPost } from "@/types";
 
@@ -47,6 +48,10 @@ export async function getBlogPosts(options: BlogQueryOptions = {}): Promise<Blog
   } catch (error) {
     console.error("Blog lookup failed:", error);
 
+    if (isProductionRuntime()) {
+      return lastKnownBlogPosts;
+    }
+
     if (fallbackOnError) {
       return rememberBlogPosts(lastKnownBlogPosts.length > 0 ? lastKnownBlogPosts : defaultBlogPostFallback);
     }
@@ -85,6 +90,6 @@ export async function getBlogPostBySlug(slug: string) {
     return resolvedPost;
   } catch (error) {
     console.error("Blog lookup by slug failed:", error);
-    return getBlogPostFallbackBySlug(slug);
+    return isProductionRuntime() ? null : getBlogPostFallbackBySlug(slug);
   }
 }

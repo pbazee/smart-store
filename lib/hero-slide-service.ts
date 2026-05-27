@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { DEFAULT_HERO_SLIDE_SEEDS, createHeroSlideSeed } from "@/lib/default-hero-slides";
+import { isProductionRuntime } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { HeroSlide } from "@/types";
 
@@ -78,7 +79,7 @@ export async function getHeroSlides(options: HeroSlideQueryOptions = {}): Promis
       return rememberHeroSlides(slides.map((slide) => normalizeHeroSlideRecord(slide)));
     } catch (error) {
       console.error("[HeroSlides] Lookup failed:", error);
-      return getHeroSlidesFallback();
+      return isProductionRuntime() ? [] : getHeroSlidesFallback();
     }
   };
 

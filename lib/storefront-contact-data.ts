@@ -3,7 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { DEFAULT_SOCIAL_LINK_SEEDS, createSocialLinkSeed } from "@/lib/default-social-links";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
-import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
+import { isProductionRuntime, shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { getSocialLinks } from "@/lib/social-link-service";
 import { getStoreSettings, getStoreSettingsFallback } from "@/lib/store-settings";
 import { getWhatsAppSettings, getWhatsAppSettingsFallback } from "@/lib/whatsapp-service";
@@ -35,31 +35,34 @@ async function resolveStorefrontContactData(): Promise<StorefrontContactData> {
     };
   }
 
+  const productionRuntime = isProductionRuntime();
+
   const [socialLinks, storeSettings, whatsAppSettings] = await Promise.all([
     getSocialLinks({ seedIfEmpty: false }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load social links:", error);
-      return getFallbackSocialLinks();
+      return productionRuntime ? [] : getFallbackSocialLinks();
     }),
     getStoreSettings({
       seedIfEmpty: false,
-      fallbackOnError: true,
+      fallbackOnError: !productionRuntime,
     }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load store settings:", error);
-      return getStoreSettingsFallback();
+      return productionRuntime ? null : getStoreSettingsFallback();
     }),
     getWhatsAppSettings({
       seedIfEmpty: false,
-      fallbackOnError: true,
+      fallbackOnError: !productionRuntime,
     }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load WhatsApp settings:", error);
-      return getWhatsAppSettingsFallback();
+      return productionRuntime ? null : getWhatsAppSettingsFallback();
     }),
   ]);
 
   return {
     socialLinks,
-    storeSettings: storeSettings ?? getStoreSettingsFallback(),
-    whatsAppSettings: whatsAppSettings ?? getWhatsAppSettingsFallback(),
+    storeSettings: productionRuntime ? storeSettings ?? null : storeSettings ?? getStoreSettingsFallback(),
+    whatsAppSettings:
+      productionRuntime ? whatsAppSettings ?? null : whatsAppSettings ?? getWhatsAppSettingsFallback(),
   };
 }
 
