@@ -51,6 +51,7 @@ export async function generateMetadata({
   }
 
   const storeName = branding?.storeName || "Smartest Store KE";
+  const metadataBase = new URL(getAppUrl().includes("localhost") ? PRODUCT_SHARE_BASE_URL : getAppUrl());
   const productUrl = buildAbsoluteUrl(buildProductHref(product));
   const imageUrl = product.images?.[0]
     ? buildAbsoluteUrl(product.images[0])
@@ -58,6 +59,7 @@ export async function generateMetadata({
   const description = product.description?.slice(0, 160) || buildProductDescription(product, storeName);
 
   return {
+    metadataBase,
     title: `${product.name} | ${storeName}`,
     description,
     alternates: {
@@ -74,7 +76,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: product.name,
+      title: `${product.name} | ${storeName}`,
       description,
       images: [imageUrl],
     },

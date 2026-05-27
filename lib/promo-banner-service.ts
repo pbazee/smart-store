@@ -389,5 +389,5 @@ export async function savePromoBannerOrder(input: Array<{ id: string; position: 
     )
   );
 
-  return getPromoBanners({ seedIfEmpty: true });
+  return getPromoBanners({ seedIfEmpty: false });
 }

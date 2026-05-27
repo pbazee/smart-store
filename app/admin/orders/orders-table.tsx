@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
@@ -132,6 +131,7 @@ export function OrdersTable({
   limit,
 }: OrdersTableProps) {
   const router = useRouter();
+  const [isNavigating, startNavigation] = useTransition();
   const [query, setQuery] = useState(initialSearch);
   const [debouncedQuery, setDebouncedQuery] = useState(initialSearch);
   const [orderStatus, setOrderStatus] = useState(initialOrderStatus);
@@ -139,6 +139,7 @@ export function OrdersTable({
   const [dateFrom, setDateFrom] = useState(initialDateFrom);
   const [dateTo, setDateTo] = useState(initialDateTo);
   const [currentPage, setCurrentPage] = useState(page);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -236,6 +237,13 @@ export function OrdersTable({
     setDateFrom("");
     setDateTo("");
     setCurrentPage(1);
+  };
+
+  const openOrder = (orderNumber: string) => {
+    setPendingOrderId(orderNumber);
+    startNavigation(() => {
+      router.push(`/admin/orders/${orderNumber}`);
+    });
   };
 
   const summary = useMemo(
@@ -434,19 +442,30 @@ export function OrdersTable({
                       </td>
                       <td className="py-5">
                         <div className="flex items-center gap-2">
-                          <Link
-                            href={`/admin/orders/${order.orderNumber}`}
-                            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-brand-400 hover:text-white"
+                          <button
+                            type="button"
+                            onClick={() => openOrder(order.orderNumber)}
+                            disabled={isNavigating && pendingOrderId === order.orderNumber}
+                            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-brand-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            <Eye className="h-4 w-4" />
+                            {isNavigating && pendingOrderId === order.orderNumber ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
                             View
-                          </Link>
-                          <Link
-                            href={`/admin/orders/${order.orderNumber}`}
-                            className="inline-flex rounded-full border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-brand-400 hover:text-white"
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openOrder(order.orderNumber)}
+                            disabled={isNavigating && pendingOrderId === order.orderNumber}
+                            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-brand-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                           >
+                            {isNavigating && pendingOrderId === order.orderNumber ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : null}
                             Update Status
-                          </Link>
+                          </button>
                         </div>
                       </td>
                     </tr>

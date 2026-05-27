@@ -80,30 +80,6 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
         orderBy: { id: "asc" },
       });
 
-      if (!settings && seedIfEmpty) {
-        if (shouldLogStoreSettings) {
-          console.log("[StoreSettings] No settings found in database, seeding with defaults...");
-        }
-        const seeded = await prisma.storeSettings.create({
-          data: {
-            storeName: DEFAULT_STORE_SETTINGS.storeName,
-            storeTagline: DEFAULT_STORE_SETTINGS.storeTagline,
-            logoUrl: DEFAULT_STORE_SETTINGS.logoUrl,
-            logoDarkUrl: DEFAULT_STORE_SETTINGS.logoDarkUrl,
-            faviconUrl: DEFAULT_STORE_SETTINGS.faviconUrl,
-            supportEmail: DEFAULT_STORE_SETTINGS.supportEmail,
-            supportPhone: DEFAULT_STORE_SETTINGS.supportPhone,
-            adminNotificationEmail: DEFAULT_STORE_SETTINGS.adminNotificationEmail,
-            contactPhone: DEFAULT_STORE_SETTINGS.contactPhone,
-            footerContactPhone: DEFAULT_STORE_SETTINGS.footerContactPhone,
-          },
-        });
-        if (shouldLogStoreSettings) {
-          console.log("[StoreSettings] Seeded successfully");
-        }
-        return rememberStoreSettings(seeded as StoreSettings);
-      }
-
       if (settings && shouldLogStoreSettings) {
         console.log("[StoreSettings] Loaded from database:", {
           storeName: settings.storeName,
@@ -113,6 +89,10 @@ export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
         });
       } else if (shouldLogStoreSettings) {
         console.log("[StoreSettings] No settings found and seedIfEmpty=false, returning null");
+      }
+
+      if (!settings && seedIfEmpty && shouldLogStoreSettings) {
+        console.log("[StoreSettings] No settings found. Returning fallback without writing defaults.");
       }
 
       return rememberStoreSettings(settings as StoreSettings | null);

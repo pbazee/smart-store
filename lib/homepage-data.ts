@@ -309,13 +309,13 @@ export const getCachedStoreSettings = unstable_cache(
     try {
       if (shouldSkipLiveDataDuringBuild()) {
         return await getPersistedStoreSettings({
-          seedIfEmpty: true,
+          seedIfEmpty: false,
           fallbackOnError: false,
         });
       }
 
       return await getPersistedStoreSettings({
-        seedIfEmpty: true,
+        seedIfEmpty: false,
         fallbackOnError: false,
       });
     } catch (error) {
@@ -369,13 +369,13 @@ export const getCachedWhatsAppSettings = unstable_cache(
     try {
       if (shouldSkipLiveDataDuringBuild()) {
         return await getPersistedWhatsAppSettings({
-          seedIfEmpty: true,
+          seedIfEmpty: false,
           fallbackOnError: false,
         });
       }
 
       return await getPersistedWhatsAppSettings({
-        seedIfEmpty: true,
+        seedIfEmpty: false,
         fallbackOnError: false,
       });
     } catch (error) {
@@ -390,7 +390,7 @@ export const getCachedWhatsAppSettings = unstable_cache(
 export const getCachedSocialLinks = unstable_cache(
   async () => {
     try {
-      return await getPersistedSocialLinks({ seedIfEmpty: true, fallbackOnError: false });
+      return await getPersistedSocialLinks({ seedIfEmpty: false, fallbackOnError: false });
     } catch (error) {
       console.error("[SocialLinks] DB error, not caching fallback:", error);
       throw error;

@@ -36,19 +36,19 @@ async function resolveStorefrontContactData(): Promise<StorefrontContactData> {
   }
 
   const [socialLinks, storeSettings, whatsAppSettings] = await Promise.all([
-    getSocialLinks({ seedIfEmpty: true }).catch((error) => {
+    getSocialLinks({ seedIfEmpty: false }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load social links:", error);
       return getFallbackSocialLinks();
     }),
     getStoreSettings({
-      seedIfEmpty: true,
+      seedIfEmpty: false,
       fallbackOnError: true,
     }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load store settings:", error);
       return getStoreSettingsFallback();
     }),
     getWhatsAppSettings({
-      seedIfEmpty: true,
+      seedIfEmpty: false,
       fallbackOnError: true,
     }).catch((error) => {
       console.error("[StorefrontSettings] Failed to load WhatsApp settings:", error);

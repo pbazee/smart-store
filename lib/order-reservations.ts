@@ -58,7 +58,7 @@ export async function releaseOrderReservationInTransaction(
   tx: TransactionClient,
   order: ReservableOrder,
   note: string,
-  paymentStatus: "unpaid" | "pending" | "failed" = "failed"
+  paymentStatus: "pending" | "failed" = "failed"
 ) {
   if (order.paymentVerifiedAt || order.stockReleasedAt || !order.stockReservedAt) {
     return false;
@@ -97,7 +97,7 @@ export async function releaseExpiredReservationsInTransaction(tx: TransactionCli
   const expiredOrders = await tx.order.findMany({
     where: {
       paymentStatus: {
-        in: ["unpaid", "pending"],
+        in: ["pending"],
       },
       paymentVerifiedAt: null,
       stockReservedAt: { not: null },

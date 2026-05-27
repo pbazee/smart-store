@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { resolveAuthenticatedRole, resolveDatabaseUserRole } from "@/lib/admin-identity";
+import { resolveRequestedRedirectPath, resolveSignedInRedirectPath } from "@/lib/auth-routing";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
 import { createLocalAuthToken, getLocalAuthCookieMaxAge, LOCAL_AUTH_COOKIE } from "@/lib/local-auth";
@@ -14,12 +15,12 @@ import { cookies } from "next/headers";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const redirectUrl = searchParams.get("redirect_url") || "/";
+  const requestedRedirectUrl = resolveRequestedRedirectPath(searchParams.get("redirect_url"), "/");
 
   try {
     if (!code) {
       return NextResponse.redirect(
-        new URL(`/sign-in?error=no_auth_code&redirect_url=${encodeURIComponent(redirectUrl)}`, request.url)
+        new URL(`/sign-in?error=no_auth_code&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
       );
     }
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     if (sessionError || !sessionData?.user) {
       console.error("Auth callback exchange error:", sessionError);
       return NextResponse.redirect(
-        new URL(`/sign-in?error=auth_failed&redirect_url=${encodeURIComponent(redirectUrl)}`, request.url)
+        new URL(`/sign-in?error=auth_failed&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
       );
     }
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     if (!normalizedEmail) {
       return NextResponse.redirect(
-        new URL(`/sign-in?error=missing_email&redirect_url=${encodeURIComponent(redirectUrl)}`, request.url)
+        new URL(`/sign-in?error=missing_email&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
       );
     }
 
@@ -116,13 +117,14 @@ export async function GET(request: NextRequest) {
     revalidatePath("/admin/users");
 
     // Redirect to requested URL
+    const redirectUrl = resolveSignedInRedirectPath(sessionRole, requestedRedirectUrl);
     return NextResponse.redirect(
-      new URL(redirectUrl.startsWith("/") ? redirectUrl : "/", request.url)
+      new URL(redirectUrl, request.url)
     );
   } catch (error) {
     console.error("Auth callback error:", error);
     return NextResponse.redirect(
-      new URL(`/sign-in?error=callback_failed&redirect_url=${encodeURIComponent(redirectUrl)}`, request.url)
+      new URL(`/sign-in?error=callback_failed&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
     );
   }
 }

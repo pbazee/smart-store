@@ -87,7 +87,7 @@ export async function fetchAdminStoreSettings() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) return null;
   return (await getStoreSettings({
-    seedIfEmpty: true,
+    seedIfEmpty: false,
     fallbackOnError: true,
   })) as StoreSettings | null;
 }

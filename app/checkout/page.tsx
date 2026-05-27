@@ -282,7 +282,7 @@ export default function CheckoutPage() {
 
     if (!isSignedIn) {
       localStorage.setItem(CHECKOUT_CART_BACKUP_KEY, JSON.stringify(items));
-      window.location.replace("/sign-in?redirect=/checkout");
+      window.location.replace("/sign-in?redirect_url=/checkout");
       return;
     }
 

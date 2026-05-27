@@ -2,15 +2,13 @@
 
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Mail } from "lucide-react";
+import { AlertCircle, Loader2, Lock, Mail } from "lucide-react";
 import { signInCustomerAction, signInWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [googlePending, startGoogleTransition] = useTransition();
   const [state, formAction, isPending] = useActionState(signInCustomerAction, {
@@ -36,11 +34,11 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
 
   return (
     <div className="space-y-6">
-      <Button
+      <button
         type="button"
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className="w-full min-h-[60px] rounded-[1.2rem] border border-zinc-200 bg-white px-5 text-slate-950 shadow-sm transition-all duration-200 hover:bg-orange-50 hover:shadow-md"
+        className="flex min-h-[58px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white px-5 text-base font-bold text-zinc-950 shadow-sm transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-70"
       >
         <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24" width="20" height="20">
           <path
@@ -60,13 +58,20 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        <span className="text-base font-black">Continue with Google</span>
-      </Button>
+        {googlePending ? "Connecting..." : "Continue with Google"}
+      </button>
 
-      <p className="text-center text-sm text-zinc-500">Continue with email</p>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/10" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-[#111114] px-4 text-zinc-500">or continue with email</span>
+        </div>
+      </div>
 
       {errorMessage && (
-        <div className="rounded-[1.1rem] border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
+        <div className="rounded-2xl border border-rose-400/25 bg-rose-500/10 p-4 text-rose-100">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-rose-200" />
             <p className="text-sm">{errorMessage}</p>
@@ -75,14 +80,15 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
       )}
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="redirectUrl" value={redirectUrl || "/"} />
+        <input type="hidden" name="rememberMe" value={rememberMe ? "true" : "false"} />
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-zinc-700">
-            Email
-          </Label>
+          <label htmlFor="email" className="text-sm font-medium text-zinc-300">
+            Email address
+          </label>
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <Input
+            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <input
               id="email"
               name="email"
               type="email"
@@ -90,43 +96,58 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
+              disabled={isLoading}
+              className="h-14 w-full rounded-2xl border border-white/10 bg-black/35 pl-11 pr-4 text-white placeholder:text-zinc-500 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30 disabled:cursor-not-allowed disabled:opacity-70"
             />
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="password" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="password" className="text-sm font-medium text-zinc-300">
               Password
-            </Label>
+            </label>
             <Link
               href={
                 redirectUrl
                   ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
                   : "/forgot-password"
               }
-              className="text-xs font-semibold text-orange-500 hover:text-orange-600"
+              className="text-sm font-semibold text-orange-400 transition hover:text-orange-300"
             >
               Forgot password?
             </Link>
           </div>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="........"
-            required
-            className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
-          />
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+              disabled={isLoading}
+              className="h-14 w-full rounded-2xl border border-white/10 bg-black/35 pl-11 pr-4 text-white placeholder:text-zinc-500 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+          </div>
         </div>
 
-        <Button
+        <label className="flex items-center gap-3 text-sm text-zinc-400">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+            className="h-4 w-4 rounded border-white/15 bg-black/40 accent-orange-500"
+          />
+          Remember me
+        </label>
+
+        <button
           type="submit"
           disabled={isLoading}
-          className="mt-2 h-12 w-full rounded-[1.1rem] bg-orange-500 text-sm font-bold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition-colors hover:bg-orange-600"
+          className="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-orange-500 text-base font-bold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isLoading ? (
             <>
@@ -134,16 +155,16 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
               Signing in...
             </>
           ) : (
-            "Sign In"
+            "Sign in"
           )}
-        </Button>
+        </button>
       </form>
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-zinc-400">
         Don&apos;t have an account?{" "}
         <Link
           href={redirectUrl ? `/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}` : "/sign-up"}
-          className="font-semibold text-orange-500 hover:text-orange-600"
+          className="font-semibold text-orange-400 transition hover:text-orange-300"
         >
           Sign up
         </Link>

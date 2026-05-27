@@ -299,10 +299,10 @@ export async function signUpCustomerAction(
       redirectUrl: formData.get("redirectUrl"),
     });
 
-    redirectPath =
-      payload.redirectUrl && payload.redirectUrl.startsWith("/")
-        ? payload.redirectUrl
-        : "/";
+    redirectPath = resolveSignedInRedirectPath(
+      "customer",
+      resolveRequestedRedirectPath(payload.redirectUrl, "/")
+    );
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -396,11 +396,6 @@ export async function signInCustomerAction(
       redirectUrl: formData.get("redirectUrl"),
     });
 
-    redirectPath =
-      payload.redirectUrl && payload.redirectUrl.startsWith("/")
-        ? payload.redirectUrl
-        : "/";
-
     // Find user
     const user = await prisma.user.findUnique({
       where: { email: payload.email.toLowerCase() },
@@ -419,6 +414,10 @@ export async function signInCustomerAction(
       email: user.email ?? payload.email.toLowerCase(),
       role: user.role,
     });
+    redirectPath = resolveSignedInRedirectPath(
+      sessionRole,
+      resolveRequestedRedirectPath(payload.redirectUrl, "/")
+    );
 
     // Create authentication token
     const token = await createLocalAuthToken({

@@ -1,8 +1,6 @@
 import "server-only";
 
-import {
-  DEFAULT_SOCIAL_LINK_SEEDS,
-} from "@/lib/default-social-links";
+import { DEFAULT_SOCIAL_LINK_SEEDS } from "@/lib/default-social-links";
 import { prisma } from "@/lib/prisma";
 import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import type { SocialLink } from "@/types";
@@ -16,18 +14,6 @@ function getSocialLinksFallback() {
     : DEFAULT_SOCIAL_LINK_SEEDS) as SocialLink[];
 }
 
-async function ensureSocialLinksSeeded() {
-  const existingCount = await prisma.socialLink.count();
-  if (existingCount > 0) {
-    return;
-  }
-
-  await prisma.socialLink.createMany({
-    data: DEFAULT_SOCIAL_LINK_SEEDS,
-    skipDuplicates: true,
-  });
-}
-
 export async function getSocialLinks(options: { seedIfEmpty?: boolean; fallbackOnError?: boolean } = {}) {
   const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;
   const requestKey = `${seedIfEmpty ? "seed" : "noseed"}:${fallbackOnError ? "fallback" : "strict"}`;
@@ -39,10 +25,6 @@ export async function getSocialLinks(options: { seedIfEmpty?: boolean; fallbackO
 
   const request = (async () => {
     try {
-      if (seedIfEmpty) {
-        await ensureSocialLinksSeeded();
-      }
-
       const links = await prisma.socialLink.findMany({
         orderBy: { createdAt: "asc" },
       });

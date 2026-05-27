@@ -71,7 +71,7 @@ async function buildOrderEmailDetails(orderId: string): Promise<OrderEmailDetail
     ),
   }));
 
-  const storeSettings = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: true });
+  const storeSettings = await getStoreSettings({ seedIfEmpty: false, fallbackOnError: true });
 
   return {
     order: {

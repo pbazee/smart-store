@@ -75,7 +75,7 @@ function revalidateAnnouncementPaths() {
 
 export async function fetchAdminAnnouncements() {
   await ensureAdmin();
-  return getAnnouncementMessages({ seedIfEmpty: true });
+  return getAnnouncementMessages({ seedIfEmpty: false });
 }
 
 export async function createAdminAnnouncementAction(input: AdminAnnouncementInput) {

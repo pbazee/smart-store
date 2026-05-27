@@ -47,35 +47,6 @@ export function getWhatsAppSettingsFallback() {
   return globalForWhatsApp._lastKnownWhatsAppSettings ?? getSharedWhatsAppSettingsFallback();
 }
 
-async function ensureWhatsAppSettingsSeeded() {
-  const existingSettings = await prisma.whatsAppSettings.findUnique({
-    where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
-  });
-
-  if (existingSettings) {
-    if (shouldLogWhatsAppSettings) {
-      console.log("[WhatsAppSettings] Settings already exist in database, skipping seed");
-    }
-    return;
-  }
-
-  if (shouldLogWhatsAppSettings) {
-    console.log("[WhatsAppSettings] No settings found, seeding defaults...");
-  }
-  const serializedDefaults = serializeWhatsAppSettings(DEFAULT_WHATSAPP_SETTINGS);
-  await prisma.whatsAppSettings.create({
-    data: {
-      id: DEFAULT_WHATSAPP_SETTINGS.id,
-      phoneNumber: serializedDefaults.phoneNumber,
-      defaultMessage: serializedDefaults.defaultMessage,
-      isActive: serializedDefaults.isActive,
-    },
-  });
-  if (shouldLogWhatsAppSettings) {
-    console.log("[WhatsAppSettings] Seeded successfully");
-  }
-}
-
 export async function getWhatsAppSettings(options: {
   seedIfEmpty?: boolean;
   fallbackOnError?: boolean;
@@ -90,10 +61,6 @@ export async function getWhatsAppSettings(options: {
 
   const request = (async () => {
     try {
-      if (seedIfEmpty) {
-        await ensureWhatsAppSettingsSeeded();
-      }
-
       const settings = await prisma.whatsAppSettings.findUnique({
         where: { id: DEFAULT_WHATSAPP_SETTINGS.id },
       });

@@ -96,15 +96,13 @@ export async function getSiteSettings() {
     return settings as SiteSettings;
   }
 
-  const seeded = await prisma.siteSettings.create({
-    data: {
-      id: "default",
-      termsContent: normalizeRichTextHtml(DEFAULT_TERMS_CONTENT),
-      privacyContent: normalizeRichTextHtml(DEFAULT_PRIVACY_CONTENT),
-    },
-  });
-
-  return seeded as SiteSettings;
+  return {
+    id: "default",
+    termsContent: normalizeRichTextHtml(DEFAULT_TERMS_CONTENT),
+    privacyContent: normalizeRichTextHtml(DEFAULT_PRIVACY_CONTENT),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as SiteSettings;
 }
 
 export async function updateSiteSettings(input: {

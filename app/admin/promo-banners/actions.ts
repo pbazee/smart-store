@@ -115,7 +115,7 @@ function revalidatePromoBannerPaths() {
 
 export async function fetchAdminPromoBanners() {
   await ensureAdmin();
-  return getPromoBanners({ seedIfEmpty: true });
+  return getPromoBanners({ seedIfEmpty: false });
 }
 
 export async function uploadPromoBannerImageAction(formData: FormData) {
@@ -146,7 +146,7 @@ export async function updateAdminPromoBannerAction(input: AdminPromoBannerInput)
   await ensureAdmin();
   const id = z.string().min(1).parse(input.id);
   const normalized = normalizePromoBannerInput({ ...input, id });
-  const existingBanners = await getPromoBanners({ seedIfEmpty: true });
+  const existingBanners = await getPromoBanners({ seedIfEmpty: false });
   const existingBanner = existingBanners.find((banner) => banner.id === id);
 
   if (!existingBanner) {

@@ -1,7 +1,4 @@
-import {
-  DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS,
-  createFallbackAnnouncementMessage,
-} from "@/lib/default-announcements";
+import { createFallbackAnnouncementMessage } from "@/lib/default-announcements";
 import { prisma } from "@/lib/prisma";
 import type { AnnouncementMessage } from "@/types";
 
@@ -11,31 +8,12 @@ type AnnouncementQueryOptions = {
   seedIfEmpty?: boolean;
 };
 
-async function ensureAnnouncementMessagesSeeded() {
-  const existingCount = await prisma.announcementMessage.count();
-  if (existingCount > 0) {
-    if (process.env.NODE_ENV === "development" && process.env.DEBUG_ANNOUNCEMENTS === "true") {
-      console.log(`[Announcements] Database has ${existingCount} existing announcements, skipping seed`);
-    }
-    return;
-  }
-
-  await prisma.announcementMessage.createMany({
-    data: DEFAULT_ANNOUNCEMENT_MESSAGE_SEEDS,
-    skipDuplicates: true,
-  });
-}
-
 export async function getAnnouncementMessages(
   options: AnnouncementQueryOptions = {}
 ): Promise<AnnouncementMessage[]> {
   const { activeOnly = false, fallbackOnError = false, seedIfEmpty = false } = options;
 
   try {
-    if (seedIfEmpty) {
-      await ensureAnnouncementMessagesSeeded();
-    }
-
     const messages = await prisma.announcementMessage.findMany({
       where: activeOnly ? { isActive: true } : undefined,
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
@@ -65,6 +43,6 @@ export async function getActiveAnnouncementMessages() {
   return getAnnouncementMessages({
     activeOnly: true,
     fallbackOnError: true,
-    seedIfEmpty: true,
+    seedIfEmpty: false,
   });
 }

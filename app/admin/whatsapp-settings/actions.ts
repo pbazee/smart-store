@@ -38,7 +38,7 @@ export async function fetchAdminWhatsAppSettings() {
   if (!isAdmin) return null;
   try {
     return await getWhatsAppSettings({
-      seedIfEmpty: true,
+      seedIfEmpty: false,
       fallbackOnError: true,
     });
   } catch (err) {

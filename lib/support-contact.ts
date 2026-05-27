@@ -64,7 +64,7 @@ export async function getSupportContactInfo() {
   }
 
   const storeSettings = await getStoreSettings({
-    seedIfEmpty: true,
+    seedIfEmpty: false,
     fallbackOnError: true,
   });
 

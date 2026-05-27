@@ -42,7 +42,7 @@ function revalidateSocialLinkPaths() {
 
 export async function fetchAdminSocialLinks() {
   await ensureAdmin();
-  return getSocialLinks({ seedIfEmpty: true });
+  return getSocialLinks({ seedIfEmpty: false });
 }
 
 export async function createAdminSocialLinkAction(input: AdminSocialLinkInput) {

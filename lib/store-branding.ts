@@ -8,7 +8,7 @@ export const STORE_SETTINGS_TAG = "store-settings";
 
 const getCachedStoreBranding = unstable_cache(
   async () => {
-    const settings = await getStoreSettings({ seedIfEmpty: true, fallbackOnError: true });
+    const settings = await getStoreSettings({ seedIfEmpty: false, fallbackOnError: true });
     return settings ?? DEFAULT_STORE_SETTINGS;
   },
   ["store-branding"],
