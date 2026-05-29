@@ -372,7 +372,7 @@ async function loadProductBySlug(slug: string) {
     async () =>
       (await prisma.product.findFirst({
         where: buildValidCatalogProductWhere({ slug }),
-        include: { variants: true },
+        select: CATALOG_PRODUCT_SELECT,
       })) as Product | null
   );
 }
@@ -396,9 +396,30 @@ async function loadProductByIdentifier(identifier: string) {
         where: buildValidCatalogProductWhere({
           OR: [{ slug: identifier }, { id: identifier }],
         }),
-        include: { variants: true },
+        select: CATALOG_PRODUCT_SELECT,
       })) as Product | null
   );
+}
+
+export async function getProductStaticSlugs(take = 200) {
+  return unstable_cache(
+    () =>
+      withLiveData(
+        "getProductStaticSlugs",
+        async () =>
+          prisma.product.findMany({
+            where: buildValidCatalogProductWhere(),
+            select: { slug: true },
+            orderBy: productOrderBy,
+            take,
+          })
+      ),
+    ["product-static-slugs"],
+    {
+      revalidate: DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS,
+      tags: [PRODUCTS_CACHE_TAG],
+    }
+  )();
 }
 
 export async function getProductByIdentifier(identifier: string): Promise<Product | null> {

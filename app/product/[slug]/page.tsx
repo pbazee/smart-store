@@ -5,7 +5,7 @@ import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductJsonLd } from "@/components/shop/product-json-ld";
 import { InlineLoader } from "@/components/ui/ripple-loader";
 import { getAppUrl } from "@/lib/app-url";
-import { getProductByIdentifier, getProducts } from "@/lib/data-service";
+import { getProductByIdentifier, getProductStaticSlugs } from "@/lib/data-service";
 import { buildProductHref } from "@/lib/product-routes";
 import { getStoreBranding } from "@/lib/store-branding";
 import { formatKES } from "@/lib/utils";
@@ -99,10 +99,7 @@ export async function generateMetadata({
 }
 
 export async function generateStaticParams() {
-  const products = await getProducts(undefined, {
-    cacheKey: "product-static-params",
-    revalidateSeconds: 300,
-  });
+  const products = await getProductStaticSlugs();
 
   return products.map((product) => ({ slug: product.slug }));
 }

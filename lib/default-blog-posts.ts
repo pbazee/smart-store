@@ -19,6 +19,10 @@ export const DEFAULT_BLOG_POST_SEEDS: BlogSeed[] = staticBlogPosts.map((post) =>
     slug: post.slug,
     content: convertLegacyRichTextToHtml(legacyContent),
     imageUrl: post.image,
+    authorName: post.author || "Smartest Store KE",
+    authorAvatarUrl: "",
+    category: post.category || "Style",
+    tags: [post.category, post.author].filter(Boolean),
     metaTitle: post.title,
     metaDescription: getExcerptFromRichText(legacyContent, 160),
     ogImage: post.image,
@@ -49,7 +53,7 @@ export function getBlogReadTime(content: string) {
     .split(/\s+/)
     .filter(Boolean).length;
 
-  return `${Math.max(1, Math.ceil(wordCount / 180))} min read`;
+  return `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
 }
 
 export function getBlogContentBlocks(content: string) {

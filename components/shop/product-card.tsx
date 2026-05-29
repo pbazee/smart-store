@@ -151,7 +151,7 @@ function ProductCardComponent({
       <Link
         ref={linkRef}
         href={productHref}
-        prefetch={false}
+        prefetch
         onMouseEnter={prefetchProduct}
         onFocus={prefetchProduct}
         className="block"

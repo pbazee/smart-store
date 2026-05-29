@@ -172,9 +172,9 @@ export default function WishlistPageClient() {
         </div>
       ) : displayProducts.length === 0 ? (
         // Show empty state INSTANTLY (no API wait) when all items removed
-        <div className="rounded-[2.5rem] border border-dashed border-zinc-800 bg-zinc-950 px-6 py-20 text-center">
-          <ShoppingBag className="mx-auto h-10 w-10 text-zinc-600" />
-          <h2 className="mt-4 text-2xl font-black">Your wishlist is empty</h2>
+        <div className="rounded-[2.5rem] border border-dashed border-border bg-card px-6 py-20 text-center shadow-sm">
+          <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h2 className="mt-4 text-2xl font-black text-foreground">Your wishlist is empty</h2>
           <p className="mt-3 text-muted-foreground">
             Start saving the best drops so you can come back when the timing feels right.
           </p>

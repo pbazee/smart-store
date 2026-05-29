@@ -17,7 +17,7 @@ export function getAuthRedirectPath(input: {
 
   if (pathname.startsWith("/admin")) {
     if (!userId) {
-      return `/sign-in?redirect_url=${encodeURIComponent(requestedPath)}`;
+      return `/sign-in?callbackUrl=${encodeURIComponent(requestedPath)}`;
     }
 
     if (role !== "admin") {
@@ -33,7 +33,7 @@ export function getAuthRedirectPath(input: {
     pathname.startsWith("/checkout")
   ) {
     if (!userId) {
-      return `/sign-in?redirect_url=${encodeURIComponent(requestedPath)}`;
+      return `/sign-in?callbackUrl=${encodeURIComponent(requestedPath)}`;
     }
   }
 

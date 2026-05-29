@@ -31,6 +31,10 @@ type BlogFormState = {
   slug: string;
   content: string;
   imageUrl: string;
+  authorName: string;
+  authorAvatarUrl: string;
+  category: string;
+  tags: string;
   metaTitle: string;
   metaDescription: string;
   ogImage: string;
@@ -45,6 +49,10 @@ function createEmptyFormState(): BlogFormState {
     slug: "",
     content: "<p></p>",
     imageUrl: "",
+    authorName: "Smartest Store KE",
+    authorAvatarUrl: "",
+    category: "",
+    tags: "",
     metaTitle: "",
     metaDescription: "",
     ogImage: "",
@@ -65,6 +73,10 @@ function createFormState(post?: BlogPost | null): BlogFormState {
     slug: post.slug,
     content: convertLegacyRichTextToHtml(post.content),
     imageUrl: post.imageUrl,
+    authorName: post.authorName || "Smartest Store KE",
+    authorAvatarUrl: post.authorAvatarUrl || "",
+    category: post.category || "",
+    tags: (post.tags || []).join(", "),
     metaTitle: post.metaTitle || "",
     metaDescription: post.metaDescription || "",
     ogImage: post.ogImage || "",
@@ -81,6 +93,13 @@ function toPayload(form: BlogFormState, imageUrl: string): AdminBlogInput {
     slug: slugify(form.slug || form.title),
     content: form.content.trim(),
     imageUrl,
+    authorName: form.authorName.trim() || "Smartest Store KE",
+    authorAvatarUrl: form.authorAvatarUrl.trim(),
+    category: form.category.trim(),
+    tags: form.tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
     metaTitle: form.metaTitle.trim(),
     metaDescription: form.metaDescription.trim(),
     ogImage: form.ogImage.trim(),
@@ -248,6 +267,54 @@ export function BlogFormDialog({
                   />
                 </label>
 
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Author name</span>
+                  <input
+                    required
+                    value={form.authorName}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, authorName: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Author avatar URL</span>
+                  <input
+                    value={form.authorAvatarUrl}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, authorAvatarUrl: event.target.value }))
+                    }
+                    placeholder="Optional image URL"
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100 placeholder:text-zinc-600"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Category</span>
+                  <input
+                    value={form.category}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, category: event.target.value }))
+                    }
+                    placeholder="Style Guide"
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100 placeholder:text-zinc-600"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Tags</span>
+                  <input
+                    value={form.tags}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, tags: event.target.value }))
+                    }
+                    placeholder="streetwear, shoes, nairobi"
+                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100 placeholder:text-zinc-600"
+                  />
+                </label>
+
                 <div className="space-y-2 text-sm md:col-span-2">
                   <span className="font-medium text-zinc-300">Featured image</span>
                   <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
@@ -365,6 +432,13 @@ export function BlogFormDialog({
                 <div>
                   <p className="font-medium text-zinc-300">Headline</p>
                   <p className="mt-1 text-base text-zinc-100">{form.title || "Post title"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-zinc-300">Byline</p>
+                  <p className="mt-1 text-zinc-200">
+                    {form.authorName || "Smartest Store KE"}
+                    {form.category ? ` - ${form.category}` : ""}
+                  </p>
                 </div>
                 <div>
                   <p className="font-medium text-zinc-300">Meta title</p>

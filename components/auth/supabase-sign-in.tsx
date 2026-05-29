@@ -111,7 +111,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
             <Link
               href={
                 redirectUrl
-                  ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
+                  ? `/forgot-password?callbackUrl=${encodeURIComponent(redirectUrl)}`
                   : "/forgot-password"
               }
               className="text-sm font-semibold text-orange-400 transition hover:text-orange-300"
@@ -178,7 +178,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
       <p className="text-center text-sm text-zinc-400">
         Don&apos;t have an account?{" "}
         <Link
-          href={redirectUrl ? `/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}` : "/sign-up"}
+          href={redirectUrl ? `/sign-up?callbackUrl=${encodeURIComponent(redirectUrl)}` : "/sign-up"}
           className="font-semibold text-orange-400 transition hover:text-orange-300"
         >
           Sign up

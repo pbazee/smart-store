@@ -61,6 +61,9 @@ export function ProductDetail({
 }: {
   product: Product;
 }) {
+  const initialVariant = hasRealVariants(product)
+    ? product.variants.find((variant) => variant.stock > 0) ?? product.variants[0]
+    : undefined;
   const router = useRouter();
   const pathname = usePathname();
   const imageRef = useRef<HTMLDivElement>(null);
@@ -72,7 +75,7 @@ export function ProductDetail({
   const [liveProduct, setLiveProduct] = useState(product);
   const [selectedImage, setSelectedImage] = useState(0);
   const [displayedImage, setDisplayedImage] = useState(
-    product.images[0] || "/images/product-placeholder.png"
+    initialVariant?.variantImageUrl || product.images[0] || "/images/product-placeholder.png"
   );
   const [zoomed, setZoomed] = useState(false);
   const [heartAnimating, setHeartAnimating] = useState(false);
@@ -88,8 +91,8 @@ export function ProductDetail({
   const currentProduct = liveProduct;
   const hasVariants = hasRealVariants(currentProduct);
   const defaultVariant = useMemo(() => createDefaultProductVariant(currentProduct), [currentProduct]);
-  const [selectedColor, setSelectedColor] = useState("");
-  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState(initialVariant?.color ?? "");
+  const [selectedSize, setSelectedSize] = useState(initialVariant?.size ?? "");
 
   const colors = useMemo(
     () => [...new Set(currentProduct.variants.map((variant) => variant.color))],
@@ -205,8 +208,16 @@ export function ProductDetail({
   };
 
   useEffect(() => {
+    const nextInitialVariant = hasRealVariants(product)
+      ? product.variants.find((variant) => variant.stock > 0) ?? product.variants[0]
+      : undefined;
+
     setLiveProduct(product);
-    setDisplayedImage(product.images[0] || "/images/product-placeholder.png");
+    setSelectedColor(nextInitialVariant?.color ?? "");
+    setSelectedSize(nextInitialVariant?.size ?? "");
+    setDisplayedImage(
+      nextInitialVariant?.variantImageUrl || product.images[0] || "/images/product-placeholder.png"
+    );
   }, [product]);
 
   useEffect(() => {
@@ -231,7 +242,20 @@ export function ProductDetail({
           return;
         }
 
+        const nextInitialVariant = hasRealVariants(freshProduct)
+          ? freshProduct.variants.find((variant) => variant.stock > 0) ?? freshProduct.variants[0]
+          : undefined;
+
         setLiveProduct(freshProduct);
+        setSelectedColor((current) => current || nextInitialVariant?.color || "");
+        setSelectedSize((current) => current || nextInitialVariant?.size || "");
+        if (nextInitialVariant?.variantImageUrl) {
+          setDisplayedImage((current) =>
+            current === (product.images[0] || "/images/product-placeholder.png")
+              ? nextInitialVariant.variantImageUrl || current
+              : current
+          );
+        }
       })
       .catch(() => undefined);
 
@@ -509,6 +533,17 @@ export function ProductDetail({
                 key={`${image}-${index}`}
                 type="button"
                 onClick={() => {
+                  const imageVariant = currentProduct.variants.find(
+                    (variant) => variant.variantImageUrl === image
+                  );
+
+                  if (imageVariant) {
+                    setSelectedColor(imageVariant.color);
+                    setSelectedSize(imageVariant.size);
+                    setNotifyOpen(false);
+                    setNotifyMessage(null);
+                  }
+
                   setSelectedImage(index);
                   setDisplayedImage(image);
                 }}
@@ -622,6 +657,15 @@ export function ProductDetail({
                   <p className="text-sm font-semibold">{sizeLabel}</p>
                   <SizeGuideDialog product={currentProduct} />
                 </div>
+                {selectedVariant ? (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Selected size: <span className="font-semibold text-foreground">{selectedVariant.size}</span>
+                    {" - "}
+                    {selectedVariant.stock > 0
+                      ? `${selectedVariant.stock} in stock`
+                      : "Out of stock"}
+                  </p>
+                ) : null}
                 {selectedColor && uniqueSizes.length === 1 && uniqueSizes[0] && isOneSize(uniqueSizes[0]) ? (
                   <div className="mt-3 inline-flex rounded-full border border-brand-400/30 bg-brand-500/10 px-4 py-2 text-sm font-semibold text-brand-600">
                     One Size

@@ -20,18 +20,39 @@ export async function getAllUsersAdmin(): Promise<AdminUserSummary[]> {
         return []; // For now, could add mock users
     }
 
-    const users = await prisma.user.findMany({
-        include: {
-            orders: {
-                select: {
-                    total: true,
-                },
+    const [users, orderTotals] = await Promise.all([
+        prisma.user.findMany({
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                fullName: true,
+                role: true,
+                createdAt: true,
             },
-        },
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
+            orderBy: {
+                createdAt: "desc",
+            },
+        }),
+        prisma.order.groupBy({
+            by: ["userId"],
+            where: { userId: { not: null } },
+            _count: { _all: true },
+            _sum: { total: true },
+        }),
+    ]);
+    const totalsByUserId = new Map(
+        orderTotals
+            .filter((entry) => entry.userId)
+            .map((entry) => [
+                entry.userId as string,
+                {
+                    totalOrders: entry._count._all,
+                    totalSpent: entry._sum.total ?? 0,
+                },
+            ])
+    );
 
     return users.map((user) => ({
         id: user.id,
@@ -43,8 +64,8 @@ export async function getAllUsersAdmin(): Promise<AdminUserSummary[]> {
             null,
         role: user.role,
         createdAt: user.createdAt,
-        totalOrders: user.orders.length,
-        totalSpent: user.orders.reduce((sum, order) => sum + order.total, 0),
+        totalOrders: totalsByUserId.get(user.id)?.totalOrders ?? 0,
+        totalSpent: totalsByUserId.get(user.id)?.totalSpent ?? 0,
     }));
 }
 

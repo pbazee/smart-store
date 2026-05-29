@@ -164,10 +164,14 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
           <select
             value={form.subject}
             onChange={(event) => updateField("subject", event.target.value)}
-            className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-border dark:bg-background dark:text-zinc-100"
+            className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-zinc-700 dark:bg-[#1a1a1a] dark:text-zinc-100"
           >
             {SUBJECT_OPTIONS.map((option) => (
-              <option key={option} value={option}>
+              <option
+                key={option}
+                value={option}
+                className="bg-[#1a1a1a] text-zinc-100 checked:bg-brand-500 checked:text-white"
+              >
                 {option}
               </option>
             ))}

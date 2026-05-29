@@ -235,6 +235,10 @@ export interface BlogPost {
   slug: string;
   content: string;
   imageUrl: string;
+  authorName: string;
+  authorAvatarUrl?: string | null;
+  category?: string | null;
+  tags: string[];
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogImage?: string | null;

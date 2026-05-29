@@ -40,7 +40,7 @@ export function RippleSpinner({
           <span
             key={index}
             className="ripple-spinner__ring"
-            style={{ animationDelay: `${index * 0.5}s` }}
+            style={{ animationDelay: `${index * 0.18}s` }}
           />
         ))}
         <span className="ripple-spinner__center">
@@ -80,15 +80,15 @@ export function PageLoader({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      {admin ? <AdminLogoRippleSpinner label={label} /> : <RippleSpinner size={80} label={label} />}
+      {admin ? <AdminLogoRippleSpinner label={label} /> : <RippleSpinner size={72} label={label} />}
     </div>
   );
 }
 
 export function InlineLoader({ label = "Loading" }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center py-16">
-      <RippleSpinner size={80} label={label} showLabel />
+    <div className="flex min-h-[45vh] items-center justify-center py-16">
+      <RippleSpinner size={72} label={label} showLabel />
     </div>
   );
 }

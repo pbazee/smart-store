@@ -33,14 +33,14 @@ const authContent = {
 } as const;
 
 const authHeroImage =
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=85";
+  "https://images.unsplash.com/photo-1521335629791-ce4aec67dd47?auto=format&fit=crop&w=1800&q=90";
 
 function buildAuthHref(pathname: string, redirectPath?: string) {
   if (!redirectPath) {
     return pathname;
   }
 
-  return `${pathname}?redirect_url=${encodeURIComponent(redirectPath)}`;
+  return `${pathname}?callbackUrl=${encodeURIComponent(redirectPath)}`;
 }
 
 export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthShellProps) {
@@ -81,7 +81,7 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `linear-gradient(180deg,rgba(0,0,0,0.22),rgba(0,0,0,0.78)),linear-gradient(135deg,rgba(9,9,11,0.12),rgba(9,9,11,0.92)),url('${authHeroImage}')`,
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.45)),url('${authHeroImage}')`,
             }}
           />
           <div className="absolute inset-0 bg-black/10" />
@@ -232,7 +232,7 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
               {children}
             </div>
 
-            {mode !== "sign-in" ? (
+            {mode !== "sign-in" && mode !== "sign-up" ? (
               <div className="mt-8 text-center">
                 <p className="text-sm text-zinc-400">
                   {alternateAction.prompt}{" "}

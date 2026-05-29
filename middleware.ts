@@ -19,11 +19,7 @@ export async function middleware(request: NextRequest) {
     
     if (!hasSession) {
       const loginUrl = new URL('/sign-in', request.url);
-      if (isCheckoutRoute) {
-        loginUrl.searchParams.set('callbackUrl', pathname);
-      } else {
-        loginUrl.searchParams.set('redirect_url', pathname);
-      }
+      loginUrl.searchParams.set(isCheckoutRoute ? 'callbackUrl' : 'redirect_url', pathname);
       return NextResponse.redirect(loginUrl);
     }
   }

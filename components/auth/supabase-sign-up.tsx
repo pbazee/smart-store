@@ -60,7 +60,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className="w-full min-h-[60px] rounded-[1.2rem] border border-zinc-200 bg-white px-5 text-slate-950 shadow-sm transition-all duration-200 hover:bg-orange-50 hover:shadow-md"
+        className="w-full min-h-[60px] rounded-2xl border border-white/10 bg-white px-5 text-slate-950 shadow-sm transition-all duration-200 hover:bg-orange-50 hover:shadow-md"
       >
         <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24" width="20" height="20">
           <path
@@ -83,7 +83,14 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         <span className="text-base font-black">Continue with Google</span>
       </Button>
 
-      <p className="text-center text-sm text-zinc-500">Continue with email</p>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/10" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-[#111114] px-4 text-zinc-500">or continue with email</span>
+        </div>
+      </div>
 
       {errorMessage && (
         <div className="rounded-[1.1rem] border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
@@ -100,7 +107,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className="text-sm font-medium text-zinc-700">
+            <Label htmlFor="firstName" className="text-sm font-medium text-zinc-300">
               First Name
             </Label>
             <div className="relative">
@@ -113,13 +120,13 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="Peter"
                 required
-                className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
+                className="h-12 rounded-2xl border border-white/10 bg-black/35 pl-11 text-white placeholder:text-zinc-500 focus:border-orange-400 focus:ring-orange-400/20"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="lastName" className="text-sm font-medium text-zinc-700">
+            <Label htmlFor="lastName" className="text-sm font-medium text-zinc-300">
               Last Name
             </Label>
             <div className="relative">
@@ -132,14 +139,14 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Kinuthia"
                 required
-                className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
+                className="h-12 rounded-2xl border border-white/10 bg-black/35 pl-11 text-white placeholder:text-zinc-500 focus:border-orange-400 focus:ring-orange-400/20"
               />
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-zinc-700">
+          <Label htmlFor="email" className="text-sm font-medium text-zinc-300">
             Email
           </Label>
           <div className="relative">
@@ -152,13 +159,13 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
+              className="h-12 rounded-2xl border border-white/10 bg-black/35 pl-11 text-white placeholder:text-zinc-500 focus:border-orange-400 focus:ring-orange-400/20"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-zinc-700">
+          <Label htmlFor="password" className="text-sm font-medium text-zinc-300">
             Password
           </Label>
           <div className="relative">
@@ -172,13 +179,13 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
               placeholder="........"
               required
               minLength={8}
-              className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
+              className="h-12 rounded-2xl border border-white/10 bg-black/35 pl-11 text-white placeholder:text-zinc-500 focus:border-orange-400 focus:ring-orange-400/20"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-700">
+          <Label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-300">
             Confirm Password
           </Label>
           <div className="relative">
@@ -190,7 +197,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="........"
               required
-              className="h-12 rounded-[1.1rem] border border-zinc-200 bg-white pl-11 text-zinc-950 placeholder:text-zinc-400 focus:border-orange-400 focus:ring-orange-400/20"
+              className="h-12 rounded-2xl border border-white/10 bg-black/35 pl-11 text-white placeholder:text-zinc-500 focus:border-orange-400 focus:ring-orange-400/20"
             />
           </div>
         </div>
@@ -201,11 +208,11 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
             type="checkbox"
             checked={wantsNewsletter}
             onChange={(e) => setWantsNewsletter(e.target.checked)}
-            className="h-5 w-5 rounded border-zinc-300 bg-white text-orange-500 focus:ring-orange-400/20"
+            className="h-5 w-5 rounded border-white/15 bg-black/40 text-orange-500 focus:ring-orange-400/20"
           />
           <Label
             htmlFor="newsletter"
-            className="cursor-pointer select-none text-sm font-medium text-zinc-600"
+            className="cursor-pointer select-none text-sm font-medium text-zinc-300"
           >
             Get notified on more offers, discounts & new arrivals
           </Label>
@@ -214,7 +221,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         <Button
           type="submit"
           disabled={isLoading}
-          className="mt-2 h-12 w-full rounded-[1.1rem] bg-orange-500 text-sm font-bold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition-colors hover:bg-orange-600"
+          className="mt-2 h-12 w-full rounded-2xl bg-orange-500 text-sm font-bold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition-colors hover:bg-orange-600"
         >
           {isLoading ? (
             <>
@@ -230,23 +237,10 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
       <p className="text-center text-sm text-zinc-500">
         Already have an account?{" "}
         <Link
-          href={redirectUrl ? `/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
+          href={redirectUrl ? `/sign-in?callbackUrl=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
           className="font-semibold text-orange-500 hover:text-orange-600"
         >
           Sign in
-        </Link>
-      </p>
-      <p className="text-center text-sm text-zinc-500">
-        Already have one but forgot the password?{" "}
-        <Link
-          href={
-            redirectUrl
-              ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
-              : "/forgot-password"
-          }
-          className="font-semibold text-orange-500 hover:text-orange-600"
-        >
-          Reset it
         </Link>
       </p>
     </div>

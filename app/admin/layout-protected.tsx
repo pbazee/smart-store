@@ -54,7 +54,7 @@ export default function AdminLayoutProtected({ children }: { children: React.Rea
 
     void (async () => {
       try {
-        const response = await fetch("/api/store-settings", { cache: "no-store" });
+        const response = await fetch("/api/store-settings");
         const data = await response.json();
         if (!cancelled && response.ok && data?.data) {
           setStoreSettings(data.data as StoreSettings);

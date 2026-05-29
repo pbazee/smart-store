@@ -93,3 +93,50 @@ export async function getBlogPostBySlug(slug: string) {
     return isProductionRuntime() ? null : getBlogPostFallbackBySlug(slug);
   }
 }
+
+export async function getRelatedBlogPosts(post: BlogPost, take = 3) {
+  const relatedTags = [post.category, ...(post.tags ?? [])].filter(Boolean) as string[];
+
+  try {
+    if (shouldSkipLiveDataDuringBuild()) {
+      return defaultBlogPostFallback
+        .filter((candidate) => candidate.slug !== post.slug)
+        .slice(0, take);
+    }
+
+    const posts = await prisma.blog.findMany({
+      where: {
+        isPublished: true,
+        slug: { not: post.slug },
+        ...(relatedTags.length > 0
+          ? {
+              OR: [
+                { category: { in: relatedTags, mode: "insensitive" } },
+                { tags: { hasSome: relatedTags } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take,
+    });
+
+    if (posts.length >= take || relatedTags.length === 0) {
+      return posts as BlogPost[];
+    }
+
+    const recent = await prisma.blog.findMany({
+      where: {
+        isPublished: true,
+        slug: { notIn: [post.slug, ...posts.map((candidate) => candidate.slug)] },
+      },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: take - posts.length,
+    });
+
+    return [...posts, ...recent] as BlogPost[];
+  } catch (error) {
+    console.error("Related blog lookup failed:", error);
+    return lastKnownBlogPosts.filter((candidate) => candidate.slug !== post.slug).slice(0, take);
+  }
+}

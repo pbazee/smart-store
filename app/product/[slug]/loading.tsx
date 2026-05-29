@@ -1,5 +1,5 @@
-import { InlineLoader } from "@/components/ui/ripple-loader";
+import { PageLoader } from "@/components/ui/ripple-loader";
 
 export default function ProductPageLoading() {
-  return <InlineLoader label="Loading product..." />;
+  return <PageLoader label="Loading product..." />;
 }

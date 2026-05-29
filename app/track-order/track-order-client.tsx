@@ -1,16 +1,17 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import Image from "next/image";
 import { formatKES } from "@/lib/utils";
 
-type MockOrder = {
+type TrackedOrder = {
   orderNumber: string;
   orderStatus: string;
+  paymentStatus: string;
   customerName: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ name: string; quantity: number; price: number; imageUrl?: string | null }>;
   total: number;
   shippingAddress: string;
-  trackingNumber: string;
   estimatedDelivery: string;
 };
 
@@ -21,8 +22,8 @@ export function TrackOrderClient({
   supportPhone: string;
   supportTel: string;
 }) {
-  const [orderNumber, setOrderNumber] = useState("");
-  const [order, setOrder] = useState<MockOrder | null>(null);
+  const [query, setQuery] = useState("");
+  const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,29 +32,20 @@ export function TrackOrderClient({
     setLoading(true);
     setError("");
 
-    // Simulate API call - replace with actual API
-    setTimeout(() => {
-      const mockOrder: MockOrder = {
-        orderNumber: orderNumber.toUpperCase(),
-        orderStatus: "shipped",
-        customerName: "John Doe",
-        items: [
-          { name: "Nairobi Air Max", quantity: 1, price: 8999 },
-          { name: "Westlands Hoodie", quantity: 1, price: 4999 },
-        ],
-        total: 13998,
-        shippingAddress: "123 Ngong Road, Nairobi",
-        trackingNumber: "KE" + Math.floor(Math.random() * 1000000),
-        estimatedDelivery: "March 15, 2026",
-      };
+    try {
+      const response = await fetch(`/api/track-order?q=${encodeURIComponent(query.trim())}`);
+      const payload = (await response.json()) as { data?: TrackedOrder; error?: string };
 
-      if (orderNumber.toLowerCase().includes("ss")) {
-        setOrder(mockOrder);
-      } else {
-        setError("Order not found. Please check your order number.");
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error || "Order not found. Please check your details.");
       }
+
+      setOrder(payload.data);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Order not found. Please check your details.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -63,6 +55,7 @@ export function TrackOrderClient({
       case "processing":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
       case "shipped":
+      case "out_for_delivery":
         return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
       case "delivered":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
@@ -73,8 +66,8 @@ export function TrackOrderClient({
 
   const getStatusSteps = (status: string) => [
     { name: "Order Placed", completed: true },
-    { name: "Processing", completed: ["processing", "shipped", "delivered"].includes(status) },
-    { name: "Shipped", completed: ["shipped", "delivered"].includes(status) },
+    { name: "Processing", completed: ["processing", "shipped", "out_for_delivery", "delivered"].includes(status) },
+    { name: "Shipped", completed: ["shipped", "out_for_delivery", "delivered"].includes(status) },
     { name: "Delivered", completed: status === "delivered" },
   ];
 
@@ -83,7 +76,7 @@ export function TrackOrderClient({
       <div className="mb-12 text-center">
         <h1 className="mb-4 text-4xl font-black">Track Your Order</h1>
         <p className="text-xl text-muted-foreground">
-          Enter your order number to see the latest updates
+          Enter your order number, email, or phone number to see the latest updates
         </p>
       </div>
 
@@ -91,17 +84,17 @@ export function TrackOrderClient({
         <div className="mx-auto max-w-md">
           <form onSubmit={handleTrack} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium">Order Number</label>
+              <label className="mb-2 block text-sm font-medium">Order number, email, or phone</label>
               <input
                 type="text"
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="e.g. SSK-123456"
+                placeholder="SSK-123456, you@email.com, or +254..."
                 required
               />
               <p className="mt-1 text-sm text-muted-foreground">
-                Found on your order confirmation email or SMS
+                We detect the search type automatically.
               </p>
             </div>
 
@@ -131,7 +124,7 @@ export function TrackOrderClient({
               <span
                 className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(order.orderStatus)}`}
               >
-                {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
+                {order.orderStatus.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}
               </span>
             </div>
 
@@ -165,14 +158,12 @@ export function TrackOrderClient({
               ))}
             </div>
 
-            {order.orderStatus === "shipped" && (
+            {["shipped", "out_for_delivery"].includes(order.orderStatus) && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
                 <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
                   Out for Delivery
                 </h3>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Tracking: <span className="font-mono font-bold">{order.trackingNumber}</span>
-                  <br />
                   Estimated delivery: {order.estimatedDelivery}
                 </p>
               </div>
@@ -185,13 +176,17 @@ export function TrackOrderClient({
                 <h3 className="mb-3 text-lg font-semibold">Order Items</h3>
                 <div className="space-y-3">
                   {order.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b border-border py-2"
-                    >
-                      <div>
+                    <div key={index} className="flex items-center justify-between gap-3 border-b border-border py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
+                          {item.imageUrl ? (
+                            <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-cover" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                      </div>
                       </div>
                       <p className="font-semibold">{formatKES(item.price)}</p>
                     </div>

@@ -8,6 +8,7 @@ import {
 } from "@/lib/default-blog-posts";
 import { getPublishedBlogPosts } from "@/lib/blog-service";
 import { createBlurDataURL } from "@/lib/utils";
+import type { BlogPost } from "@/types";
 
 export const metadata: Metadata = {
   title: "Blog | Smartest Store KE",
@@ -15,6 +16,39 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 60;
+
+function formatPostDate(post: BlogPost) {
+  return new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-KE", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function AuthorBadge({ post }: { post: BlogPost }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {post.authorAvatarUrl ? (
+        <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+          <Image
+            src={post.authorAvatarUrl}
+            alt=""
+            fill
+            sizes="32px"
+            className="object-cover"
+          />
+        </span>
+      ) : (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-black text-white">
+          {(post.authorName || "SS").slice(0, 2).toUpperCase()}
+        </span>
+      )}
+      <span className="truncate text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        {post.authorName || "Smartest Store KE"}
+      </span>
+    </div>
+  );
+}
 
 export default async function BlogPage() {
 
@@ -64,16 +98,12 @@ export default async function BlogPage() {
                 <div className="flex flex-col justify-between p-8 sm:p-10">
                   <div>
                     <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                      <span>
-                        {new Date(
-                          featuredPost.publishedAt || featuredPost.createdAt
-                        ).toLocaleDateString("en-KE", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
+                      {featuredPost.category ? <span>{featuredPost.category}</span> : null}
+                      <span>{formatPostDate(featuredPost)}</span>
                       <span>{getBlogReadTime(featuredPost.content)}</span>
+                    </div>
+                    <div className="mt-4">
+                      <AuthorBadge post={featuredPost} />
                     </div>
                     <h2 className="mt-5 font-display text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl dark:text-zinc-50">
                       {featuredPost.title}
@@ -118,14 +148,12 @@ export default async function BlogPage() {
                     </div>
                     <div className="p-6">
                       <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                        <span>
-                          {new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-KE", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
+                        {post.category ? <span>{post.category}</span> : null}
+                        <span>{formatPostDate(post)}</span>
                         <span>{getBlogReadTime(post.content)}</span>
+                      </div>
+                      <div className="mt-4">
+                        <AuthorBadge post={post} />
                       </div>
                       <h2 className="mt-4 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{post.title}</h2>
                       <p className="mt-3 text-sm leading-7 text-zinc-700 dark:text-zinc-400">

@@ -233,6 +233,10 @@ model Blog {
   slug        String    @unique
   content     String
   imageUrl    String
+  authorName  String    @default("Smartest Store KE")
+  authorAvatarUrl String?
+  category    String?
+  tags        String[]  @default([])
   metaTitle   String?
   metaDescription String?
   ogImage     String?
