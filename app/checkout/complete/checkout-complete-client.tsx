@@ -4,7 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle, Loader2, Receipt, ShoppingBag } from "lucide-react";
+import { AlertCircle, CheckCircle, Receipt, ShoppingBag } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
@@ -351,7 +352,7 @@ function CheckoutCompleteContent({
   return (
     <div className="max-w-xl mx-auto px-4 py-20 text-center">
       <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/10 text-brand-500">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <RippleSpinner size={80} color="#FF6400" label="Confirming checkout" />
       </div>
       <h1 className="mb-3 text-2xl font-black">Confirming payment</h1>
       <p className="text-muted-foreground">
@@ -379,7 +380,7 @@ export function CheckoutCompletePageClient({
       fallback={
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/10 text-brand-500">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <RippleSpinner size={80} color="#FF6400" label="Confirming checkout" />
           </div>
           <h1 className="mb-3 text-2xl font-black">Confirming payment</h1>
           <p className="text-muted-foreground">

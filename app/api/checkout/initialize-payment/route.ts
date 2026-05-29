@@ -337,7 +337,13 @@ export async function POST(req: NextRequest) {
           stockReservedAt: reservationCreatedAt,
           reservationExpiresAt,
           items: {
-            create: resolvedItems,
+            create: resolvedItems.map(({ productId, variantId, productName, price, quantity }) => ({
+              productId,
+              variantId,
+              productName,
+              price,
+              quantity,
+            })),
           },
         },
         include: { items: true },

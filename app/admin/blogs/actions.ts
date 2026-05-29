@@ -66,6 +66,7 @@ function revalidateBlogPaths(slugs: string[] = []) {
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/blog");
+  revalidatePath("/blog/[slug]", "page");
   revalidatePath("/admin");
   revalidatePath("/admin/blogs");
   for (const slug of slugs.filter(Boolean)) {

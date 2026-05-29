@@ -2,7 +2,8 @@
 
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { AlertCircle, Loader2, Mail } from "lucide-react";
+import { AlertCircle, Mail } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { signInCustomerAction, signInWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
@@ -165,7 +166,7 @@ export function SupabaseSignIn({ redirectUrl }: { redirectUrl?: string }) {
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <RippleSpinner size={28} color="currentColor" label="Signing in" className="mr-2" />
               Signing in...
             </>
           ) : (

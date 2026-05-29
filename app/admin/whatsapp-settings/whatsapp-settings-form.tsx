@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageCircleMore, Save } from "lucide-react";
+import { MessageCircleMore, Save } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import {
   updateAdminWhatsAppSettingsAction,
   type AdminWhatsAppSettingsInput,
@@ -142,7 +143,7 @@ export function WhatsAppSettingsForm({
               disabled={isPending}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Save className="h-4 w-4" />}
               {isPending ? "Saving..." : "Save settings"}
             </button>
           </div>

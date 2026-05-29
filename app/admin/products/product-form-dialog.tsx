@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { GripVertical, ImagePlus, Info, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { GripVertical, ImagePlus, Info, Plus, Trash2, Upload, X } from "lucide-react";
 import {
   cleanupProductVariantImageAction,
   cleanupProductImageAction,
@@ -11,6 +11,7 @@ import {
   uploadProductImageAction,
 } from "@/app/admin/products/actions";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { jsonFetcher } from "@/lib/fetcher";
 import {
   apparelSizeOptions,
@@ -1549,7 +1550,7 @@ export function ProductFormDialog({
               disabled={isPending || hasValidationErrors || !hasUnsavedChanges}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Plus className="h-4 w-4" />}
               {isPending
                 ? "Saving..."
                 : form.id

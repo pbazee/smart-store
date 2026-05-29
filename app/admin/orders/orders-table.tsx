@@ -7,10 +7,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  Loader2,
   Search,
   X,
 } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { jsonFetcher } from "@/lib/fetcher";
 import type { AdminOrderListItem } from "@/lib/data-service";
 import { cn, formatKES } from "@/lib/utils";
@@ -356,7 +356,7 @@ export function OrdersTable({
 
         {isLoading ? (
           <div className="flex min-h-[240px] items-center justify-center gap-3 text-sm text-zinc-400">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <RippleSpinner size={28} color="#FF6400" label="Loading orders" />
             Loading orders...
           </div>
         ) : summary.length === 0 ? (
@@ -449,7 +449,7 @@ export function OrdersTable({
                             className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-brand-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {isNavigating && pendingOrderId === order.orderNumber ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <RippleSpinner size={28} color="currentColor" label="Opening order" />
                             ) : (
                               <Eye className="h-4 w-4" />
                             )}
@@ -462,7 +462,7 @@ export function OrdersTable({
                             className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-brand-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {isNavigating && pendingOrderId === order.orderNumber ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <RippleSpinner size={28} color="currentColor" label="Opening order" />
                             ) : null}
                             Update Status
                           </button>

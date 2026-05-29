@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Download, Mail, AlertTriangle, CheckCircle } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import type { NewsletterSubscriber } from "@/types";
 
 function escapeCsv(value: string) {
@@ -209,7 +210,7 @@ export function NewsletterManager({
           >
             {isSending ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <RippleSpinner size={28} color="currentColor" label="Sending newsletter" />
                 Sending...
               </>
             ) : (

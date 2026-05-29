@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   Bell,
   ImagePlus,
-  Loader2,
   Mail,
   Phone,
   Save,
@@ -14,6 +13,7 @@ import {
   Store,
   Trash2,
 } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import {
   type AdminStoreSettingsInput,
   submitAdminStoreSettingsFormAction,
@@ -303,7 +303,7 @@ export function StoreSettingsForm({
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-brand-400/30 bg-brand-500/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500/25 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {uploadingSlot === slot.key ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <RippleSpinner size={28} color="currentColor" label="Uploading" />
                         ) : (
                           <ImagePlus className="h-4 w-4" />
                         )}
@@ -316,7 +316,7 @@ export function StoreSettingsForm({
                         className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-red-500/50 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {removingSlot === slot.key ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <RippleSpinner size={28} color="currentColor" label="Removing" />
                         ) : (
                           <Trash2 className="h-4 w-4" />
                         )}
@@ -437,7 +437,7 @@ export function StoreSettingsForm({
                 disabled={isPending}
                 className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
               >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Save className="h-4 w-4" />}
                 {isPending ? "Saving..." : "Save settings"}
               </button>
             </div>

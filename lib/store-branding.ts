@@ -27,8 +27,8 @@ export async function getStoreBranding(): Promise<StoreSettings | null> {
 
 export async function getStoreLogo(mode: "light" | "dark" = "light") {
   const branding = await getStoreBranding();
-  const lightLogo = branding.logoUrl || null;
-  const darkLogo = branding.logoDarkUrl || lightLogo || null;
+  const lightLogo = branding?.logoUrl || null;
+  const darkLogo = branding?.logoDarkUrl || lightLogo || null;
 
   return mode === "dark" ? darkLogo : lightLogo;
 }

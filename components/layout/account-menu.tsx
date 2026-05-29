@@ -7,11 +7,11 @@ import { useRouter } from "next/navigation";
 import {
   Heart,
   LayoutDashboard,
-  Loader2,
   LogOut,
   Package2,
   User2,
 } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,7 +125,7 @@ function SignedInAccountMenu({
           className="text-foreground hover:bg-red-500/10 hover:text-red-600 dark:text-gray-200 dark:hover:bg-red-500/20 dark:hover:text-red-400"
         >
           {isSigningOut ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <RippleSpinner size={28} color="currentColor" label="Signing out" />
           ) : (
             <LogOut className="h-4 w-4" />
           )}
@@ -145,7 +145,7 @@ function SignedOutAccountButton({ isLoading = false }: { isLoading?: boolean }) 
         aria-label="Signing out"
         className="inline-flex min-h-11 items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white opacity-80 shadow-[0_16px_40px_rgba(249,115,22,0.28)]"
       >
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <RippleSpinner size={28} color="currentColor" label="Signing out" />
         <span className="hidden sm:inline">Signing out...</span>
         <span className="sm:hidden">...</span>
       </button>

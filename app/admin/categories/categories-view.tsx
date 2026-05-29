@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Trash2, Pencil, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { jsonFetcher } from "@/lib/fetcher";
 import { slugify } from "@/lib/utils";
 import type { Category } from "@/types";
 import { useToast } from "@/lib/use-toast";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -289,7 +290,7 @@ export function CategoriesView({ initialCategories }: { initialCategories: Categ
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {saving ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Plus className="h-4 w-4" />}
             {editing ? "Save changes" : "Save"}
           </button>
           {editing ? (

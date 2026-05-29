@@ -639,7 +639,16 @@ async function loadAdminDashboardStats() {
     }),
     prisma.product.findMany({
       where: buildValidCatalogProductWhere(),
-      include: { variants: true },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        variants: {
+          select: {
+            stock: true,
+          },
+        },
+      },
       take: 24,
     }),
     prisma.order.findMany({
@@ -787,11 +796,12 @@ async function loadAdminDashboardStats() {
     revenueTrend,
     totalOrders,
     totalProducts,
-    lowStockProducts: (lowStockProducts as Product[])
+    lowStockProducts: lowStockProducts
       .filter((product) => {
         const stock = getEffectiveProductStock(product);
         return typeof stock === "number" && stock > 0 && stock <= 5;
       })
+      .map(({ id, name, category }) => ({ id, name, category }))
       .slice(0, 6),
     revenueByMonth: monthBuckets.map(({ key: _key, ...bucket }) => bucket),
     recentOrders,

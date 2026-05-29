@@ -29,7 +29,6 @@ import {
   YAxis,
 } from "recharts";
 import useSWR from "swr";
-import type { Product } from "@/types";
 import { formatKES } from "@/lib/utils";
 
 export type AdminDashboardStats = {
@@ -37,7 +36,7 @@ export type AdminDashboardStats = {
   revenueTrend: number;
   totalOrders: number;
   totalProducts: number;
-  lowStockProducts: Product[];
+  lowStockProducts: Array<{ id: string; name: string; category: string }>;
   revenueByMonth: Array<{ month: string; revenue: number; orderCount: number }>;
   recentOrders: Array<{
     id: string;

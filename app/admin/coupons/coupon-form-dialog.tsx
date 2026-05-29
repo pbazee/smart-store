@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import {
   createAdminCouponAction,
   updateAdminCouponAction,
@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import type { Coupon } from "@/types";
 
@@ -274,7 +275,7 @@ export function CouponFormDialog({
               disabled={isPending}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Save className="h-4 w-4" />}
               {isPending ? "Saving..." : coupon ? "Save changes" : "Create coupon"}
             </button>
           </div>

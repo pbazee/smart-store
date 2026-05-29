@@ -6,7 +6,6 @@ import {
   EyeOff,
   Grip,
   ImagePlus,
-  Loader2,
   Pencil,
   Plus,
   Search,
@@ -19,6 +18,7 @@ import {
   updateAdminHeroSlideAction,
 } from "@/app/admin/hero/actions";
 import { HeroFormDialog } from "@/app/admin/hero/hero-form-dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import { cn } from "@/lib/utils";
 import type { HeroSlide } from "@/types";
@@ -389,7 +389,7 @@ export function HeroSlidesManager({
                         onClick={() => handleDelete(slide)}
                         className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition-colors hover:border-red-400 hover:text-red-300 disabled:opacity-60"
                       >
-                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {isPending ? <RippleSpinner size={28} color="currentColor" label="Deleting" /> : <Trash2 className="h-4 w-4" />}
                         Delete
                       </button>
                     </div>

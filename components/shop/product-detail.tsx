@@ -106,6 +106,13 @@ export function ProductDetail({
       ),
     [currentProduct.variants, selectedColor, selectedSize]
   );
+  const variantImages = useMemo(
+    () =>
+      currentProduct.variants
+        .map((variant) => variant.variantImageUrl)
+        .filter((image): image is string => Boolean(image?.trim())),
+    [currentProduct.variants]
+  );
   const displayImages = useMemo(() => {
     const variantImage =
       selectedVariant?.variantImageUrl ||
@@ -113,9 +120,16 @@ export function ProductDetail({
       "";
 
     return Array.from(
-      new Set([variantImage, displayedImage, ...currentProduct.images].filter(Boolean))
+      new Set([variantImage, displayedImage, ...currentProduct.images, ...variantImages].filter(Boolean))
     );
-  }, [currentProduct.images, currentProduct.variants, displayedImage, selectedColor, selectedVariant]);
+  }, [
+    currentProduct.images,
+    currentProduct.variants,
+    displayedImage,
+    selectedColor,
+    selectedVariant,
+    variantImages,
+  ]);
   const blurDataUrl = useMemo(
     () =>
       createBlurDataURL({

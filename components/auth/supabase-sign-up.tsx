@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Mail, User, Shield } from "lucide-react";
+import { AlertCircle, Mail, User, Shield } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { signUpCustomerAction, signUpWithGoogleAction } from "@/app/auth/customer-auth";
 
 export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
@@ -217,7 +218,7 @@ export function SupabaseSignUp({ redirectUrl }: { redirectUrl?: string }) {
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <RippleSpinner size={28} color="currentColor" label="Creating account" className="mr-2" />
               Creating account...
             </>
           ) : (

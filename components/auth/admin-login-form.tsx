@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { AlertCircle, Shield, Loader2 } from "lucide-react";
+import { AlertCircle, Shield } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import {
   submitAdminLoginAction,
   type AdminLoginActionState,
@@ -22,7 +23,7 @@ function SubmitButton() {
       disabled={pending}
       className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+      {pending ? <RippleSpinner size={28} color="currentColor" label="Signing in" /> : <Shield className="h-4 w-4" />}
       {pending ? "Signing in..." : "Login"}
     </button>
   );

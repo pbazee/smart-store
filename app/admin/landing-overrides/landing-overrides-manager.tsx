@@ -18,6 +18,7 @@ import {
   searchProductsAction,
   upsertLandingOverrideAction,
 } from "@/app/admin/landing-overrides/actions";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { LANDING_SECTIONS } from "@/lib/landing-section-overrides";
 import { cn } from "@/lib/utils";
 import type { LandingSection, LandingSectionOverride, Product } from "@/types";
@@ -228,7 +229,11 @@ export function LandingOverridesManager({
             className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-900"
             disabled={isPending}
           >
-            <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+            {isPending ? (
+              <RippleSpinner size={28} color="currentColor" label="Refreshing overrides" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
             Refresh
           </button>
           <button

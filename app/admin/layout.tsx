@@ -23,19 +23,23 @@ export default async function AdminLayout({
     redirect("/");
   }
 
-  let subscriberCount = 0;
-  let storeSettings = null;
-  try {
-    subscriberCount = await getNewsletterSubscriberCount();
-  } catch (error) {
-    console.error("[AdminLayout] Failed to load subscriber count:", error);
+  const [subscriberCountResult, storeSettingsResult] = await Promise.allSettled([
+    getNewsletterSubscriberCount(),
+    getStoreBranding(),
+  ]);
+
+  if (subscriberCountResult.status === "rejected") {
+    console.error("[AdminLayout] Failed to load subscriber count:", subscriberCountResult.reason);
   }
 
-  try {
-    storeSettings = await getStoreBranding();
-  } catch (error) {
-    console.error("[AdminLayout] Failed to load store branding:", error);
+  if (storeSettingsResult.status === "rejected") {
+    console.error("[AdminLayout] Failed to load store branding:", storeSettingsResult.reason);
   }
+
+  const subscriberCount =
+    subscriberCountResult.status === "fulfilled" ? subscriberCountResult.value : 0;
+  const storeSettings =
+    storeSettingsResult.status === "fulfilled" ? storeSettingsResult.value : null;
 
   return (
     <AdminShell subscriberCount={subscriberCount} initialStoreSettings={storeSettings}>

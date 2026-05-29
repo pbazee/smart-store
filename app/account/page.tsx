@@ -11,6 +11,7 @@ import {
   User2,
 } from "lucide-react";
 import { useSessionUser } from "@/hooks/use-session-user";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 
 const accountLinks = [
   {
@@ -41,7 +42,7 @@ export default function AccountPage() {
     return (
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <RippleSpinner size={80} color="#FF6400" label="Loading account" />
         </div>
       </div>
     );

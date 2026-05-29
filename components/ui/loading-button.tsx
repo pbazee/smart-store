@@ -1,7 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { cn } from "@/lib/utils";
 
 type LoadingButtonProps = React.ComponentProps<typeof Button> & {
@@ -25,7 +25,14 @@ export function LoadingButton({
       className={className}
       {...props}
     >
-      {isLoading ? <Loader2 className={cn("h-4 w-4 animate-spin", spinnerClassName)} /> : null}
+      {isLoading ? (
+        <RippleSpinner
+          size={28}
+          color="currentColor"
+          label={loadingText || "Loading"}
+          className={cn("shrink-0 text-white", spinnerClassName)}
+        />
+      ) : null}
       {isLoading && loadingText ? loadingText : children}
     </Button>
   );

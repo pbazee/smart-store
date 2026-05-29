@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { subscribeNewsletterAction } from "@/app/admin/newsletter/actions";
 import { useToast } from "@/lib/use-toast";
 
@@ -53,7 +54,7 @@ export function FooterNewsletterForm() {
           disabled={isPending}
           className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
         >
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+          {isPending ? <RippleSpinner size={28} color="currentColor" label="Subscribing" /> : <ArrowRight className="h-4 w-4" />}
           {isPending ? "Subscribing..." : "Subscribe"}
         </button>
       </div>

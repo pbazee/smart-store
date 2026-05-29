@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ImagePlus, Loader2, Save } from "lucide-react";
+import { ImagePlus, Save } from "lucide-react";
 import {
   createAdminPromoBannerAction,
   updateAdminPromoBannerAction,
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import type { PromoBanner } from "@/types";
 
@@ -257,7 +258,7 @@ export function PromoBannerFormDialog({
             <div className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Background image upload</span>
               <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
-                {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                {isUploadingImage ? <RippleSpinner size={28} color="currentColor" label="Uploading" /> : <ImagePlus className="h-4 w-4" />}
                 <span>{isUploadingImage ? "Uploading image..." : "Choose banner image"}</span>
                 <input
                   type="file"
@@ -341,7 +342,7 @@ export function PromoBannerFormDialog({
               disabled={isPending}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Save className="h-4 w-4" />}
               {isPending ? "Saving..." : banner ? "Save changes" : "Create banner"}
             </button>
           </div>

@@ -5,7 +5,6 @@ import useSWR from "swr";
 import {
   AlertCircle,
   CheckCircle,
-  Loader2,
   MapPin,
   Plus,
   Save,
@@ -13,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { InlineLoader } from "@/components/ui/ripple-loader";
+import { InlineLoader, RippleSpinner } from "@/components/ui/ripple-loader";
 import { jsonFetcher } from "@/lib/fetcher";
 import { KENYA_COUNTIES } from "@/lib/kenya-counties";
 import { useToast } from "@/lib/use-toast";
@@ -425,7 +424,7 @@ export default function ShippingAdminPage() {
           disabled={saving}
           className="flex items-center gap-3 rounded-full bg-white px-10 py-4 text-sm font-black text-black shadow-2xl transition hover:scale-[1.01] disabled:opacity-50"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Save className="h-4 w-4" />}
           Save All Changes
         </button>
       </div>

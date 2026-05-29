@@ -11,13 +11,13 @@ import {
     ShoppingBag,
     ExternalLink,
     User,
-    AlertCircle,
-    Loader2
+    AlertCircle
 } from "lucide-react";
 import { formatKES } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/use-toast";
 import { motion } from "framer-motion";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 
 type UserDetailViewProps = {
     user: {
@@ -105,7 +105,7 @@ export function UserDetailView({ user }: UserDetailViewProps) {
                             }`}
                     >
                         {isUpdatingRole ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <RippleSpinner size={28} color="currentColor" label="Updating role" />
                         ) : user.role === "ADMIN" ? (
                             <User className="h-4 w-4" />
                         ) : (
@@ -119,7 +119,7 @@ export function UserDetailView({ user }: UserDetailViewProps) {
                         disabled={isDeleting}
                         className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
                     >
-                        {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
+                        {isDeleting ? <RippleSpinner size={28} color="currentColor" label="Deleting user" /> : <Trash2 className="h-5 w-5" />}
                     </button>
                 </div>
             </div>

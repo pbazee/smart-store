@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Calendar,
   CreditCard,
-  Loader2,
   Mail,
   MapPin,
   NotebookText,
@@ -17,6 +16,7 @@ import {
   User,
 } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import type { AdminOrderDetail } from "@/lib/data-service";
 import { useToast } from "@/lib/use-toast";
 import { cn, formatKES } from "@/lib/utils";
@@ -190,7 +190,7 @@ export function OrderDetailView({ initialOrder }: { initialOrder: AdminOrderDeta
             )}
           >
             {prettifyStatus(order.orderStatus)}
-            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {isPending ? <RippleSpinner size={24} color="currentColor" label="Updating order" /> : null}
           </span>
           <span
             className={cn(

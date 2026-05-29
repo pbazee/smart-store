@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 
 const SUBJECT_OPTIONS = [
@@ -199,7 +200,7 @@ export function ContactFormCard({ supportEmail }: { supportEmail: string }) {
           disabled={isSubmitting}
           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {isSubmitting ? <RippleSpinner size={28} color="currentColor" label="Sending" /> : null}
           {isSubmitting ? "Sending..." : "Send Message"}
         </button>
       </form>

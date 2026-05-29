@@ -33,7 +33,7 @@ export function hasRealVariants(product: Pick<Product, "variants">) {
   return true;
 }
 
-export function getEffectiveProductStock(product: Pick<Product, "variants">) {
+export function getEffectiveProductStock(product: { variants: Array<{ stock: number }> }) {
   return product.variants.reduce((sum, variant) => sum + Math.max(0, variant.stock), 0);
 }
 

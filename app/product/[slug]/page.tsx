@@ -53,10 +53,14 @@ export async function generateMetadata({
   const storeName = branding?.storeName || "Smartest Store KE";
   const metadataBase = new URL(getAppUrl().includes("localhost") ? PRODUCT_SHARE_BASE_URL : getAppUrl());
   const productUrl = buildAbsoluteUrl(buildProductHref(product));
-  const imageUrl = product.images?.[0]
-    ? buildAbsoluteUrl(product.images[0])
+  const primaryImage =
+    product.images?.[0] ||
+    product.variants?.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+    "";
+  const imageUrl = primaryImage
+    ? buildAbsoluteUrl(primaryImage)
     : buildAbsoluteUrl("/og-image.jpg");
-  const description = product.description?.slice(0, 160) || buildProductDescription(product, storeName);
+  const description = buildProductDescription(product, storeName);
 
   return {
     metadataBase,
@@ -66,17 +70,24 @@ export async function generateMetadata({
       canonical: productUrl,
     },
     openGraph: {
-      title: product.name,
+      title: `${product.name} - ${formatKES(product.basePrice)}`,
       description,
       url: productUrl,
       siteName: storeName,
       type: "website",
       locale: "en_KE",
-      images: imageUrl ? [imageUrl] : [],
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${product.name} | ${storeName}`,
+      title: `${product.name} - ${formatKES(product.basePrice)}`,
       description,
       images: [imageUrl],
     },

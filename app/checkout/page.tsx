@@ -8,11 +8,11 @@ import {
   AlertCircle,
   CheckCircle,
   CreditCard,
-  Loader2,
   ShieldCheck,
   Smartphone,
   Truck,
 } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { z } from "zod";
 import { useShallow } from "zustand/react/shallow";
 import { useSessionUser } from "@/hooks/use-session-user";
@@ -906,7 +906,7 @@ function ShippingStep({
     if (isShippingQuoting) {
       return (
         <div className="mt-4 flex min-h-[72px] items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <RippleSpinner size={28} color="currentColor" label="Checking delivery fee" />
           Checking delivery fee for {county}...
         </div>
       );
@@ -1221,7 +1221,7 @@ function ReviewStep({
         disabled={isProcessing}
         className="flex w-full items-center justify-center gap-3 rounded-full bg-orange-500 py-4 text-sm font-black text-white transition hover:bg-orange-600 disabled:opacity-60"
       >
-        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+        {isProcessing ? <RippleSpinner size={28} color="currentColor" label="Processing payment" /> : <ShieldCheck className="h-4 w-4" />}
         Pay with Paystack | {formatKES(finalTotal)}
       </button>
 

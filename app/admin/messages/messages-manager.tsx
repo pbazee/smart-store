@@ -3,7 +3,6 @@
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import {
   Clock3,
-  Loader2,
   Mail,
   MessageCircleMore,
   Search,
@@ -16,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import type { ContactMessage } from "@/types";
 
@@ -394,7 +394,7 @@ export function MessagesManager({
                   className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
                 >
                   {isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <RippleSpinner size={28} color="currentColor" label="Sending" />
                   ) : (
                     <Send className="h-4 w-4" />
                   )}

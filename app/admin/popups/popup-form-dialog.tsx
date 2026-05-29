@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ImagePlus, Loader2, Save } from "lucide-react";
+import { ImagePlus, Save } from "lucide-react";
 import {
   cleanupPopupImageAction,
   createAdminPopupAction,
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import type { Popup } from "@/types";
 
@@ -354,7 +355,7 @@ export function PopupFormDialog({
               disabled={isPending}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Save className="h-4 w-4" />}
               {isPending ? "Saving..." : popup ? "Save changes" : "Create popup"}
             </button>
           </div>

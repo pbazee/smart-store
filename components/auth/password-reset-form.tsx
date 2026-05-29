@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, Loader2, Shield } from "lucide-react";
+import { AlertCircle, Shield } from "lucide-react";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { resetCustomerPasswordAction } from "@/app/auth/customer-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,7 +107,7 @@ export function PasswordResetForm({
         >
           {isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <RippleSpinner size={28} color="currentColor" label="Updating password" className="mr-2" />
               Updating password...
             </>
           ) : (

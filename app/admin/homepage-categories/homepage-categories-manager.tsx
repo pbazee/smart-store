@@ -1,9 +1,10 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
-import { ImagePlus, LayoutGrid, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ImagePlus, LayoutGrid, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { deleteAdminHomepageCategoryAction } from "@/app/admin/homepage-categories/actions";
 import { HomepageCategoryFormDialog } from "@/app/admin/homepage-categories/homepage-category-form-dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import type { Category, HomepageCategory } from "@/types";
 
@@ -247,7 +248,7 @@ export function HomepageCategoriesManager({
                           className="rounded-xl border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-red-400 hover:text-red-400 disabled:opacity-50"
                         >
                           {isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <RippleSpinner size={28} color="currentColor" label="Deleting" />
                           ) : (
                             <Trash2 className="h-4 w-4" />
                           )}

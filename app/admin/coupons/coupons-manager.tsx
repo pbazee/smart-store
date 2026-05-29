@@ -1,9 +1,10 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
-import { Loader2, Plus, Search, TicketPercent, Trash2, Pencil } from "lucide-react";
+import { Plus, Search, TicketPercent, Trash2, Pencil } from "lucide-react";
 import { CouponFormDialog } from "@/app/admin/coupons/coupon-form-dialog";
 import { deleteAdminCouponAction } from "@/app/admin/coupons/actions";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import { useToast } from "@/lib/use-toast";
 import { formatKES } from "@/lib/utils";
 import type { Coupon } from "@/types";
@@ -252,7 +253,7 @@ export function CouponsManager({
                           className="rounded-xl border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-red-400 hover:text-red-400 disabled:opacity-50"
                         >
                           {isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <RippleSpinner size={28} color="currentColor" label="Deleting" />
                           ) : (
                             <Trash2 className="h-4 w-4" />
                           )}

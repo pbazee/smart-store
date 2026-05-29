@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RippleSpinner } from "@/components/ui/ripple-loader";
 import {
   createAdminAnnouncementAction,
   updateAdminAnnouncementAction,
@@ -261,7 +262,7 @@ export function AnnouncementFormDialog({
               disabled={isPending}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Plus className="h-4 w-4" />}
               {isPending ? "Saving..." : announcement ? "Save changes" : "Create announcement"}
             </button>
           </div>
