@@ -7,7 +7,7 @@ import { listLandingOverrides } from "@/lib/landing-section-overrides";
 export default async function LandingOverridesPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Flanding-overrides");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Flanding-overrides");
   }
 
   const [overrides, products] = await Promise.all([

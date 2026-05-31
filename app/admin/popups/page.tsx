@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminPopupsPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fpopups");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Fpopups");
   }
 
   const popups = await fetchAdminPopups();

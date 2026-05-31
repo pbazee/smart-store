@@ -123,7 +123,7 @@ function ProductCardComponent({
         title: "Sign in required",
         description: "Create an account or use demo login to save this item.",
       });
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(redirectPath || "/wishlist")}`);
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(redirectPath || "/wishlist")}`);
       return;
     }
 

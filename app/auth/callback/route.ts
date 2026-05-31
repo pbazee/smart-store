@@ -15,12 +15,15 @@ import { cookies } from "next/headers";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const requestedRedirectUrl = resolveRequestedRedirectPath(searchParams.get("redirect_url"), "/");
+  const requestedRedirectUrl = resolveRequestedRedirectPath(
+    searchParams.get("callbackUrl") ?? searchParams.get("redirect_url"),
+    "/"
+  );
 
   try {
     if (!code) {
       return NextResponse.redirect(
-        new URL(`/sign-in?error=no_auth_code&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
+        new URL(`/sign-in?error=no_auth_code&callbackUrl=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
       );
     }
 
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
     if (sessionError || !sessionData?.user) {
       console.error("Auth callback exchange error:", sessionError);
       return NextResponse.redirect(
-        new URL(`/sign-in?error=auth_failed&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
+        new URL(`/sign-in?error=auth_failed&callbackUrl=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
       );
     }
 
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (!normalizedEmail) {
       return NextResponse.redirect(
-        new URL(`/sign-in?error=missing_email&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
+        new URL(`/sign-in?error=missing_email&callbackUrl=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
       );
     }
 
@@ -124,7 +127,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Auth callback error:", error);
     return NextResponse.redirect(
-      new URL(`/sign-in?error=callback_failed&redirect_url=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
+      new URL(`/sign-in?error=callback_failed&callbackUrl=${encodeURIComponent(requestedRedirectUrl)}`, request.url)
     );
   }
 }

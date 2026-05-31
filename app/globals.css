@@ -157,89 +157,24 @@
   display: block;
   width: var(--ripple-size);
   height: var(--ripple-size);
-}
-
-.ripple-spinner__ring,
-.ripple-spinner__center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ripple-spinner__ring::before {
-  content: "";
-  display: block;
-  width: var(--ripple-dot-size);
-  height: var(--ripple-dot-size);
-  border: 2px solid var(--ripple-color);
   border-radius: 9999px;
-  opacity: 0.72;
-  animation: ripple-ring 1.2s ease-out infinite;
-}
-
-.ripple-spinner__center {
-  z-index: 2;
-  animation: ripple-center-pulse 1.2s ease-out infinite;
-}
-
-.ripple-spinner__dot {
-  width: var(--ripple-dot-size);
-  height: var(--ripple-dot-size);
-  border-radius: 9999px;
-  background: var(--ripple-color);
+  border: max(3px, calc(var(--ripple-size) * 0.08)) solid color-mix(in srgb, var(--ripple-color) 18%, transparent);
+  border-top-color: var(--ripple-color);
+  border-right-color: var(--ripple-color);
+  border-bottom-color: var(--ripple-color);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ripple-color) 68%, transparent));
+  animation: ripple-ring 0.82s linear infinite;
 }
 
 @keyframes ripple-ring {
-  0% {
-    transform: scale(1);
-    border-width: 2px;
-    opacity: 0.72;
-  }
-  100% {
-    transform: scale(4.8);
-    border-width: 0.5px;
-    opacity: 0;
-  }
-}
-
-@keyframes ripple-center-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.15);
+  to {
+    transform: rotate(360deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ripple-spinner__ring::before,
-  .ripple-spinner__center {
+  .ripple-spinner {
     animation: none;
-  }
-
-  .ripple-spinner__ring:nth-child(1)::before {
-    transform: scale(1.8);
-    border-width: 2px;
-    opacity: 0.24;
-  }
-
-  .ripple-spinner__ring:nth-child(2)::before {
-    transform: scale(3.4);
-    border-width: 1.5px;
-    opacity: 0.16;
-  }
-
-  .ripple-spinner__ring:nth-child(3)::before {
-    transform: scale(5);
-    border-width: 1px;
-    opacity: 0.1;
-  }
-
-  .ripple-spinner__ring:nth-child(4)::before {
-    opacity: 0;
   }
 }
 

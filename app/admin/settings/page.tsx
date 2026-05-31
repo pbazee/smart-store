@@ -51,7 +51,7 @@ const GLOBAL_CONTROL_LINKS = [
 export default async function AdminSettingsPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fsettings");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Fsettings");
   }
 
   const [settingsResult, legalResult, faqsResult, whatsAppResult] = await Promise.allSettled([

@@ -100,7 +100,7 @@ export function ReviewsPanel({
     event.preventDefault();
 
     if (!sessionUser) {
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 

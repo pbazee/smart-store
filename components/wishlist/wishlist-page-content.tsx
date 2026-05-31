@@ -124,7 +124,7 @@ export default function WishlistPageClient() {
           Save items while you&apos;re signed in to access them anywhere.
         </p>
         <Link
-          href="/sign-in?redirect_url=/wishlist"
+          href="/sign-in?callbackUrl=/wishlist"
           className="mt-8 inline-flex rounded-full bg-orange-500 px-8 py-4 text-sm font-black text-white"
         >
           Sign In

@@ -86,7 +86,7 @@ export function PasswordResetRequestForm({
       <p className="text-center text-sm text-white/55">
         Remembered it?{" "}
         <Link
-          href={redirectUrl ? `/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
+          href={redirectUrl ? `/sign-in?callbackUrl=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
           className="font-semibold text-orange-300 hover:text-orange-200"
         >
           Sign in

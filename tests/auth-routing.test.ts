@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { getAuthRedirectPath } from "../lib/auth-routing";
 
-test("redirects unauthenticated admin traffic to Clerk sign-in with redirect", () => {
+test("redirects unauthenticated admin traffic to sign-in with callbackUrl", () => {
   assert.equal(
     getAuthRedirectPath({ pathname: "/admin/products", userId: null }),
-    "/sign-in?redirect_url=%2Fadmin%2Fproducts"
+    "/sign-in?callbackUrl=%2Fadmin%2Fproducts"
   );
 });
 
@@ -16,10 +16,10 @@ test("redirects authenticated non-admins away from admin routes", () => {
   );
 });
 
-test("allows guests to access checkout", () => {
+test("redirects guests from checkout with callbackUrl", () => {
   assert.equal(
     getAuthRedirectPath({ pathname: "/checkout", userId: null }),
-    null
+    "/sign-in?callbackUrl=%2Fcheckout"
   );
 });
 

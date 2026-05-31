@@ -9,7 +9,7 @@ import { signInCustomerAction, signInWithGoogleAction } from "@/app/auth/custome
 
 export function CustomerSignInForm() {
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect_url") || "/";
+  const redirectUrl = searchParams.get("callbackUrl") || searchParams.get("redirect_url") || "/";
   const error = searchParams.get("error");
   const [googlePending, startGoogleTransition] = useTransition();
   const [state, formAction, isPending] = useActionState(signInCustomerAction, {
@@ -120,7 +120,7 @@ export function CustomerSignInForm() {
       <div className="text-center text-sm text-white/60">
         Don't have an account?{" "}
         <Link
-          href={`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`}
+          href={`/sign-up?callbackUrl=${encodeURIComponent(redirectUrl)}`}
           className="text-orange-400 hover:text-orange-300 font-medium"
         >
           Create one

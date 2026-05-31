@@ -10,7 +10,7 @@ import { getAdminContactMessages } from "@/lib/contact-message-service";
 export default async function AdminMessagesPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fmessages");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Fmessages");
   }
 
   let messages: Awaited<ReturnType<typeof getAdminContactMessages>> = [];

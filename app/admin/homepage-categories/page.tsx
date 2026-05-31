@@ -9,7 +9,7 @@ import type { Category, HomepageCategory } from "@/types";
 export default async function AdminHomepageCategoriesPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fhomepage-categories");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Fhomepage-categories");
   }
 
   let homepageCategories: HomepageCategory[] = [];

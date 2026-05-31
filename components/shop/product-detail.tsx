@@ -62,7 +62,7 @@ export function ProductDetail({
   product: Product;
 }) {
   const initialVariant = hasRealVariants(product)
-    ? product.variants.find((variant) => variant.stock > 0) ?? product.variants[0]
+    ? product.variants[0]
     : undefined;
   const router = useRouter();
   const pathname = usePathname();
@@ -209,7 +209,7 @@ export function ProductDetail({
 
   useEffect(() => {
     const nextInitialVariant = hasRealVariants(product)
-      ? product.variants.find((variant) => variant.stock > 0) ?? product.variants[0]
+      ? product.variants[0]
       : undefined;
 
     setLiveProduct(product);
@@ -243,7 +243,7 @@ export function ProductDetail({
         }
 
         const nextInitialVariant = hasRealVariants(freshProduct)
-          ? freshProduct.variants.find((variant) => variant.stock > 0) ?? freshProduct.variants[0]
+          ? freshProduct.variants[0]
           : undefined;
 
         setLiveProduct(freshProduct);
@@ -415,7 +415,7 @@ export function ProductDetail({
         title: "Sign in required",
         description: "Use your account or demo login to save this product.",
       });
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(pathname || "/wishlist")}`);
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(pathname || "/wishlist")}`);
       return;
     }
 

@@ -24,7 +24,7 @@ function run(name, fn) {
 run("auth redirect flow", () => {
   assert.equal(
     getAuthRedirectPath({ pathname: "/admin/products", userId: null }),
-    "/sign-in?redirect_url=%2Fadmin%2Fproducts"
+    "/sign-in?callbackUrl=%2Fadmin%2Fproducts"
   );
   assert.equal(
     getAuthRedirectPath({ pathname: "/admin", userId: "user_123", role: "customer" }),
@@ -32,7 +32,7 @@ run("auth redirect flow", () => {
   );
   assert.equal(
     getAuthRedirectPath({ pathname: "/checkout", userId: null }),
-    "/sign-in?redirect_url=%2Fcheckout"
+    "/sign-in?callbackUrl=%2Fcheckout"
   );
   assert.equal(
     getAuthRedirectPath({ pathname: "/admin/orders", userId: "user_123", role: "admin" }),
@@ -102,14 +102,24 @@ run("build flag forces mock data", () => {
     true
   );
   assert.equal(
-    shouldUseMockData({ USE_MOCK_DATA: "false", SKIP_LIVE_DATA_DURING_BUILD: "true" }),
+    shouldUseMockData({
+      USE_MOCK_DATA: "false",
+      SKIP_LIVE_DATA_DURING_BUILD: "true",
+      NEXT_PHASE: "phase-production-build",
+    }),
     true
   );
   assert.equal(
     shouldUseMockData({ USE_MOCK_DATA: "false", SKIP_LIVE_DATA_DURING_BUILD: "false" }),
     false
   );
-  assert.equal(shouldSkipLiveDataDuringBuild({ SKIP_LIVE_DATA_DURING_BUILD: "true" }), true);
+  assert.equal(
+    shouldSkipLiveDataDuringBuild({
+      SKIP_LIVE_DATA_DURING_BUILD: "true",
+      NEXT_PHASE: "phase-production-build",
+    }),
+    true
+  );
   assert.equal(shouldSkipLiveDataDuringBuild({ SKIP_LIVE_DATA_DURING_BUILD: "false" }), false);
 });
 

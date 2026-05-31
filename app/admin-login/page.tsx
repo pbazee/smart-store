@@ -8,5 +8,5 @@ export default async function AdminLoginPage({
 }) {
   const { redirect_url } = await searchParams;
   const redirectPath = resolveAdminRedirectPath(redirect_url);
-  redirect(`/sign-in?redirect_url=${encodeURIComponent(redirectPath)}`);
+  redirect(`/sign-in?callbackUrl=${encodeURIComponent(redirectPath)}`);
 }

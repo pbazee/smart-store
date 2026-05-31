@@ -120,7 +120,7 @@ export async function requestCustomerPasswordResetAction(
       const resetUrl = new URL("/reset-password", getAppUrl());
 
       resetUrl.searchParams.set("token", resetToken);
-      resetUrl.searchParams.set("redirect_url", redirectPath);
+      resetUrl.searchParams.set("callbackUrl", redirectPath);
 
       await sendPasswordResetEmail({
         to: user.email,
@@ -465,7 +465,7 @@ export async function signInWithGoogleAction(redirectUrl?: string) {
   try {
     const supabase = await createSupabaseServerClient();
     const appUrl = getAppUrl();
-    const callbackUrl = `${appUrl}/auth/callback?redirect_url=${encodeURIComponent(redirectUrl || "/")}`;
+    const callbackUrl = `${appUrl}/auth/callback?callbackUrl=${encodeURIComponent(redirectUrl || "/")}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -500,7 +500,7 @@ export async function signUpWithGoogleAction(redirectUrl?: string) {
   try {
     const supabase = await createSupabaseServerClient();
     const appUrl = getAppUrl();
-    const callbackUrl = `${appUrl}/auth/callback?redirect_url=${encodeURIComponent(redirectUrl || "/")}`;
+    const callbackUrl = `${appUrl}/auth/callback?callbackUrl=${encodeURIComponent(redirectUrl || "/")}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",

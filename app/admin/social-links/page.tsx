@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/auth-utils";
 export default async function AdminSocialLinksPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fsocial-links");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Fsocial-links");
   }
 
   const socialLinks = await fetchAdminSocialLinks();

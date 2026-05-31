@@ -121,7 +121,7 @@ export function PasswordResetForm({
         <Link
           href={
             redirectUrl
-              ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
+              ? `/forgot-password?callbackUrl=${encodeURIComponent(redirectUrl)}`
               : "/forgot-password"
           }
           className="font-semibold text-orange-300 hover:text-orange-200"

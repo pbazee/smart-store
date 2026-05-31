@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type RippleSpinnerProps = {
@@ -8,20 +7,16 @@ type RippleSpinnerProps = {
   color?: string;
   label?: string;
   className?: string;
-  center?: ReactNode;
   showLabel?: boolean;
 };
 
 export function RippleSpinner({
-  size = 80,
+  size = 48,
   color = "#FF6400",
   label = "Loading...",
   className,
-  center,
   showLabel = false,
 }: RippleSpinnerProps) {
-  const dotSize = Math.max(8, Math.round(size / 5.5));
-
   return (
     <div
       className={cn("inline-flex flex-col items-center justify-center gap-4", className)}
@@ -31,22 +26,10 @@ export function RippleSpinner({
         {
           "--ripple-size": `${size}px`,
           "--ripple-color": color,
-          "--ripple-dot-size": `${dotSize}px`,
         } as React.CSSProperties
       }
     >
-      <span className="ripple-spinner" aria-hidden="true">
-        {[0, 1, 2, 3].map((index) => (
-          <span
-            key={index}
-            className="ripple-spinner__ring"
-            style={{ animationDelay: `${index * 0.18}s` }}
-          />
-        ))}
-        <span className="ripple-spinner__center">
-          {center ?? <span className="ripple-spinner__dot" />}
-        </span>
-      </span>
+      <span className="ripple-spinner" aria-hidden="true" />
       {showLabel ? (
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
       ) : (
@@ -57,18 +40,7 @@ export function RippleSpinner({
 }
 
 export function AdminLogoRippleSpinner({ label = "Loading admin..." }: { label?: string }) {
-  return (
-    <RippleSpinner
-      size={100}
-      color="#FF6400"
-      label={label}
-      center={
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF6400] text-lg font-black text-white shadow-[0_12px_34px_rgba(255,100,0,0.35)]">
-          S
-        </span>
-      }
-    />
-  );
+  return <RippleSpinner size={64} color="#FF6400" label={label} />;
 }
 
 export function PageLoader({
@@ -79,8 +51,8 @@ export function PageLoader({
   admin?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      {admin ? <AdminLogoRippleSpinner label={label} /> : <RippleSpinner size={72} label={label} />}
+    <div className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2">
+      {admin ? <AdminLogoRippleSpinner label={label} /> : <RippleSpinner size={64} label={label} />}
     </div>
   );
 }
@@ -88,7 +60,7 @@ export function PageLoader({
 export function InlineLoader({ label = "Loading" }: { label?: string }) {
   return (
     <div className="flex min-h-[45vh] items-center justify-center py-16">
-      <RippleSpinner size={72} label={label} showLabel />
+      <RippleSpinner size={48} label={label} showLabel />
     </div>
   );
 }

@@ -54,7 +54,7 @@ export default function AccountPage() {
         <div className="rounded-[2rem] border border-border bg-card p-8 text-center">
           <p className="text-muted-foreground">Please sign in to view your account.</p>
           <Link
-            href="/sign-in?redirect_url=%2Faccount"
+            href="/sign-in?callbackUrl=%2Faccount"
             className="mt-4 inline-block rounded-xl bg-brand-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
           >
             Sign In

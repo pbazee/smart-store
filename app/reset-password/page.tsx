@@ -9,18 +9,23 @@ export const dynamic = "force-dynamic";
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string | string[]; redirect_url?: string | string[] }>;
+  searchParams: Promise<{
+    token?: string | string[];
+    callbackUrl?: string | string[];
+    redirect_url?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
-  const redirectUrl = Array.isArray(params.redirect_url)
-    ? params.redirect_url[0]
-    : params.redirect_url;
+  const callbackUrl = Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl;
+  const redirectUrl =
+    callbackUrl ??
+    (Array.isArray(params.redirect_url) ? params.redirect_url[0] : params.redirect_url);
 
   if (!token) {
     redirect(
       redirectUrl
-        ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
+        ? `/forgot-password?callbackUrl=${encodeURIComponent(redirectUrl)}`
         : "/forgot-password"
     );
   }
@@ -44,7 +49,7 @@ export default async function ResetPasswordPage({
             <Link
               href={
                 redirectUrl
-                  ? `/forgot-password?redirect_url=${encodeURIComponent(redirectUrl)}`
+                  ? `/forgot-password?callbackUrl=${encodeURIComponent(redirectUrl)}`
                   : "/forgot-password"
               }
               className="flex-1 rounded-[1.1rem] bg-orange-500 px-5 py-3 text-center text-sm font-bold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition-colors hover:bg-orange-600"
@@ -52,7 +57,7 @@ export default async function ResetPasswordPage({
               Request a new reset link
             </Link>
             <Link
-              href={redirectUrl ? `/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
+              href={redirectUrl ? `/sign-in?callbackUrl=${encodeURIComponent(redirectUrl)}` : "/sign-in"}
               className="flex-1 rounded-[1.1rem] border border-white/12 bg-black/25 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-black/35"
             >
               Back to sign in

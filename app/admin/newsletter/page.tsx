@@ -8,7 +8,7 @@ import { getNewsletterSubscribers, isResendConfigured } from "@/lib/newsletter-s
 export default async function AdminNewsletterPage() {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {
-    redirect("/sign-in?redirect_url=%2Fadmin%2Fnewsletter");
+    redirect("/sign-in?callbackUrl=%2Fadmin%2Fnewsletter");
   }
 
   let subscribers: Awaited<ReturnType<typeof getNewsletterSubscribers>> = [];
