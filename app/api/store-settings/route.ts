@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getStoreBranding } from "@/lib/store-branding";
 
-export const revalidate = 60;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -10,7 +11,7 @@ export async function GET() {
       { success: true, data: settings },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600",
+          "Cache-Control": "no-store, max-age=0",
         },
       }
     );

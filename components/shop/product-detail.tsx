@@ -61,9 +61,10 @@ export function ProductDetail({
 }: {
   product: Product;
 }) {
-  const initialVariant = hasRealVariants(product)
-    ? product.variants[0]
-    : undefined;
+  const initialDisplayImage =
+    product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+    product.images[0] ||
+    "/images/product-placeholder.png";
   const router = useRouter();
   const pathname = usePathname();
   const imageRef = useRef<HTMLDivElement>(null);
@@ -74,9 +75,7 @@ export function ProductDetail({
   const { sessionUser } = useSessionUser();
   const [liveProduct, setLiveProduct] = useState(product);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [displayedImage, setDisplayedImage] = useState(
-    initialVariant?.variantImageUrl || product.images[0] || "/images/product-placeholder.png"
-  );
+  const [displayedImage, setDisplayedImage] = useState(initialDisplayImage);
   const [zoomed, setZoomed] = useState(false);
   const [heartAnimating, setHeartAnimating] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
@@ -91,8 +90,8 @@ export function ProductDetail({
   const currentProduct = liveProduct;
   const hasVariants = hasRealVariants(currentProduct);
   const defaultVariant = useMemo(() => createDefaultProductVariant(currentProduct), [currentProduct]);
-  const [selectedColor, setSelectedColor] = useState(initialVariant?.color ?? "");
-  const [selectedSize, setSelectedSize] = useState(initialVariant?.size ?? "");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
 
   const colors = useMemo(
     () => [...new Set(currentProduct.variants.map((variant) => variant.color))],
@@ -150,6 +149,12 @@ export function ProductDetail({
   const shareDescription = currentProduct.description?.trim()
     ? `${currentProduct.description.trim().slice(0, 100)}${currentProduct.description.trim().length > 100 ? "..." : ""}`
     : "";
+  const shareImage =
+    currentProduct.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+    currentProduct.images[0] ||
+    displayedImage ||
+    "";
+  const shareImageUrl = pageUrl && shareImage ? new URL(shareImage, pageUrl).toString() : shareImage;
   const normalizedShareMessage = pageUrl
     ? `🛍️ *${currentProduct.name}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}\n\n👉 Shop here: ${pageUrl}`
     : `🛍️ *${currentProduct.name}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}`;
@@ -208,16 +213,15 @@ export function ProductDetail({
   };
 
   useEffect(() => {
-    const nextInitialVariant = hasRealVariants(product)
-      ? product.variants[0]
-      : undefined;
+    const nextDisplayImage =
+      product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+      product.images[0] ||
+      "/images/product-placeholder.png";
 
     setLiveProduct(product);
-    setSelectedColor(nextInitialVariant?.color ?? "");
-    setSelectedSize(nextInitialVariant?.size ?? "");
-    setDisplayedImage(
-      nextInitialVariant?.variantImageUrl || product.images[0] || "/images/product-placeholder.png"
-    );
+    setSelectedColor("");
+    setSelectedSize("");
+    setDisplayedImage(nextDisplayImage);
   }, [product]);
 
   useEffect(() => {
@@ -242,17 +246,16 @@ export function ProductDetail({
           return;
         }
 
-        const nextInitialVariant = hasRealVariants(freshProduct)
-          ? freshProduct.variants[0]
-          : undefined;
+        const nextDisplayImage =
+          freshProduct.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+          freshProduct.images[0] ||
+          "/images/product-placeholder.png";
 
         setLiveProduct(freshProduct);
-        setSelectedColor((current) => current || nextInitialVariant?.color || "");
-        setSelectedSize((current) => current || nextInitialVariant?.size || "");
-        if (nextInitialVariant?.variantImageUrl) {
+        if (nextDisplayImage) {
           setDisplayedImage((current) =>
             current === (product.images[0] || "/images/product-placeholder.png")
-              ? nextInitialVariant.variantImageUrl || current
+              ? nextDisplayImage
               : current
           );
         }
@@ -864,6 +867,7 @@ export function ProductDetail({
               title={currentProduct.name}
               text={`Check out ${currentProduct.name} on Smartest Store KE${shareDescription ? `. ${shareDescription}` : ""}`}
               url={pageUrl}
+              imageUrl={shareImageUrl}
               label="Share this product"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             />

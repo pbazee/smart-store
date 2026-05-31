@@ -17,7 +17,8 @@ import {
   getHomepagePageData,
 } from "@/lib/homepage-data";
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export default async function HomePage() {
   const homepageDataPromise = getHomepagePageData();
   const heroSlidesPromise = homepageDataPromise.then((data) => data.heroSlides);

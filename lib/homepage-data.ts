@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveCategories } from "@/lib/category-service";
 import { getActiveHomepageCategories } from "@/lib/homepage-category-service";
 import { getPublishedBlogPosts } from "@/lib/blog-service";
-import { getActiveHeroSlides, getDefaultHeroSlides } from "@/lib/hero-slide-service";
+import { getActiveHeroSlides } from "@/lib/hero-slide-service";
 import { getPromoBanners } from "@/lib/promo-banner-service";
 import { getStoreSettings as getPersistedStoreSettings } from "@/lib/store-settings";
 import { getWhatsAppSettings as getPersistedWhatsAppSettings } from "@/lib/whatsapp-service";
@@ -16,7 +16,6 @@ import type { HeroSlide, Product } from "@/types";
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
 const STATIC_STORE_DATA_REVALIDATE_SECONDS = 900;
-let lastKnownHomepageHeroSlides: HeroSlide[] = [];
 
 export type HomepageProductSectionsData = {
   featured: Product[];
@@ -183,17 +182,9 @@ export const getCachedHeroSlides = unstable_cache(
   async (): Promise<HeroSlide[]> => {
     try {
       if (shouldSkipLiveDataDuringBuild()) {
-        return getDefaultHeroSlides();
+        return [];
       }
-      const slides = await getActiveHeroSlides();
-      if (slides.length > 0) {
-        lastKnownHomepageHeroSlides = slides;
-        return slides;
-      }
-
-      return lastKnownHomepageHeroSlides.length > 0
-        ? lastKnownHomepageHeroSlides
-        : getDefaultHeroSlides();
+      return await getActiveHeroSlides();
     } catch (error) {
       console.error("[HeroSlides] DB error, not caching fallback:", error);
       throw error;

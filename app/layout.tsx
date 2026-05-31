@@ -27,6 +27,9 @@ const display = Bricolage_Grotesque({
 });
 const metadataBase = new URL(getAppUrl());
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   metadataBase,
   title: "Smartest Store KE | Shoes, Clothes & Streetwear",
@@ -80,21 +83,12 @@ function AnnouncementBarFallback() {
   );
 }
 
-const FALLBACK_HOMEPAGE_SHELL_DATA = {
-  announcements: [],
-  popups: [],
-  socialLinks: [],
-  whatsAppSettings: null,
-  storeSettings: null,
-  navigationCategories: [],
-};
-
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const shellData = await getHomepageShellData().catch(() => FALLBACK_HOMEPAGE_SHELL_DATA);
+  const shellData = await getHomepageShellData();
 
   return (
     <html

@@ -57,12 +57,12 @@ function rememberStoreSettings(settings: StoreSettings | null) {
 }
 
 export function getStoreSettingsFallback() {
-  return getLastKnownStoreSettings() ?? DEFAULT_STORE_SETTINGS;
+  return getLastKnownStoreSettings();
 }
 
 export async function getStoreSettings(options: GetStoreSettingsOptions = {}) {
   if (shouldSkipLiveDataDuringBuild()) {
-    return getStoreSettingsFallback();
+    return null;
   }
 
   const { seedIfEmpty = false, fallbackOnError = seedIfEmpty } = options;

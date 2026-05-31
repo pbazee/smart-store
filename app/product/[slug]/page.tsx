@@ -5,13 +5,14 @@ import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductJsonLd } from "@/components/shop/product-json-ld";
 import { InlineLoader } from "@/components/ui/ripple-loader";
 import { getAppUrl } from "@/lib/app-url";
-import { getProductByIdentifier, getProductStaticSlugs } from "@/lib/data-service";
+import { getProductByIdentifier } from "@/lib/data-service";
 import { buildProductHref } from "@/lib/product-routes";
 import { getStoreBranding } from "@/lib/store-branding";
 import { formatKES } from "@/lib/utils";
 import { ProductRecommendations } from "./product-recommendations";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 const PRODUCT_SHARE_BASE_URL = "https://smart-store-iota.vercel.app";
 
 function buildAbsoluteUrl(pathOrUrl: string) {
@@ -54,8 +55,8 @@ export async function generateMetadata({
   const metadataBase = new URL(getAppUrl().includes("localhost") ? PRODUCT_SHARE_BASE_URL : getAppUrl());
   const productUrl = buildAbsoluteUrl(buildProductHref(product));
   const primaryImage =
-    product.images?.[0] ||
     product.variants?.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+    product.images?.[0] ||
     "";
   const imageUrl = primaryImage
     ? buildAbsoluteUrl(primaryImage)
@@ -96,12 +97,6 @@ export async function generateMetadata({
       "og:price:currency": "KES",
     },
   };
-}
-
-export async function generateStaticParams() {
-  const products = await getProductStaticSlugs();
-
-  return products.map((product) => ({ slug: product.slug }));
 }
 
 export default async function ProductPage({

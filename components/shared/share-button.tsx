@@ -23,6 +23,7 @@ type ShareButtonProps = {
   title: string;
   text: string;
   url: string;
+  imageUrl?: string;
   label?: string;
   className?: string;
 };
@@ -31,6 +32,7 @@ export function ShareButton({
   title,
   text,
   url,
+  imageUrl,
   label = "Share",
   className,
 }: ShareButtonProps) {
@@ -48,6 +50,26 @@ export function ShareButton({
   const handleNativeShare = async () => {
     if (!navigator.share) {
       return;
+    }
+
+    if (imageUrl && navigator.canShare) {
+      try {
+        const response = await fetch(imageUrl, { cache: "force-cache" });
+        const blob = await response.blob();
+        const extension = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+        const files = [
+          new File([blob], `product-share.${extension}`, {
+            type: blob.type || "image/jpeg",
+          }),
+        ];
+
+        if (navigator.canShare({ files })) {
+          await navigator.share({ title, text, url, files });
+          return;
+        }
+      } catch {
+        // Some remote image hosts block browser fetches. The URL share still uses OG image metadata.
+      }
     }
 
     await navigator.share({ title, text, url });
