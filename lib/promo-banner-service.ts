@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { getDefaultPromoBanners, DEFAULT_PROMO_BANNER_SEEDS } from "@/lib/default-promo-banners";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import type { PromoBanner } from "@/types";
 
 type PromoBannerQueryOptions = {
@@ -189,11 +190,30 @@ async function loadPromoBanners(options: PromoBannerQueryOptions = {}): Promise<
     await seedPromoBannersIfEmpty();
   }
 
-  const rows = await queryPromoBanners(activeOnly);
+  let rows: PromoBannerRecord[];
+  try {
+    rows = await queryPromoBanners(activeOnly);
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.error("[PromoBanners] Database unavailable, returning no promotional banners:", error);
+      return [];
+    }
+
+    throw error;
+  }
 
   if (rows.length === 0 && seedIfEmpty) {
     await seedPromoBannersIfEmpty();
-    return (await queryPromoBanners(activeOnly)).map(normalizePromoBannerRecord);
+    try {
+      return (await queryPromoBanners(activeOnly)).map(normalizePromoBannerRecord);
+    } catch (error) {
+      if (isPrismaConnectionError(error)) {
+        console.error("[PromoBanners] Database unavailable after seeding attempt:", error);
+        return [];
+      }
+
+      throw error;
+    }
   }
 
   return rows.map(normalizePromoBannerRecord);

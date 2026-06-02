@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { getEffectiveProductStock } from "@/lib/product-stock";
 import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 import type { Order, Product } from "@/types";
 
@@ -327,18 +328,27 @@ async function loadProductsFromDb(
     return [];
   }
 
-  return withLiveData(
-    "getProducts",
-    async () =>
-      (await prisma.product.findMany({
-        where: buildProductWhere(filters),
-        select: CATALOG_PRODUCT_SELECT,
-        orderBy: productOrderBy,
-        take: filters.take,
-        skip: filters.skip,
-      })).map(toCatalogProduct),
-    options
-  );
+  try {
+    return await withLiveData(
+      "getProducts",
+      async () =>
+        (await prisma.product.findMany({
+          where: buildProductWhere(filters),
+          select: CATALOG_PRODUCT_SELECT,
+          orderBy: productOrderBy,
+          take: filters.take,
+          skip: filters.skip,
+        })).map(toCatalogProduct),
+      options
+    );
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.error("[Products] Database unavailable, returning empty catalog result:", error);
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 export async function getProducts(
@@ -367,14 +377,23 @@ async function loadProductBySlug(slug: string) {
     return null;
   }
 
-  return withLiveData(
-    "getProductBySlug",
-    async () =>
-      (await prisma.product.findFirst({
-        where: buildValidCatalogProductWhere({ slug }),
-        select: CATALOG_PRODUCT_SELECT,
-      })) as Product | null
-  );
+  try {
+    return await withLiveData(
+      "getProductBySlug",
+      async () =>
+        (await prisma.product.findFirst({
+          where: buildValidCatalogProductWhere({ slug }),
+          select: CATALOG_PRODUCT_SELECT,
+        })) as Product | null
+    );
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.error("[Products] Database unavailable while loading product by slug:", error);
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -382,16 +401,25 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 async function loadProductByIdentifier(identifier: string) {
-  return withLiveData(
-    "getProductByIdentifier",
-    async () =>
-      (await prisma.product.findFirst({
-        where: buildValidCatalogProductWhere({
-          OR: [{ slug: identifier }, { id: identifier }],
-        }),
-        select: CATALOG_PRODUCT_SELECT,
-      })) as Product | null
-  );
+  try {
+    return await withLiveData(
+      "getProductByIdentifier",
+      async () =>
+        (await prisma.product.findFirst({
+          where: buildValidCatalogProductWhere({
+            OR: [{ slug: identifier }, { id: identifier }],
+          }),
+          select: CATALOG_PRODUCT_SELECT,
+        })) as Product | null
+    );
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.error("[Products] Database unavailable while loading product by identifier:", error);
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export async function getProductStaticSlugs(take = 200) {
