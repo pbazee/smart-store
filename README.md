@@ -1,5 +1,7 @@
 # Smartest Store KE 🇰🇪
 
+> 🚀 **Update (June 2):** Applied connection pooling optimizations and resilient error boundaries to the homepage data fetching. Sections will now gracefully handle any Supabase `ECHECKOUTTIMEOUT` incidents.
+
 Kenya's smartest fashion ecommerce platform. Built with Next.js 15, featuring M-Pesa payments, Nairobi delivery, and a full admin dashboard.
 
 ## ⚡ Run Demo in 30 Seconds
