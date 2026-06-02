@@ -378,14 +378,7 @@ async function loadProductBySlug(slug: string) {
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  return unstable_cache(
-    () => loadProductBySlug(slug),
-    ["product-by-slug", slug],
-    {
-      revalidate: DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS,
-      tags: [PRODUCTS_CACHE_TAG],
-    }
-  )();
+  return loadProductBySlug(slug);
 }
 
 async function loadProductByIdentifier(identifier: string) {
@@ -423,14 +416,7 @@ export async function getProductStaticSlugs(take = 200) {
 }
 
 export async function getProductByIdentifier(identifier: string): Promise<Product | null> {
-  return unstable_cache(
-    () => loadProductByIdentifier(identifier),
-    ["product-by-identifier", identifier],
-    {
-      revalidate: DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS,
-      tags: [PRODUCTS_CACHE_TAG],
-    }
-  )();
+  return loadProductByIdentifier(identifier);
 }
 
 export async function getCountProducts(filters?: ProductQueryFilters) {

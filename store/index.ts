@@ -72,7 +72,7 @@ interface DemoStore {
 export const useDemoStore = create<DemoStore>()(
   persist(
     (set) => ({
-      useMockData: process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "false",
+      useMockData: process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true",
       toggleMockData: () => set((state) => ({ useMockData: !state.useMockData })),
     }),
     { name: "ske-demo" }

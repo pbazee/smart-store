@@ -5,7 +5,8 @@ import { buildCatalogHref } from "@/lib/catalog-routing";
 import { getCatalogPageData } from "@/lib/catalog-page-data";
 import type { CatalogQueryInput } from "@/lib/catalog-routing";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ShopPage({
   searchParams,
@@ -13,7 +14,9 @@ export default async function ShopPage({
   searchParams: Promise<CatalogQueryInput>;
 }) {
   const params = await searchParams;
-  const { heading, products, categories } = await getCatalogPageData(params);
+  const { heading, products, categories } = await getCatalogPageData(params, {
+    disableProductCache: true,
+  });
   const browserKey = buildCatalogHref(params);
 
   return (

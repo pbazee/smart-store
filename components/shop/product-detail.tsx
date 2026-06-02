@@ -7,28 +7,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Heart,
-  Link,
-  MessageCircle,
   Share,
   Shield,
-  Send,
   ShoppingBag,
   Smartphone,
   Star,
   Truck,
-  Twitter,
   ZoomIn,
 } from "lucide-react";
-import { SizeGuideDialog } from "@/components/shop/size-guide-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ShareButton } from "@/components/shared/share-button";
+import { SizeGuideDialog } from "@/components/shop/size-guide-dialog";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { buildProductHref } from "@/lib/product-routes";
 import {
@@ -116,10 +104,7 @@ export function ProductDetail({
     [currentProduct.variants]
   );
   const displayImages = useMemo(() => {
-    const variantImage =
-      selectedVariant?.variantImageUrl ||
-      currentProduct.variants.find((variant) => variant.color === selectedColor)?.variantImageUrl ||
-      "";
+    const variantImage = selectedVariant?.variantImageUrl || "";
 
     return Array.from(
       new Set([variantImage, displayedImage, ...currentProduct.images, ...variantImages].filter(Boolean))
@@ -292,29 +277,17 @@ export function ProductDetail({
   }, [displayImages, displayedImage]);
 
   useEffect(() => {
-    const hasSelectedColor = currentProduct.variants.some((variant) => variant.color === selectedColor);
     if (!selectedColor) {
       setSelectedSize("");
       return;
     }
 
-    if (hasSelectedColor) {
-      const hasSelectedSize = currentProduct.variants.some(
-        (variant) => variant.color === selectedColor && variant.size === selectedSize
-      );
-      if (hasSelectedSize) {
-        return;
-      }
+    const hasSelectedSize = currentProduct.variants.some(
+      (variant) => variant.color === selectedColor && variant.size === selectedSize
+    );
 
-      const nextVariant =
-        currentProduct.variants.find(
-          (variant) => variant.color === selectedColor && variant.stock > 0
-        ) ?? currentProduct.variants.find((variant) => variant.color === selectedColor);
-
-      if (nextVariant?.size) {
-        setSelectedSize(nextVariant.size);
-      }
-      return;
+    if (selectedSize && !hasSelectedSize) {
+      setSelectedSize("");
     }
   }, [currentProduct, selectedColor, selectedSize]);
 
@@ -536,17 +509,6 @@ export function ProductDetail({
                 key={`${image}-${index}`}
                 type="button"
                 onClick={() => {
-                  const imageVariant = currentProduct.variants.find(
-                    (variant) => variant.variantImageUrl === image
-                  );
-
-                  if (imageVariant) {
-                    setSelectedColor(imageVariant.color);
-                    setSelectedSize(imageVariant.size);
-                    setNotifyOpen(false);
-                    setNotifyMessage(null);
-                  }
-
                   setSelectedImage(index);
                   setDisplayedImage(image);
                 }}
@@ -628,16 +590,8 @@ export function ProductDetail({
                         type="button"
                         onClick={() => {
                           setSelectedColor(color);
-                          const nextVariant =
-                            currentProduct.variants.find(
-                              (item) => item.color === color && item.stock > 0
-                            ) ?? currentProduct.variants.find((item) => item.color === color);
-                          setSelectedSize(nextVariant?.size ?? "");
-                          setDisplayedImage(
-                            nextVariant?.variantImageUrl ||
-                              currentProduct.images[0] ||
-                              "/images/product-placeholder.png"
-                          );
+                          setSelectedSize("");
+                          setDisplayedImage(currentProduct.images[0] || initialDisplayImage);
                           setNotifyOpen(false);
                           setNotifyMessage(null);
                         }}

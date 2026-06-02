@@ -1,10 +1,8 @@
-import { unstable_cache } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
 import { buildValidCatalogProductWhere } from "@/lib/product-integrity";
 
-const PUBLIC_PRODUCTS_CACHE_HEADER = "public, s-maxage=300, stale-while-revalidate=600";
+const FRESH_PRODUCTS_CACHE_HEADER = "no-store, max-age=0";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,21 +13,12 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedIds = ids.filter((id): id is string => typeof id === "string" && id.length > 0);
-    const cacheKey = normalizedIds.slice().sort().join(",");
-    const products = await unstable_cache(
-      async () =>
-        prisma.product.findMany({
-          where: buildValidCatalogProductWhere({
-            id: { in: normalizedIds },
-          }),
-          include: { variants: true },
-        }),
-      ["products-batch", cacheKey],
-      {
-        revalidate: 300,
-        tags: [PRODUCTS_CACHE_TAG],
-      }
-    )();
+    const products = await prisma.product.findMany({
+      where: buildValidCatalogProductWhere({
+        id: { in: normalizedIds },
+      }),
+      include: { variants: true },
+    });
 
     const productMap = new Map(products.map((product) => [product.id, product]));
     const orderedProducts = normalizedIds
@@ -43,7 +32,7 @@ export async function POST(request: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": PUBLIC_PRODUCTS_CACHE_HEADER,
+          "Cache-Control": FRESH_PRODUCTS_CACHE_HEADER,
         },
       }
     );

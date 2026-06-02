@@ -11,7 +11,7 @@ const child = spawn(process.execPath, [nextBin, "build"], {
     NODE_OPTIONS: [process.env.NODE_OPTIONS, "--max-old-space-size=4096"]
       .filter(Boolean)
       .join(" "),
-    SKIP_LIVE_DATA_DURING_BUILD: process.env.SKIP_LIVE_DATA_DURING_BUILD || "false",
+    SKIP_LIVE_DATA_DURING_BUILD: process.env.SKIP_LIVE_DATA_DURING_BUILD || "true",
   },
 });
 

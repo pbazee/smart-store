@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProducts } from "@/lib/data-service";
 import { smartSearchProducts } from "@/lib/smart-search";
 
-const PUBLIC_PRODUCTS_CACHE_HEADER = "public, s-maxage=300, stale-while-revalidate=600";
+const FRESH_PRODUCTS_CACHE_HEADER = "no-store, max-age=0";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       },
       {
         cacheKey: `api-products:${category ?? "all"}:${search ?? ""}`,
-        revalidateSeconds: 300,
+        disableCache: true,
       }
     );
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       { products, total: products.length },
       {
         headers: {
-          "Cache-Control": PUBLIC_PRODUCTS_CACHE_HEADER,
+          "Cache-Control": FRESH_PRODUCTS_CACHE_HEADER,
         },
       }
     );

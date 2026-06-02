@@ -25,5 +25,5 @@ export function shouldUseMockData(env: LiveDataModeEnv = process.env) {
     return false;
   }
 
-  return isEnabled(env.USE_MOCK_DATA) || shouldSkipLiveDataDuringBuild(env);
+  return isEnabled(env.USE_MOCK_DATA);
 }

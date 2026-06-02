@@ -17,6 +17,10 @@ export type CatalogPageData = {
   categories: Category[];
 };
 
+type CatalogPageDataOptions = {
+  disableProductCache?: boolean;
+};
+
 const COLLECTION_PRODUCT_KEYS: Record<CatalogCollectionKey, Parameters<typeof getHomepageCollectionProducts>[0]> = {
   popular: "popular",
   trending: "trending",
@@ -69,13 +73,16 @@ function buildServerFilters(query: CatalogQueryInput, categories: Category[]): P
   return filters;
 }
 
-export async function getCatalogPageData(query: CatalogQueryInput = {}): Promise<CatalogPageData> {
+export async function getCatalogPageData(
+  query: CatalogQueryInput = {},
+  options: CatalogPageDataOptions = {}
+): Promise<CatalogPageData> {
   const categories = await getActiveCategories();
   const serverFilters = buildServerFilters(query, categories);
   const collection = normalizeCatalogCollectionKey(query.collection ?? query.filter);
   const products = collection
     ? await getHomepageCollectionProducts(COLLECTION_PRODUCT_KEYS[collection])
-    : await getProducts(serverFilters);
+    : await getProducts(serverFilters, { disableCache: options.disableProductCache });
 
   return {
     heading: buildCatalogHeading(collection ? { ...query, collection } : query, categories),
