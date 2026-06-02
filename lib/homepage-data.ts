@@ -12,10 +12,38 @@ import { getPromoBanners } from "@/lib/promo-banner-service";
 import { getStoreSettings as getPersistedStoreSettings } from "@/lib/store-settings";
 import { getWhatsAppSettings as getPersistedWhatsAppSettings } from "@/lib/whatsapp-service";
 import { getSocialLinks as getPersistedSocialLinks } from "@/lib/social-link-service";
-import type { HeroSlide, Product } from "@/types";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
+import type {
+  AnnouncementMessage,
+  Category,
+  HeroSlide,
+  Popup,
+  Product,
+  SocialLink,
+  StoreSettings,
+  WhatsAppSettings,
+} from "@/types";
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
 const STATIC_STORE_DATA_REVALIDATE_SECONDS = 900;
+const SHELL_MEMORY_CACHE_MS = 15_000;
+
+export type HomepageShellData = {
+  announcements: AnnouncementMessage[];
+  popups: Popup[];
+  socialLinks: SocialLink[];
+  whatsAppSettings: WhatsAppSettings | null;
+  storeSettings: StoreSettings | null;
+  navigationCategories: Category[];
+};
+
+const globalForHomepageData = globalThis as typeof globalThis & {
+  _homepageShellData?: {
+    expiresAt: number;
+    data: HomepageShellData;
+  };
+  _pendingHomepageShellData?: Promise<HomepageShellData>;
+};
 
 export type HomepageProductSectionsData = {
   featured: Product[];
@@ -96,6 +124,21 @@ type HomepageCollectionKey =
   | "popular"
   | "recommended"
   | "city-inspired";
+
+function emptyCriticalProducts(): HomepageCriticalProductSectionsData {
+  return {
+    featured: [],
+    trending: [],
+  };
+}
+
+function emptyDeferredProducts(): HomepageDeferredProductSectionsData {
+  return {
+    newArrivals: [],
+    alsoBought: [],
+    cityInspired: [],
+  };
+}
 
 function toHomepageProduct(product: HomepageProductRow): Product {
   return {
@@ -187,6 +230,9 @@ export const getCachedHeroSlides = unstable_cache(
       return await getActiveHeroSlides();
     } catch (error) {
       console.error("[HeroSlides] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -219,6 +265,9 @@ export const getCachedAnnouncements = unstable_cache(
       });
     } catch (error) {
       console.error("[Announcements] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -232,6 +281,9 @@ export const getCachedPromoBanners = unstable_cache(
       return await getPromoBanners({ activeOnly: true, seedIfEmpty: false });
     } catch (error) {
       console.error("[PromoBanners] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -241,10 +293,18 @@ export const getCachedPromoBanners = unstable_cache(
 
 export const getCachedHomepageCriticalProducts = unstable_cache(
   async (): Promise<HomepageCriticalProductSectionsData> => {
-    const featured = await getHomepageCollectionProducts("popular");
-    const trending = await getHomepageCollectionProducts("trending");
+    try {
+      const featured = await getHomepageCollectionProducts("popular");
+      const trending = await getHomepageCollectionProducts("trending");
 
-    return { featured, trending };
+      return { featured, trending };
+    } catch (error) {
+      console.error("[HomepageProducts] Critical product lookup failed:", error);
+      if (isPrismaConnectionError(error)) {
+        return emptyCriticalProducts();
+      }
+      throw error;
+    }
   },
   ["homepage-products", "critical"],
   { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
@@ -252,11 +312,19 @@ export const getCachedHomepageCriticalProducts = unstable_cache(
 
 export const getCachedHomepageDeferredProducts = unstable_cache(
   async (): Promise<HomepageDeferredProductSectionsData> => {
-    const newArrivals = await getHomepageCollectionProducts("new-arrivals");
-    const alsoBought = await getHomepageCollectionProducts("recommended");
-    const cityInspired = await getHomepageCollectionProducts("city-inspired");
+    try {
+      const newArrivals = await getHomepageCollectionProducts("new-arrivals");
+      const alsoBought = await getHomepageCollectionProducts("recommended");
+      const cityInspired = await getHomepageCollectionProducts("city-inspired");
 
-    return { newArrivals, alsoBought, cityInspired };
+      return { newArrivals, alsoBought, cityInspired };
+    } catch (error) {
+      console.error("[HomepageProducts] Deferred product lookup failed:", error);
+      if (isPrismaConnectionError(error)) {
+        return emptyDeferredProducts();
+      }
+      throw error;
+    }
   },
   ["homepage-products", "deferred"],
   { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
@@ -275,6 +343,13 @@ export const getCachedHomepageProducts = unstable_cache(
       };
     } catch (error) {
       console.error("[HomepageProducts] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return {
+          ...emptyCriticalProducts(),
+          ...emptyDeferredProducts(),
+          popular: [],
+        };
+      }
       throw error;
     }
   },
@@ -288,6 +363,9 @@ export const getCachedHomepageCategories = unstable_cache(
       return await getActiveHomepageCategories();
     } catch (error) {
       console.error("[HomepageCategories] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -311,6 +389,9 @@ export const getCachedStoreSettings = unstable_cache(
       });
     } catch (error) {
       console.error("[StoreSettings] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return null;
+      }
       throw error;
     }
   },
@@ -348,6 +429,9 @@ export const getCachedPopups = unstable_cache(
       });
     } catch (error) {
       console.error("[Popups] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -371,6 +455,9 @@ export const getCachedWhatsAppSettings = unstable_cache(
       });
     } catch (error) {
       console.error("[WhatsAppSettings] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return null;
+      }
       throw error;
     }
   },
@@ -384,6 +471,9 @@ export const getCachedSocialLinks = unstable_cache(
       return await getPersistedSocialLinks({ seedIfEmpty: false, fallbackOnError: false });
     } catch (error) {
       console.error("[SocialLinks] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -401,6 +491,9 @@ export const getCachedHomepageBlogPosts = unstable_cache(
       return await getPublishedBlogPosts(4);
     } catch (error) {
       console.error("[HomepageBlogPosts] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -437,6 +530,9 @@ export const getCachedHomepageLatestReviews = unstable_cache(
       });
     } catch (error) {
       console.error("[HomepageLatestReviews] DB error, not caching fallback:", error);
+      if (isPrismaConnectionError(error)) {
+        return [];
+      }
       throw error;
     }
   },
@@ -444,12 +540,27 @@ export const getCachedHomepageLatestReviews = unstable_cache(
   { revalidate: 120, tags: ["reviews", HOMEPAGE_CACHE_TAG] }
 );
 
-export async function getHomepageShellData() {
-  const announcements = await getCachedAnnouncements();
-  const popups = await getCachedPopups();
-  const socialLinks = await getCachedSocialLinks();
-  const whatsAppSettings = await getCachedWhatsAppSettings();
-  const storeSettings = await getCachedStoreSettings();
+async function loadHomepageShellData(): Promise<HomepageShellData> {
+  const announcements = await getCachedAnnouncements().catch((error) => {
+    console.error("[HomepageShell] Failed to load announcements:", error);
+    return [];
+  });
+  const popups = await getCachedPopups().catch((error) => {
+    console.error("[HomepageShell] Failed to load popups:", error);
+    return [];
+  });
+  const socialLinks = await getCachedSocialLinks().catch((error) => {
+    console.error("[HomepageShell] Failed to load social links:", error);
+    return [];
+  });
+  const whatsAppSettings = await getCachedWhatsAppSettings().catch((error) => {
+    console.error("[HomepageShell] Failed to load WhatsApp settings:", error);
+    return null;
+  });
+  const storeSettings = await getCachedStoreSettings().catch((error) => {
+    console.error("[HomepageShell] Failed to load store settings:", error);
+    return null;
+  });
   const navigationCategories = shouldSkipLiveDataDuringBuild()
     ? []
     : await getActiveCategories().catch((error) => {
@@ -458,6 +569,34 @@ export async function getHomepageShellData() {
       });
 
   return { announcements, popups, socialLinks, whatsAppSettings, storeSettings, navigationCategories };
+}
+
+export async function getHomepageShellData() {
+  const cached = globalForHomepageData._homepageShellData;
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  if (globalForHomepageData._pendingHomepageShellData) {
+    return globalForHomepageData._pendingHomepageShellData;
+  }
+
+  const request = loadHomepageShellData()
+    .then((data) => {
+      globalForHomepageData._homepageShellData = {
+        data,
+        expiresAt: Date.now() + SHELL_MEMORY_CACHE_MS,
+      };
+      return data;
+    })
+    .finally(() => {
+      globalForHomepageData._pendingHomepageShellData = undefined;
+    });
+
+  globalForHomepageData._pendingHomepageShellData = request;
+
+  return request;
 }
 
 export async function getHomepagePageData() {

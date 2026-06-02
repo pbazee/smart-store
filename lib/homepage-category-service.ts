@@ -75,7 +75,12 @@ export async function getHomepageCategories(
       }
 
       console.error("[HomepageCategories] Falling back to catalog-backed categories:", error);
-      return getCatalogBackedHomepageCategories();
+      try {
+        return await getCatalogBackedHomepageCategories();
+      } catch (fallbackError) {
+        console.error("[HomepageCategories] Catalog-backed fallback failed:", fallbackError);
+        return [];
+      }
     }
   };
 

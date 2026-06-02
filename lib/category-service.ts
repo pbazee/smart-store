@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError } from "@/lib/prisma-error-utils";
 import type { Category } from "@/types";
 
 export const CATEGORY_CACHE_TAG = "categories";
@@ -62,6 +63,10 @@ async function loadActiveCategories(): Promise<Category[]> {
       console.warn("[Categories] Returning last known active categories");
       return lastKnown;
     }
+    if (isPrismaConnectionError(error)) {
+      console.warn("[Categories] Database pool unavailable, returning empty active category list.");
+      return [];
+    }
     throw error;
   }
 }
@@ -100,6 +105,10 @@ export async function getAllCategories(): Promise<Category[]> {
     if (lastKnown.length > 0) {
       console.warn("[Categories] Returning last known full category list");
       return lastKnown;
+    }
+    if (isPrismaConnectionError(error)) {
+      console.warn("[Categories] Database pool unavailable, returning empty category list.");
+      return [];
     }
     throw error;
   }
