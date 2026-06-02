@@ -79,7 +79,8 @@ export async function getHeroSlides(options: HeroSlideQueryOptions = {}): Promis
       return rememberHeroSlides(slides.map((slide) => normalizeHeroSlideRecord(slide)));
     } catch (error) {
       console.error("[HeroSlides] Lookup failed:", error);
-      return isProductionRuntime() ? [] : getHeroSlidesFallback();
+      // Fall back to last known slides (or default seeds) in all environments.
+      return getHeroSlidesFallback();
     }
   };
 

@@ -160,17 +160,22 @@ async function queryHomepageProducts(
     return [];
   }
 
-  const products = await prisma.product.findMany({
-    where: {
-      categoryId: { not: null },
-      ...where,
-    },
-    orderBy,
-    take,
-    select: HOMEPAGE_PRODUCT_SELECT,
-  });
+  try {
+    const products = await prisma.product.findMany({
+      // NOTE: Do NOT filter by categoryId here — products without a linked category
+      // should still appear on the homepage as long as they are flagged (isFeatured, etc.).
+      where,
+      orderBy,
+      take,
+      select: HOMEPAGE_PRODUCT_SELECT,
+    });
 
-  return products.map(toHomepageProduct);
+    console.log(`[HomepageProducts] Query returned ${products.length} products for filter:`, JSON.stringify(where));
+    return products.map(toHomepageProduct);
+  } catch (error) {
+    console.error("[HomepageProducts] queryHomepageProducts failed:", error, { filter: JSON.stringify(where) });
+    throw error;
+  }
 }
 
 function buildHomepageCollectionQuery(key: HomepageCollectionKey) {
@@ -229,11 +234,8 @@ export const getCachedHeroSlides = unstable_cache(
       }
       return await getActiveHeroSlides();
     } catch (error) {
-      console.error("[HeroSlides] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+      console.error("[HeroSlides] DB error, returning empty fallback:", error);
+      return [];
     }
   },
   ["hero-slides"],
@@ -264,11 +266,8 @@ export const getCachedAnnouncements = unstable_cache(
         },
       });
     } catch (error) {
-      console.error("[Announcements] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+      console.error("[Announcements] DB error, returning empty fallback:", error);
+      return [];
     }
   },
   ["announcements"],
@@ -280,11 +279,8 @@ export const getCachedPromoBanners = unstable_cache(
     try {
       return await getPromoBanners({ activeOnly: true, seedIfEmpty: false });
     } catch (error) {
-      console.error("[PromoBanners] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+      console.error("[PromoBanners] DB error, returning empty fallback:", error);
+      return [];
     }
   },
   ["promo-banners"],
@@ -296,14 +292,11 @@ export const getCachedHomepageCriticalProducts = unstable_cache(
     try {
       const featured = await getHomepageCollectionProducts("popular");
       const trending = await getHomepageCollectionProducts("trending");
-
+      console.log(`[HomepageProducts] Critical: popular=${featured.length}, trending=${trending.length}`);
       return { featured, trending };
     } catch (error) {
       console.error("[HomepageProducts] Critical product lookup failed:", error);
-      if (isPrismaConnectionError(error)) {
-        return emptyCriticalProducts();
-      }
-      throw error;
+      return emptyCriticalProducts();
     }
   },
   ["homepage-products", "critical"],
@@ -316,14 +309,11 @@ export const getCachedHomepageDeferredProducts = unstable_cache(
       const newArrivals = await getHomepageCollectionProducts("new-arrivals");
       const alsoBought = await getHomepageCollectionProducts("recommended");
       const cityInspired = await getHomepageCollectionProducts("city-inspired");
-
+      console.log(`[HomepageProducts] Deferred: newArrivals=${newArrivals.length}, alsoBought=${alsoBought.length}, cityInspired=${cityInspired.length}`);
       return { newArrivals, alsoBought, cityInspired };
     } catch (error) {
       console.error("[HomepageProducts] Deferred product lookup failed:", error);
-      if (isPrismaConnectionError(error)) {
-        return emptyDeferredProducts();
-      }
-      throw error;
+      return emptyDeferredProducts();
     }
   },
   ["homepage-products", "deferred"],
@@ -362,11 +352,8 @@ export const getCachedHomepageCategories = unstable_cache(
     try {
       return await getActiveHomepageCategories();
     } catch (error) {
-      console.error("[HomepageCategories] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+      console.error("[HomepageCategories] DB error, returning empty fallback:", error);
+      return [];
     }
   },
   ["homepage-categories"],
@@ -529,11 +516,8 @@ export const getCachedHomepageLatestReviews = unstable_cache(
         },
       });
     } catch (error) {
-      console.error("[HomepageLatestReviews] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+      console.error("[HomepageLatestReviews] DB error, returning empty fallback:", error);
+      return [];
     }
   },
   ["homepage-latest-reviews"],
@@ -600,12 +584,49 @@ export async function getHomepageShellData() {
 }
 
 export async function getHomepagePageData() {
-  const heroSlides = await getCachedHeroSlides();
-  const categories = await getCachedHomepageCategories();
-  const criticalProducts = await getCachedHomepageCriticalProducts();
-  const deferredProducts = await getCachedHomepageDeferredProducts();
-  const latestReviews = await getCachedHomepageLatestReviews();
-  const blogPosts = await getCachedHomepageBlogPosts();
+  console.log("[Homepage] getHomepagePageData: starting all section fetches...");
+
+  const heroSlides = await getCachedHeroSlides().catch((error) => {
+    console.error("[Homepage] ❌ heroSlides fetch failed:", error);
+    return [] as Awaited<ReturnType<typeof getCachedHeroSlides>>;
+  });
+
+  const categories = await getCachedHomepageCategories().catch((error) => {
+    console.error("[Homepage] ❌ categories fetch failed:", error);
+    return [] as Awaited<ReturnType<typeof getCachedHomepageCategories>>;
+  });
+
+  const criticalProducts = await getCachedHomepageCriticalProducts().catch((error) => {
+    console.error("[Homepage] ❌ criticalProducts fetch failed:", error);
+    return emptyCriticalProducts();
+  });
+
+  const deferredProducts = await getCachedHomepageDeferredProducts().catch((error) => {
+    console.error("[Homepage] ❌ deferredProducts fetch failed:", error);
+    return emptyDeferredProducts();
+  });
+
+  const latestReviews = await getCachedHomepageLatestReviews().catch((error) => {
+    console.error("[Homepage] ❌ latestReviews fetch failed:", error);
+    return [] as Awaited<ReturnType<typeof getCachedHomepageLatestReviews>>;
+  });
+
+  const blogPosts = await getCachedHomepageBlogPosts().catch((error) => {
+    console.error("[Homepage] ❌ blogPosts fetch failed:", error);
+    return [] as Awaited<ReturnType<typeof getCachedHomepageBlogPosts>>;
+  });
+
+  console.log("[Homepage] Section fetch results:", {
+    heroSlides: heroSlides.length,
+    categories: categories.length,
+    featuredProducts: criticalProducts.featured.length,
+    trendingProducts: criticalProducts.trending.length,
+    newArrivals: deferredProducts.newArrivals.length,
+    alsoBought: deferredProducts.alsoBought.length,
+    cityInspired: deferredProducts.cityInspired.length,
+    latestReviews: latestReviews.length,
+    blogPosts: blogPosts.length,
+  });
 
   return {
     heroSlides,
