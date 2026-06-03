@@ -46,10 +46,17 @@ async function loadActiveCategories(): Promise<Category[]> {
 
   try {
 
-    const categories = await prisma.category.findMany({
+    let categories = await prisma.category.findMany({
       where: { isActive: true },
       orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
     });
+
+    if (categories.length === 0) {
+      console.warn("[Categories] No active categories found. Falling back to all categories.");
+      categories = await prisma.category.findMany({
+        orderBy: [{ parentId: "asc" }, { order: "asc" }, { name: "asc" }],
+      });
+    }
 
     console.log(`[Categories] Loaded ${categories.length} active categories from database`);
     return rememberActiveCategories(categories as unknown as Category[]);

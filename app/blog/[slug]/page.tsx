@@ -5,9 +5,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Mail } from "lucide-react";
 import { getBlogExcerpt, getBlogReadTime } from "@/lib/default-blog-posts";
 import { getAppUrl } from "@/lib/app-url";
+
 import { getBlogPostBySlug, getRelatedBlogPosts } from "@/lib/blog-service";
 import { ShareButton } from "@/components/shared/share-button";
+import { ScrollToTopOnMount } from "@/components/shared/scroll-to-top-on-mount";
 import { BlogNewsletterForm } from "@/components/blog/blog-newsletter-form";
+
 import { sanitizeRichHtml } from "@/lib/rich-text";
 import { createBlurDataURL } from "@/lib/utils";
 
@@ -92,6 +95,8 @@ export default async function BlogPostPage({
 
   return (
     <article className="bg-[linear-gradient(180deg,_rgba(255,255,255,1)_0%,_rgba(248,250,252,1)_100%)] dark:bg-[linear-gradient(180deg,_rgba(9,9,11,1)_0%,_rgba(15,23,42,1)_100%)]">
+      <ScrollToTopOnMount />
+
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <Link
           href="/blog"

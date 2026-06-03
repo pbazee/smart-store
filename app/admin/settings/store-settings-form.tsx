@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -83,9 +83,8 @@ export function StoreSettingsForm({
 }) {
   const { toast } = useToast();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<AdminStoreSettingsInput>(() => buildInitialForm(initialSettings));
-  const [actionState, formAction] = useActionState<SaveSettingsFormState, FormData>(
+  const [actionState, formAction, isPending] = useActionState<SaveSettingsFormState, FormData>(
     submitAdminStoreSettingsFormAction,
     { success: false, error: null, data: null }
   );

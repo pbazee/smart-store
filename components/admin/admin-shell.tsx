@@ -209,10 +209,10 @@ function AdminSidebarContent({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-zinc-800/80 px-5 py-5">
-        <Link href="/admin" onClick={onNavigate} className="flex items-center gap-3">
+        <Link href="/admin" onClick={onNavigate} className="flex flex-col gap-2">
           <BrandMark storeSettings={storeSettings} mobile={false} />
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">Admin</p>
+          <div className="min-w-0 pl-1">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">Admin Panel</p>
           </div>
         </Link>
       </div>
@@ -273,9 +273,9 @@ export function AdminShell({
         pendingOrders: 0,
         totalSubscribers: subscriberCount,
       },
-      refreshInterval: 30_000,
-      dedupingInterval: 30_000,
-      revalidateOnFocus: true,
+      refreshInterval: 60_000,    // poll every 60s (not 30s) — reduces DB load
+      dedupingInterval: 55_000,
+      revalidateOnFocus: false,   // was true — caused a DB hit on every tab focus
     }
   );
   const storeSettings = storeSettingsResponse?.data ?? initialStoreSettings;
@@ -299,8 +299,7 @@ export function AdminShell({
   const handleSignOut = () => {
     void signOut().then(() => {
       setMobileNavOpen(false);
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     });
   };
 

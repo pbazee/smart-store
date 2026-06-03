@@ -137,7 +137,21 @@ export async function subscribeToNewsletter(email: string) {
   return subscriber as NewsletterSubscriber;
 }
 
-export async function sendNewsletter(subject: string, content: string) {
+export async function deleteNewsletterSubscribers(ids: string[]) {
+  if (shouldUseMockData()) {
+    demoNewsletterSubscribersState = demoNewsletterSubscribersState.filter(s => !ids.includes(s.id));
+    return true;
+  }
+
+  await prisma.newsletterSubscriber.deleteMany({
+    where: { id: { in: ids } },
+  });
+
+  revalidateTag(NEWSLETTER_CACHE_TAG);
+  return true;
+}
+
+export async function sendNewsletter(subject: string, content: string, subscriberIds?: string[]) {
   console.log("[Newsletter] Starting newsletter send...");
 
   // 1. Validate API key
@@ -153,8 +167,11 @@ export async function sendNewsletter(subject: string, content: string) {
   console.log("[Newsletter] Resend API key found ✓");
 
   // 2. Get subscribers
-  const subscribers = await getNewsletterSubscribers();
-  const emails = subscribers.map((s) => s.email);
+  const allSubscribers = await getNewsletterSubscribers();
+  const targetSubscribers = subscriberIds && subscriberIds.length > 0
+    ? allSubscribers.filter(s => subscriberIds.includes(s.id))
+    : allSubscribers;
+  const emails = targetSubscribers.map((s) => s.email);
 
   if (emails.length === 0) {
     console.log("[Newsletter] No subscribers to send to.");

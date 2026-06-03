@@ -49,7 +49,18 @@ export async function checkResendKeyAction() {
   return { configured: isResendConfigured() };
 }
 
-export async function sendNewsletterAction(input: { subject: string; content: string }) {
+export async function deleteSubscribersAction(ids: string[]) {
+  await ensureAdmin();
+  try {
+    await (await import("@/lib/newsletter-service")).deleteNewsletterSubscribers(ids);
+    revalidateNewsletterPaths();
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to delete subscribers" };
+  }
+}
+
+export async function sendNewsletterAction(input: { subject: string; content: string; subscriberIds?: string[] }) {
   try {
     const isAdmin = await requireAdminAuth();
     if (!isAdmin) {
@@ -68,7 +79,7 @@ export async function sendNewsletterAction(input: { subject: string; content: st
       };
     }
 
-    const result = await sendNewsletter(data.subject, data.content);
+    const result = await sendNewsletter(data.subject, data.content, input.subscriberIds);
     return result;
   } catch (err: any) {
     console.error("[Newsletter Action] Unexpected error:", err);

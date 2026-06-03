@@ -12,22 +12,24 @@ type ReviewsPanelProps = {
   productId: string;
   averageRating: number;
   reviewCount: number;
+  initialReviews?: ProductReview[] | null;
 };
 
 export function ReviewsPanel({
   productId,
   averageRating,
   reviewCount,
+  initialReviews = null,
 }: ReviewsPanelProps) {
   const router = useRouter();
   const { sessionUser } = useSessionUser();
   const { toast } = useToast();
-  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>(initialReviews ?? []);
   const [reviewSummary, setReviewSummary] = useState({
     averageRating,
     reviewCount,
   });
-  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(initialReviews === null);
   const [form, setForm] = useState({
     authorName: sessionUser?.fullName || "",
     authorCity: "Nairobi",
@@ -45,6 +47,16 @@ export function ReviewsPanel({
   }, [sessionUser]);
 
   useEffect(() => {
+    if (initialReviews !== null) {
+      setReviews(initialReviews);
+      setReviewSummary({
+        averageRating,
+        reviewCount: Math.max(reviewCount, initialReviews.length),
+      });
+      setIsLoadingReviews(false);
+      return;
+    }
+
     const controller = new AbortController();
 
     const loadReviews = async () => {
@@ -94,7 +106,7 @@ export function ReviewsPanel({
     return () => {
       controller.abort();
     };
-  }, [averageRating, productId, reviewCount]);
+  }, [averageRating, initialReviews, productId, reviewCount]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

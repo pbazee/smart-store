@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Download, Mail, AlertTriangle, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { Download, Mail, AlertTriangle, CheckCircle, Trash2 } from "lucide-react";
 import { RippleSpinner } from "@/components/ui/ripple-loader";
 import type { NewsletterSubscriber } from "@/types";
 
@@ -36,6 +36,24 @@ export function NewsletterManager({
     message: string;
   } | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === initialSubscribers.length && initialSubscribers.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(initialSubscribers.map((s) => s.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
   const exportSubscribers = () => {
     const rows = [
       "Email,Subscribed At",
@@ -63,14 +81,38 @@ export function NewsletterManager({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={exportSubscribers}
-          className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-500"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-3">
+          {selectedIds.size > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to delete selected subscribers?")) {
+                  setIsDeleting(true);
+                  const res = await (await import("./actions")).deleteSubscribersAction(Array.from(selectedIds));
+                  if (res.success) {
+                    setSelectedIds(new Set());
+                  } else {
+                    window.alert(res.error || "Failed to delete");
+                  }
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+              className="inline-flex items-center gap-2 rounded-full border border-red-500/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-500 transition-colors hover:bg-red-500/20"
+            >
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Delete Selected"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={exportSubscribers}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-500"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -94,7 +136,6 @@ export function NewsletterManager({
         </div>
       </div>
 
-      {/* API Key Warning */}
       {!resendConfigured && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
           <div className="flex items-start gap-3">
@@ -121,10 +162,11 @@ export function NewsletterManager({
           Send Newsletter
         </h2>
         <p className="mt-2 text-sm text-zinc-400">
-          This will send an email to all {initialSubscribers.length} active subscribers.
+          {selectedIds.size > 0 
+            ? `This will send an email to the ${selectedIds.size} selected subscriber(s).`
+            : `This will send an email to all ${initialSubscribers.length} active subscribers.`}
         </p>
 
-        {/* Send Result Feedback */}
         {sendResult && (
           <div className={`mt-4 rounded-xl border p-4 text-sm ${sendResult.type === "success"
             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
@@ -157,7 +199,11 @@ export function NewsletterManager({
             }
 
             try {
-              const res = await (await import("./actions")).sendNewsletterAction({ subject, content });
+              const res = await (await import("./actions")).sendNewsletterAction({ 
+                subject, 
+                content,
+                subscriberIds: selectedIds.size > 0 ? Array.from(selectedIds) : undefined 
+              });
 
               if (res.success) {
                 setSendResult({
@@ -214,7 +260,7 @@ export function NewsletterManager({
                 Sending...
               </>
             ) : (
-              "Blast Newsletter"
+              selectedIds.size > 0 ? `Blast Newsletter to ${selectedIds.size} selected` : "Blast Newsletter to all"
             )}
           </button>
         </form>
@@ -225,6 +271,14 @@ export function NewsletterManager({
           <table className="min-w-full">
             <thead className="border-b border-zinc-800 bg-zinc-950/70">
               <tr>
+                <th className="px-4 py-4 text-left w-12">
+                  <input 
+                    type="checkbox"
+                    checked={initialSubscribers.length > 0 && selectedIds.size === initialSubscribers.length}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-orange-500 focus:ring-orange-500 focus:ring-offset-zinc-900"
+                  />
+                </th>
                 <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
                   Email
                 </th>
@@ -236,7 +290,7 @@ export function NewsletterManager({
             <tbody>
               {initialSubscribers.length === 0 ? (
                 <tr>
-                  <td colSpan={2} className="px-6 py-16 text-center text-zinc-400">
+                  <td colSpan={3} className="px-6 py-16 text-center text-zinc-400">
                     No subscribers yet.
                   </td>
                 </tr>
@@ -246,6 +300,14 @@ export function NewsletterManager({
                     key={subscriber.id}
                     className="border-b border-zinc-800/70 transition-colors hover:bg-zinc-800/40"
                   >
+                    <td className="px-4 py-4 align-middle">
+                      <input 
+                        type="checkbox"
+                        checked={selectedIds.has(subscriber.id)}
+                        onChange={() => toggleSelect(subscriber.id)}
+                        className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-orange-500 focus:ring-orange-500 focus:ring-offset-zinc-900"
+                      />
+                    </td>
                     <td className="px-4 py-4 align-middle">
                       <div className="flex items-center gap-3">
                         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-300">

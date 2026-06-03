@@ -4,12 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductJsonLd } from "@/components/shop/product-json-ld";
 import { InlineLoader } from "@/components/ui/ripple-loader";
+
 import { getAppUrl } from "@/lib/app-url";
 import { getProductByIdentifier } from "@/lib/data-service";
 import { buildProductHref } from "@/lib/product-routes";
+import { getProductReviews } from "@/lib/reviews-service";
 import { getStoreBranding } from "@/lib/store-branding";
 import { formatKES } from "@/lib/utils";
 import { ProductRecommendations } from "./product-recommendations";
+
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -120,9 +123,11 @@ export default async function ProductPage({
 
   const productUrl = buildAbsoluteUrl(buildProductHref(product));
   const storeName = branding?.storeName || "Smartest Store KE";
+  const initialReviews = await getProductReviews(product.id);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+
       <ProductJsonLd
         product={product}
         ratingValue={product.rating}
@@ -131,7 +136,7 @@ export default async function ProductPage({
         storeName={storeName}
       />
 
-      <ProductDetail product={product} />
+      <ProductDetail product={product} initialReviews={initialReviews} />
 
       <Suspense fallback={<InlineLoader label="Loading recommendations..." />}>
         <ProductRecommendations product={product} />

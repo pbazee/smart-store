@@ -1,6 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,24 +34,22 @@ import { useWishlistActions, useWishlistProduct } from "@/hooks/use-wishlist";
 import { useCartStore } from "@/lib/store";
 import { useToast } from "@/lib/use-toast";
 import { cn, createBlurDataURL, formatKES } from "@/lib/utils";
-import type { Product, ProductVariant } from "@/types";
+import type { Product, ProductReview, ProductVariant } from "@/types";
 
-const ReviewsPanel = dynamic(
-  () => import("@/components/shop/reviews-panel").then((module) => module.ReviewsPanel),
-  {
-    ssr: false,
-    loading: () => <ReviewsPanelFallback />,
-  }
-);
+import { ReviewsPanel } from "@/components/shop/reviews-panel";
 
 export function ProductDetail({
   product,
+  initialReviews = [],
 }: {
   product: Product;
+  initialReviews?: ProductReview[];
 }) {
+  // Always show the base/primary product image on initial load.
+  // Variant images are only shown when the user explicitly selects a color swatch.
   const initialDisplayImage =
-    product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
     product.images[0] ||
+    product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
     "/images/product-placeholder.png";
   const router = useRouter();
   const pathname = usePathname();
@@ -96,6 +94,10 @@ export function ProductDetail({
       ),
     [currentProduct.variants, selectedColor, selectedSize]
   );
+  const selectedColorVariant = useMemo(
+    () => currentProduct.variants.find((variant) => variant.color === selectedColor),
+    [currentProduct.variants, selectedColor]
+  );
   const variantImages = useMemo(
     () =>
       currentProduct.variants
@@ -107,12 +109,11 @@ export function ProductDetail({
     const variantImage = selectedVariant?.variantImageUrl || "";
 
     return Array.from(
-      new Set([variantImage, displayedImage, ...currentProduct.images, ...variantImages].filter(Boolean))
+      new Set([variantImage, ...currentProduct.images, ...variantImages].filter(Boolean))
     );
   }, [
     currentProduct.images,
     currentProduct.variants,
-    displayedImage,
     selectedColor,
     selectedVariant,
     variantImages,
@@ -128,7 +129,8 @@ export function ProductDetail({
   );
   const averageRating = currentProduct.rating;
   const isFootwearProduct = isFootwearProductLike(currentProduct);
-  const sharePrice = selectedVariant?.price ?? currentProduct.basePrice;
+  const displayedPrice = selectedVariant?.price ?? selectedColorVariant?.price ?? currentProduct.basePrice;
+  const sharePrice = displayedPrice;
   const sharePriceLabel = `Ksh ${sharePrice.toLocaleString()}`;
   const normalizedShareSummary = `${currentProduct.name} - ${sharePriceLabel}`;
   const shareDescription = currentProduct.description?.trim()
@@ -198,9 +200,14 @@ export function ProductDetail({
   };
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, []);
+
+  useEffect(() => {
+    // On product change, reset to base image first
     const nextDisplayImage =
-      product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
       product.images[0] ||
+      product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
       "/images/product-placeholder.png";
 
     setLiveProduct(product);
@@ -208,49 +215,6 @@ export function ProductDetail({
     setSelectedSize("");
     setDisplayedImage(nextDisplayImage);
   }, [product]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void fetch(`/api/products/${product.slug}`, {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-      },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          return null;
-        }
-
-        const payload = (await response.json()) as { data?: Product };
-        return payload.data ?? null;
-      })
-      .then((freshProduct) => {
-        if (cancelled || !freshProduct) {
-          return;
-        }
-
-        const nextDisplayImage =
-          freshProduct.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
-          freshProduct.images[0] ||
-          "/images/product-placeholder.png";
-
-        setLiveProduct(freshProduct);
-        if (nextDisplayImage) {
-          setDisplayedImage((current) =>
-            current === (product.images[0] || "/images/product-placeholder.png")
-              ? nextDisplayImage
-              : current
-          );
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [product.slug]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -568,7 +532,7 @@ export function ProductDetail({
           </div>
 
           <div className="text-3xl font-black text-brand-600">
-            {selectedVariant ? formatKES(selectedVariant.price) : formatKES(currentProduct.basePrice)}
+            {formatKES(displayedPrice)}
           </div>
 
           <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
@@ -591,7 +555,8 @@ export function ProductDetail({
                         onClick={() => {
                           setSelectedColor(color);
                           setSelectedSize("");
-                          setDisplayedImage(currentProduct.images[0] || initialDisplayImage);
+                          const variantImg = variant?.variantImageUrl || currentProduct.images[0] || initialDisplayImage;
+                          setDisplayedImage(variantImg);
                           setNotifyOpen(false);
                           setNotifyMessage(null);
                         }}
@@ -726,11 +691,13 @@ export function ProductDetail({
                 whileTap={{ scale: 0.985 }}
                 type="button"
                 onClick={handleAddToCart}
-                className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] bg-brand-500 px-6 py-4 text-base font-bold text-white shadow-[0_14px_40px_rgba(249,115,22,0.24)] transition-colors hover:bg-brand-600"
+                disabled={hasVariants && (!selectedColor || !selectedSize)}
+                className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] bg-brand-500 px-6 py-4 text-base font-bold text-white shadow-[0_14px_40px_rgba(249,115,22,0.24)] transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
               >
                 <ShoppingBag className="h-5 w-5" />
-                Add to cart -{" "}
-                {selectedVariant ? formatKES(selectedVariant.price) : formatKES(currentProduct.basePrice)}
+                {hasVariants && (!selectedColor || !selectedSize)
+                  ? "Select options"
+                  : `Add to cart - ${formatKES(displayedPrice)}`}
               </motion.button>
             )}
 
@@ -842,45 +809,9 @@ export function ProductDetail({
         productId={currentProduct.id}
         averageRating={averageRating}
         reviewCount={currentProduct.reviewCount}
+        initialReviews={initialReviews}
       />
     </div>
-  );
-}
-
-function ReviewsPanelFallback() {
-  return (
-    <section className="mt-20 grid gap-10 lg:grid-cols-[1.1fr,0.9fr]">
-      <div>
-        <div className="rounded-3xl border border-border bg-card p-6">
-          <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-          <div className="mt-4 flex items-center gap-4">
-            <div className="h-12 w-16 animate-pulse rounded bg-muted" />
-            <div className="space-y-2">
-              <div className="h-4 w-28 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-            </div>
-          </div>
-        </div>
-        <div className="mt-6 space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="rounded-3xl border border-border bg-card p-5">
-              <div className="h-5 w-2/5 animate-pulse rounded bg-muted" />
-              <div className="mt-3 h-4 w-full animate-pulse rounded bg-muted" />
-              <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-muted" />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-3xl border border-border bg-card p-6">
-        <div className="h-8 w-40 animate-pulse rounded bg-muted" />
-        <div className="mt-3 h-4 w-5/6 animate-pulse rounded bg-muted" />
-        <div className="mt-6 space-y-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-14 animate-pulse rounded-2xl bg-muted" />
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 

@@ -72,7 +72,10 @@ function ProductCardComponent({
       ).slice(0, 4),
     [product.variants]
   );
-  const cardImage = product.images[0] || "/images/product-placeholder.png";
+  const cardImage = 
+    product.images[0] || 
+    product.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl || 
+    "/images/product-placeholder.png";
 
   const prefetchProduct = () => {
     prefetchProductRoute(router, productHref, hasPrefetchedRef);
@@ -144,10 +147,7 @@ function ProductCardComponent({
   };
 
   return (
-    <div
-      className="group relative"
-      style={{ contentVisibility: "auto", containIntrinsicSize: "320px 480px" }}
-    >
+    <div className="group relative">
       <Link
         ref={linkRef}
         href={productHref}

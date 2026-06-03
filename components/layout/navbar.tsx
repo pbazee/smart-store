@@ -152,11 +152,11 @@ export function BrandMark({
 
   if (lightLogo || darkLogo) {
     return (
-      <div className={cn("flex min-w-0 items-center gap-3", mobile && "gap-2")}>
+      <div className={cn("flex min-w-0 items-center gap-2 overflow-visible", mobile && "gap-1")}>
         <div
           className={cn(
-            "relative h-10 shrink-0",
-            mobile ? "w-[72px] sm:w-[96px]" : "w-[112px] sm:w-[132px]"
+            "relative h-10 sm:h-12 shrink-0 aspect-[3/1]", 
+            mobile ? "w-24" : "w-32" 
           )}
         >
           {lightLogo ? (
@@ -180,8 +180,8 @@ export function BrandMark({
             />
           ) : null}
         </div>
-        <div className={cn("min-w-0", mobile ? "hidden" : "hidden sm:block")}>
-          <span className="block truncate text-sm font-semibold text-muted-foreground">
+        <div className={cn("min-w-0 overflow-visible", mobile ? "hidden" : "hidden sm:block")}>
+          <span className="block whitespace-nowrap text-sm font-bold tracking-normal text-muted-foreground">
             {branding.storeTagline}
           </span>
         </div>
@@ -190,12 +190,12 @@ export function BrandMark({
   }
 
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <div className="flex min-w-0 items-center gap-2 overflow-visible">
       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
         SK
       </div>
-      <div className="min-w-0">
-        <span className="block truncate font-display text-lg font-black tracking-tight sm:text-xl">
+      <div className="min-w-0 overflow-visible">
+        <span className="block whitespace-nowrap font-display text-lg font-black tracking-tight sm:text-xl">
           {storeName}
         </span>
       </div>
@@ -259,7 +259,7 @@ export function Navbar({
     <header className="relative z-40 w-full border-b border-border/70 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="hidden min-h-[84px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-6 py-3 md:grid">
-          <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-3">
+          <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-2 overflow-visible">
             <BrandMark storeSettings={storeSettings} />
           </Link>
 

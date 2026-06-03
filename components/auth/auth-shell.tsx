@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CreditCard, Shield, Truck } from "lucide-react";
-import { AuthThemeToggle } from "@/components/auth/auth-theme-toggle";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
 import type { StoreSettings } from "@/types";
 
@@ -33,7 +32,7 @@ const authContent = {
 } as const;
 
 const authHeroImage =
-  "https://images.unsplash.com/photo-1521335629791-ce4aec67dd47?auto=format&fit=crop&w=1800&q=90";
+  "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1800&q=90";
 
 function buildAuthHref(pathname: string, redirectPath?: string) {
   if (!redirectPath) {
@@ -179,12 +178,15 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
           </div>
         </aside>
 
-        <main className="relative flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.12),transparent_24%),linear-gradient(180deg,#111114,#09090b)] px-5 py-8 sm:px-8 lg:px-12">
-          <div className="absolute right-5 top-5 z-20 sm:right-8 sm:top-8">
-            <AuthThemeToggle />
-          </div>
+        <main className="relative flex min-h-screen items-center justify-center px-5 py-8 sm:px-8 lg:px-12">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.75),rgba(0,0,0,0.75)),url('${authHeroImage}')`,
+            }}
+          />
 
-          <div className="w-full max-w-[540px]">
+          <div className="relative z-10 w-full max-w-[540px]">
             {shouldShowCheckoutBanner ? (
               <div className="mb-6 rounded-2xl border border-orange-400/20 bg-orange-500/10 px-5 py-4 text-sm font-semibold text-orange-100 backdrop-blur-md">
                 Sign in to complete your purchase.

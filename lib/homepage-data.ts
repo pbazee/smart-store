@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
@@ -84,6 +85,8 @@ const HOMEPAGE_PRODUCT_SELECT = {
   gender: true,
   tags: true,
   basePrice: true,
+  // Only take the first image to keep cache payload small (< 2MB limit).
+  // Full image gallery is loaded on the product detail page.
   images: true,
   rating: true,
   reviewCount: true,
@@ -96,8 +99,9 @@ const HOMEPAGE_PRODUCT_SELECT = {
   updatedAt: true,
   variants: {
     select: HOMEPAGE_PRODUCT_VARIANT_SELECT,
-    orderBy: [{ stock: "desc" }, { price: "asc" }],
-    take: 6,
+    orderBy: [{ stock: "desc" }, { price: "asc" }] as const,
+    // Limit variants per product to keep payload small
+    take: 4,
   },
 } satisfies Prisma.ProductSelect;
 
@@ -105,8 +109,10 @@ const HOMEPAGE_BLOG_POST_SELECT = {
   id: true,
   title: true,
   slug: true,
-  content: true,
   imageUrl: true,
+  authorName: true,
+  category: true,
+  tags: true,
   isPublished: true,
   publishedAt: true,
   createdAt: true,
@@ -145,6 +151,7 @@ function toHomepageProduct(product: HomepageProductRow): Product {
     ...product,
     gender: product.gender as Product["gender"],
     description: "",
+    images: product.images.length > 0 ? [product.images[0]] : [],
   };
 }
 
@@ -287,65 +294,53 @@ export const getCachedPromoBanners = unstable_cache(
   { revalidate: 300, tags: ["promo-banners", HOMEPAGE_CACHE_TAG] }
 );
 
-export const getCachedHomepageCriticalProducts = unstable_cache(
-  async (): Promise<HomepageCriticalProductSectionsData> => {
-    try {
-      const featured = await getHomepageCollectionProducts("popular");
-      const trending = await getHomepageCollectionProducts("trending");
-      console.log(`[HomepageProducts] Critical: popular=${featured.length}, trending=${trending.length}`);
-      return { featured, trending };
-    } catch (error) {
-      console.error("[HomepageProducts] Critical product lookup failed:", error);
-      return emptyCriticalProducts();
-    }
-  },
-  ["homepage-products", "critical"],
-  { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
-);
+export async function getCachedHomepageCriticalProducts(): Promise<HomepageCriticalProductSectionsData> {
+  try {
+    const featured = await getHomepageCollectionProducts("popular");
+    const trending = await getHomepageCollectionProducts("trending");
+    console.log(`[HomepageProducts] Critical: popular=${featured.length}, trending=${trending.length}`);
+    return { featured, trending };
+  } catch (error) {
+    console.error("[HomepageProducts] Critical product lookup failed:", error);
+    return emptyCriticalProducts();
+  }
+}
 
-export const getCachedHomepageDeferredProducts = unstable_cache(
-  async (): Promise<HomepageDeferredProductSectionsData> => {
-    try {
-      const newArrivals = await getHomepageCollectionProducts("new-arrivals");
-      const alsoBought = await getHomepageCollectionProducts("recommended");
-      const cityInspired = await getHomepageCollectionProducts("city-inspired");
-      console.log(`[HomepageProducts] Deferred: newArrivals=${newArrivals.length}, alsoBought=${alsoBought.length}, cityInspired=${cityInspired.length}`);
-      return { newArrivals, alsoBought, cityInspired };
-    } catch (error) {
-      console.error("[HomepageProducts] Deferred product lookup failed:", error);
-      return emptyDeferredProducts();
-    }
-  },
-  ["homepage-products", "deferred"],
-  { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
-);
+export async function getCachedHomepageDeferredProducts(): Promise<HomepageDeferredProductSectionsData> {
+  try {
+    const newArrivals = await getHomepageCollectionProducts("new-arrivals");
+    const alsoBought = await getHomepageCollectionProducts("recommended");
+    const cityInspired = await getHomepageCollectionProducts("city-inspired");
+    console.log(`[HomepageProducts] Deferred: newArrivals=${newArrivals.length}, alsoBought=${alsoBought.length}, cityInspired=${cityInspired.length}`);
+    return { newArrivals, alsoBought, cityInspired };
+  } catch (error) {
+    console.error("[HomepageProducts] Deferred product lookup failed:", error);
+    return emptyDeferredProducts();
+  }
+}
 
-export const getCachedHomepageProducts = unstable_cache(
-  async (): Promise<HomepageProductSectionsData> => {
-    try {
-      const critical = await getCachedHomepageCriticalProducts();
-      const deferred = await getCachedHomepageDeferredProducts();
+export async function getCachedHomepageProducts(): Promise<HomepageProductSectionsData> {
+  try {
+    const critical = await getCachedHomepageCriticalProducts();
+    const deferred = await getCachedHomepageDeferredProducts();
 
+    return {
+      ...critical,
+      ...deferred,
+      popular: critical.featured,
+    };
+  } catch (error) {
+    console.error("[HomepageProducts] DB error, not caching fallback:", error);
+    if (isPrismaConnectionError(error)) {
       return {
-        ...critical,
-        ...deferred,
-        popular: critical.featured,
+        ...emptyCriticalProducts(),
+        ...emptyDeferredProducts(),
+        popular: [],
       };
-    } catch (error) {
-      console.error("[HomepageProducts] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return {
-          ...emptyCriticalProducts(),
-          ...emptyDeferredProducts(),
-          popular: [],
-        };
-      }
-      throw error;
     }
-  },
-  ["homepage-products", "all"],
-  { revalidate: 120, tags: [HOMEPAGE_CACHE_TAG, "products", "homepage-products"] }
-);
+    throw error;
+  }
+}
 
 export const getCachedHomepageCategories = unstable_cache(
   async () => {
@@ -583,7 +578,7 @@ export async function getHomepageShellData() {
   return request;
 }
 
-export async function getHomepagePageData() {
+export const getHomepagePageData = cache(async () => {
   console.log("[Homepage] getHomepagePageData: starting all section fetches...");
 
   const heroSlides = await getCachedHeroSlides().catch((error) => {
@@ -636,7 +631,7 @@ export async function getHomepagePageData() {
     latestReviews,
     blogPosts,
   };
-}
+});
 
 export const getHomepageHeroSlides = getCachedHeroSlides;
 export const getHomepageCategories = getCachedHomepageCategories;

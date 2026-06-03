@@ -36,6 +36,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     ppr: false,
+    optimizePackageImports: ["lucide-react"],
   },
   serverExternalPackages: ["jspdf"],
   webpack: (config, { isServer }) => {

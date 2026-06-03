@@ -1,9 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
 function getPrismaDatasourceUrl() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -17,8 +16,10 @@ function getPrismaDatasourceUrl() {
     const url = new URL(databaseUrl);
 
     // In Vercel serverless, each function instance is isolated.
-    // Keep connection_limit=1 to avoid saturating the Supabase pgBouncer pool.
-    url.searchParams.set("connection_limit", process.env.PRISMA_CONNECTION_LIMIT || "1");
+    // 3 connections per instance is safe — avoids pool starvation under concurrent
+    // requests. In local development, we allow 10 to avoid ECHECKOUTTIMEOUT during HMR.
+    const isDev = process.env.NODE_ENV !== "production";
+    url.searchParams.set("connection_limit", process.env.PRISMA_CONNECTION_LIMIT || (isDev ? "10" : "3"));
     url.searchParams.set("pool_timeout", process.env.PRISMA_POOL_TIMEOUT || "15");
     url.searchParams.set("connect_timeout", "15");
     url.searchParams.set("sslmode", "require");
@@ -29,17 +30,17 @@ function getPrismaDatasourceUrl() {
   }
 }
 
-const datasourceUrl = getPrismaDatasourceUrl();
-
-console.log(`[Prisma] Initializing with URL: ${datasourceUrl?.replace(/:[^:@]+@/, ":****@")}`);
-
+// Singleton: only create a new PrismaClient if one doesn't already exist on globalThis.
+// This prevents connection exhaustion from multiple instances being created per request.
 export const prisma =
-  global.prisma ??
-  new PrismaClient({
-    datasourceUrl,
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
+  globalForPrisma.prisma ??
+  (() => {
+    const datasourceUrl = getPrismaDatasourceUrl();
+    console.log(`[Prisma] Initializing with URL: ${datasourceUrl?.replace(/:[^:@]+@/, ":****@")}`);
+    return new PrismaClient({
+      datasourceUrl,
+      log: ["error"],
+    });
+  })();
 
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
