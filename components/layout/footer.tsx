@@ -43,21 +43,21 @@ export async function Footer({
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-12 grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr,0.9fr,0.9fr,0.9fr,1.2fr]">
           <div className="text-left">
-            <div className="mb-4 flex items-start gap-2">
+            <div className="mb-5 flex items-center gap-2.5">
               {branding.logoDarkUrl || branding.logoUrl ? (
-                <div className="relative h-10 w-[140px] self-start">
+                <div className="relative h-16 w-16 shrink-0">
                   <Image
                     src={branding.logoDarkUrl || branding.logoUrl || ""}
                     alt={branding.storeName}
                     fill
-                    sizes="140px"
-                    className="mx-0 object-contain object-left"
+                    sizes="64px"
+                    className="object-contain"
                   />
                 </div>
               ) : (
                 <>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-brand-500">
-                    <span className="text-xs font-bold text-white">SK</span>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500">
+                    <span className="text-sm font-bold text-white">SK</span>
                   </div>
                   <span className="text-lg font-bold text-white">{branding.storeName}</span>
                 </>

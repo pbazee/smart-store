@@ -34,6 +34,10 @@ const authContent = {
 const authHeroImage =
   "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1800&q=90";
 
+// Distinct image for the right (form) panel — urban/city feel, different mood
+const authFormPanelImage =
+  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1800&q=90";
+
 function buildAuthHref(pathname: string, redirectPath?: string) {
   if (!redirectPath) {
     return pathname;
@@ -86,23 +90,23 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
           <div className="absolute inset-0 bg-black/10" />
 
           <div className="relative z-10 flex min-h-screen w-full flex-col justify-between p-10 xl:p-14">
-            <Link href="/" className="inline-flex items-center gap-4 group">
+            <Link href="/" className="inline-flex items-center gap-2.5 group">
               {branding.logoDarkUrl || branding.logoUrl ? (
-                <div className="relative h-12 w-32 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-105">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-105">
                   <Image
                     src={branding.logoDarkUrl || branding.logoUrl || ""}
                     alt={branding.storeName}
                     fill
-                    sizes="128px"
+                    sizes="64px"
                     className="object-contain"
                   />
                 </div>
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-lg font-black text-white shadow-lg transition-transform duration-300 group-hover:scale-105">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-lg font-black text-white shadow-lg transition-transform duration-300 group-hover:scale-105">
                   SK
                 </div>
               )}
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.25em] text-zinc-200">
                   {branding.storeName}
                 </p>
@@ -182,7 +186,7 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `linear-gradient(rgba(0,0,0,0.75),rgba(0,0,0,0.75)),url('${authHeroImage}')`,
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.72),rgba(0,0,0,0.72)),url('${authFormPanelImage}')`,
             }}
           />
 
@@ -194,23 +198,23 @@ export function AuthShell({ mode, children, redirectPath, storeSettings }: AuthS
             ) : null}
 
             <div className="mb-8 lg:hidden">
-              <Link href="/" className="inline-flex items-center gap-3">
+              <Link href="/" className="inline-flex items-center gap-2.5">
                 {branding.logoDarkUrl || branding.logoUrl ? (
-                  <div className="relative h-10 w-28 overflow-hidden rounded-lg">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
                     <Image
                       src={branding.logoDarkUrl || branding.logoUrl || ""}
                       alt={branding.storeName}
                       fill
-                      sizes="112px"
+                      sizes="56px"
                       className="object-contain"
                     />
                   </div>
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-sm font-black text-white shadow-md">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500 text-sm font-black text-white shadow-md">
                     SK
                   </div>
                 )}
-                <div>
+                <div className="flex flex-col gap-0">
                   <p className="text-sm font-black uppercase tracking-[0.18em] text-white">
                     {branding.storeName}
                   </p>
