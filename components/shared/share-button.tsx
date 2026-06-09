@@ -1,22 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Copy,
-  Facebook,
-  MessageCircle,
-  Send,
-  Share2,
-  Twitter,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Share2 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
 type ShareButtonProps = {
@@ -37,45 +21,39 @@ export function ShareButton({
   className,
 }: ShareButtonProps) {
   const { toast } = useToast();
-  const [canUseNativeShare, setCanUseNativeShare] = useState(false);
 
-  useEffect(() => {
-    setCanUseNativeShare(typeof navigator !== "undefined" && Boolean(navigator.share));
-  }, []);
+  const handleShare = async () => {
+    if (navigator.share) {
+      // Try to share with the product image file attached (mobile share sheet shows image)
+      if (imageUrl && navigator.canShare) {
+        try {
+          const response = await fetch(imageUrl, { cache: "force-cache" });
+          const blob = await response.blob();
+          const extension = blob.type.includes("png")
+            ? "png"
+            : blob.type.includes("webp")
+              ? "webp"
+              : "jpg";
+          const files = [
+            new File([blob], `product-share.${extension}`, {
+              type: blob.type || "image/jpeg",
+            }),
+          ];
 
-  const openShareWindow = (shareUrl: string) => {
-    window.open(shareUrl, "_blank", "noopener,noreferrer");
-  };
+          if (navigator.canShare({ files })) {
+            await navigator.share({ title, text, url, files });
+            return;
+          }
+        } catch {
+          // Remote image fetch blocked — fall through to URL-only share
+        }
+      }
 
-  const handleNativeShare = async () => {
-    if (!navigator.share) {
+      await navigator.share({ title, text, url });
       return;
     }
 
-    if (imageUrl && navigator.canShare) {
-      try {
-        const response = await fetch(imageUrl, { cache: "force-cache" });
-        const blob = await response.blob();
-        const extension = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
-        const files = [
-          new File([blob], `product-share.${extension}`, {
-            type: blob.type || "image/jpeg",
-          }),
-        ];
-
-        if (navigator.canShare({ files })) {
-          await navigator.share({ title, text, url, files });
-          return;
-        }
-      } catch {
-        // Some remote image hosts block browser fetches. The URL share still uses OG image metadata.
-      }
-    }
-
-    await navigator.share({ title, text, url });
-  };
-
-  const handleCopy = async () => {
+    // Fallback: copy link to clipboard
     await navigator.clipboard.writeText(url);
     toast({
       title: "Link copied!",
@@ -83,71 +61,14 @@ export function ShareButton({
     });
   };
 
-  // WhatsApp: pass the full rich-text message so the link preview renders correctly.
-  const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(text.includes(url) ? text : `${text}\n\n${url}`)}`;
-  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
-  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className={className}>
-          <Share2 className="h-4 w-4" />
-          {label}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="w-[18rem] rounded-[1.35rem] border-orange-500/30 bg-zinc-950 p-2 text-zinc-100"
-      >
-        <DropdownMenuLabel className="text-[11px] tracking-[0.22em] text-orange-300/80">
-          Share
-        </DropdownMenuLabel>
-        <DropdownMenuItem
-          className="rounded-2xl"
-          onSelect={() => openShareWindow(whatsAppUrl)}
-        >
-          <MessageCircle className="h-4 w-4 text-orange-400" />
-          WhatsApp
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="rounded-2xl"
-          onSelect={() => openShareWindow(twitterUrl)}
-        >
-          <Twitter className="h-4 w-4 text-orange-400" />
-          X (Twitter)
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="rounded-2xl"
-          onSelect={() => openShareWindow(facebookUrl)}
-        >
-          <Facebook className="h-4 w-4 text-orange-400" />
-          Facebook
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="rounded-2xl"
-          onSelect={() => {
-            void handleCopy();
-          }}
-        >
-          <Copy className="h-4 w-4 text-orange-400" />
-          Copy Link
-        </DropdownMenuItem>
-        {canUseNativeShare ? (
-          <>
-            <DropdownMenuSeparator className="bg-zinc-800" />
-            <DropdownMenuItem
-              className="rounded-2xl"
-              onSelect={() => {
-                void handleNativeShare();
-              }}
-            >
-              <Send className="h-4 w-4 text-orange-400" />
-              More Options
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      type="button"
+      className={className}
+      onClick={() => void handleShare()}
+    >
+      <Share2 className="h-4 w-4" />
+      {label}
+    </button>
   );
 }

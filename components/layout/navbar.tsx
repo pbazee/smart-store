@@ -29,6 +29,7 @@ const storefrontNavLinks = [
   { href: "/shop", label: "Shop" },
   { href: "/shop?gender=men", label: "Men" },
   { href: "/shop?gender=women", label: "Women" },
+  { href: "/blog", label: "Blog" },
 ];
 
 function DesktopNavLink({
@@ -157,8 +158,8 @@ export function BrandMark({
           className={cn(
             "relative shrink-0",
             mobile
-              ? "h-12 w-[120px]"
-              : "h-14 sm:h-[72px] w-[160px] sm:w-[200px]"
+              ? "h-[62px] w-[156px]"
+              : "h-[72px] sm:h-[94px] w-[208px] sm:w-[260px]"
           )}
         >
           {lightLogo ? (
@@ -166,7 +167,7 @@ export function BrandMark({
               src={lightLogo}
               alt={storeName}
               fill
-              sizes="(max-width: 768px) 120px, 200px"
+              sizes="(max-width: 768px) 156px, 260px"
               className={cn("object-contain object-left dark:hidden")}
               priority
             />
@@ -176,14 +177,14 @@ export function BrandMark({
               src={darkLogo}
               alt={storeName}
               fill
-              sizes="(max-width: 768px) 120px, 200px"
+              sizes="(max-width: 768px) 156px, 260px"
               className={cn("hidden object-contain object-left dark:block")}
               priority
             />
           ) : null}
         </div>
         <div className={cn("min-w-0 overflow-visible", mobile ? "hidden" : "hidden sm:block")}>
-          <span className="block whitespace-nowrap text-[10px] font-black tracking-[0.22em] uppercase text-muted-foreground/80">
+          <span className="block whitespace-nowrap text-xs font-black tracking-[0.22em] uppercase text-muted-foreground/80">
             {branding.storeTagline}
           </span>
         </div>
@@ -193,11 +194,11 @@ export function BrandMark({
 
   return (
     <div className="flex min-w-0 items-center gap-2 overflow-visible">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
+      <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-orange-500 text-sm font-black text-white shadow-[0_16px_32px_rgba(249,115,22,0.24)]">
         SK
       </div>
       <div className="min-w-0 overflow-visible">
-        <span className="block whitespace-nowrap font-display text-lg font-black tracking-tight sm:text-xl">
+        <span className="block whitespace-nowrap font-display text-xl font-black tracking-tight sm:text-2xl">
           {storeName}
         </span>
       </div>
@@ -329,7 +330,7 @@ export function Navbar({
         </div>
 
         <div className="py-3 md:hidden">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Link
               href="/"
               onClick={closeCart}
@@ -338,7 +339,7 @@ export function Navbar({
               <BrandMark storeSettings={storeSettings} mobile />
             </Link>
 
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 ml-1">
               <SearchForm
                 defaultValue={searchValue}
                 onSubmit={submitSearch}
@@ -346,20 +347,22 @@ export function Navbar({
               />
             </div>
 
-            <HeaderIconButton
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
-            >
-              {resolvedTheme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </HeaderIconButton>
+            <div className="flex shrink-0 items-center gap-1 ml-1">
+              <HeaderIconButton
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+              >
+                {resolvedTheme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </HeaderIconButton>
 
-            <HeaderIconButton onClick={() => setMenuOpen(true)} aria-label="Open menu">
-              <Menu className="h-5 w-5" />
-            </HeaderIconButton>
+              <HeaderIconButton onClick={() => setMenuOpen(true)} aria-label="Open menu">
+                <Menu className="h-5 w-5" />
+              </HeaderIconButton>
+            </div>
           </div>
         </div>
       </div>
