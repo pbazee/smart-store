@@ -153,13 +153,12 @@ export function BrandMark({
 
   if (lightLogo || darkLogo) {
     return (
-      <div className={cn("flex min-w-0 items-center overflow-visible", mobile ? "gap-1.5" : "gap-2")}>
+      <div className={cn("flex min-w-0 items-center overflow-visible", mobile ? "gap-2" : "gap-2.5")}>
+        {/* Compact square mark — sized to actual logo, not a bloated fixed width */}
         <div
           className={cn(
             "relative shrink-0",
-            mobile
-              ? "h-[62px] w-[156px]"
-              : "h-[72px] sm:h-[94px] w-[208px] sm:w-[260px]"
+            mobile ? "h-12 w-12" : "h-14 w-14"
           )}
         >
           {lightLogo ? (
@@ -167,8 +166,8 @@ export function BrandMark({
               src={lightLogo}
               alt={storeName}
               fill
-              sizes="(max-width: 768px) 156px, 260px"
-              className={cn("object-contain object-left dark:hidden")}
+              sizes={mobile ? "48px" : "56px"}
+              className={cn("object-contain dark:hidden")}
               priority
             />
           ) : null}
@@ -177,14 +176,18 @@ export function BrandMark({
               src={darkLogo}
               alt={storeName}
               fill
-              sizes="(max-width: 768px) 156px, 260px"
-              className={cn("hidden object-contain object-left dark:block")}
+              sizes={mobile ? "48px" : "56px"}
+              className={cn("hidden object-contain dark:block")}
               priority
             />
           ) : null}
         </div>
-        <div className={cn("min-w-0 overflow-visible", mobile ? "hidden" : "hidden sm:block")}>
-          <span className="block whitespace-nowrap text-xs font-black tracking-[0.22em] uppercase text-muted-foreground/80">
+        {/* Brand text block — tagline stacked tight below store name */}
+        <div className={cn("min-w-0", mobile ? "hidden" : "hidden sm:flex flex-col justify-center leading-none gap-0.5")}>
+          <span className="block whitespace-nowrap font-display text-[15px] font-black tracking-tight text-foreground">
+            {storeName}
+          </span>
+          <span className="block whitespace-nowrap text-[9px] font-bold tracking-[0.24em] uppercase text-muted-foreground/70">
             {branding.storeTagline}
           </span>
         </div>
@@ -261,7 +264,7 @@ export function Navbar({
   return (
     <header className="relative z-40 w-full border-b border-border/70 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="hidden min-h-[84px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-6 py-3 md:grid">
+        <div className="hidden min-h-[66px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-5 py-2 md:grid">
           <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-2 overflow-visible">
             <BrandMark storeSettings={storeSettings} />
           </Link>
@@ -269,7 +272,7 @@ export function Navbar({
           <SearchForm
             defaultValue={searchValue}
             onSubmit={submitSearch}
-            className="mx-auto w-full max-w-2xl"
+            className="w-full"
           />
 
           <div className="flex items-center justify-end gap-1.5">
@@ -329,8 +332,8 @@ export function Navbar({
           </div>
         </div>
 
-        <div className="py-3 md:hidden">
-          <div className="flex items-center gap-1">
+        <div className="py-2 md:hidden">
+          <div className="flex items-center gap-1.5">
             <Link
               href="/"
               onClick={closeCart}
@@ -339,11 +342,11 @@ export function Navbar({
               <BrandMark storeSettings={storeSettings} mobile />
             </Link>
 
-            <div className="min-w-0 flex-1 ml-1">
+            <div className="min-w-0 flex-1">
               <SearchForm
                 defaultValue={searchValue}
                 onSubmit={submitSearch}
-                inputClassName="h-10 pr-4 text-[13px]"
+                inputClassName="h-11 pr-4 text-[13px]"
               />
             </div>
 
