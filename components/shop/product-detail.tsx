@@ -364,8 +364,8 @@ export function ProductDetail({
 
     if (!isSignedIn) {
       toast({
-        title: "Sign in required",
-        description: "Use your account or demo login to save this product.",
+        title: "Sign in to save",
+        description: "Let's create an account to start building your wishlist.",
       });
       router.push(`/sign-in?callbackUrl=${encodeURIComponent(pathname || "/wishlist")}`);
       return;

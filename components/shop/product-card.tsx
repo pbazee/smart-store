@@ -123,8 +123,8 @@ function ProductCardComponent({
           : pathname;
 
       toast({
-        title: "Sign in required",
-        description: "Create an account or use demo login to save this item.",
+        title: "Sign in to save",
+        description: "Let's create an account to start building your wishlist.",
       });
       router.push(`/sign-in?callbackUrl=${encodeURIComponent(redirectPath || "/wishlist")}`);
       return;

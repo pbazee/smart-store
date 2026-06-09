@@ -51,7 +51,7 @@ export function PageLoader({
   admin?: boolean;
 }) {
   return (
-    <div className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2">
+    <div className="flex min-h-[65vh] w-full items-center justify-center py-20">
       {admin ? <AdminLogoRippleSpinner label={label} /> : <RippleSpinner size={64} label={label} />}
     </div>
   );
