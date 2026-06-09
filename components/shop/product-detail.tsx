@@ -136,20 +136,32 @@ export function ProductDetail({
   const shareDescription = currentProduct.description?.trim()
     ? `${currentProduct.description.trim().slice(0, 100)}${currentProduct.description.trim().length > 100 ? "..." : ""}`
     : "";
+  // Share uses selected variant image when available, falls back to base product image.
   const shareImage =
-    currentProduct.variants.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+    selectedVariant?.variantImageUrl ||
+    selectedColorVariant?.variantImageUrl ||
     currentProduct.images[0] ||
     displayedImage ||
     "";
-  const shareImageUrl = pageUrl && shareImage ? new URL(shareImage, pageUrl).toString() : shareImage;
-  const normalizedShareMessage = pageUrl
-    ? `🛍️ *${currentProduct.name}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}\n\n👉 Shop here: ${pageUrl}`
-    : `🛍️ *${currentProduct.name}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}`;
-  const normalizedWhatsappShareUrl = pageUrl
+  // Build the share URL — append ?variant=ID so og:image resolves to the correct variant image.
+  const shareUrl = pageUrl
+    ? selectedVariant?.id
+      ? `${pageUrl}?variant=${selectedVariant.id}`
+      : pageUrl
+    : "";
+  const shareImageUrl = shareUrl && shareImage ? new URL(shareImage, shareUrl).toString() : shareImage;
+  // Compose the share text including variant details when selected.
+  const variantDetail = selectedVariant
+    ? ` (${selectedVariant.color}, Size ${selectedVariant.size})`
+    : "";
+  const normalizedShareMessage = shareUrl
+    ? `🛍️ *${currentProduct.name}${variantDetail}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}\n\n👉 Shop here: ${shareUrl}`
+    : `🛍️ *${currentProduct.name}${variantDetail}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}`;
+  const normalizedWhatsappShareUrl = shareUrl
     ? `https://wa.me/?text=${encodeURIComponent(normalizedShareMessage)}`
     : "";
-  const normalizedTwitterShareUrl = pageUrl
-    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(normalizedShareSummary)}&url=${encodeURIComponent(pageUrl)}`
+  const normalizedTwitterShareUrl = shareUrl
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(normalizedShareSummary)}&url=${encodeURIComponent(shareUrl)}`
     : "";
   const uniqueSizes = useMemo(
     () => [...new Set(sizesForColor.map((variant) => variant.size.trim()).filter(Boolean))],
@@ -468,33 +480,50 @@ export function ProductDetail({
           </div>
 
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-            {displayImages.map((image, index) => (
-              <button
-                key={`${image}-${index}`}
-                type="button"
-                onClick={() => {
-                  setSelectedImage(index);
-                  setDisplayedImage(image);
-                }}
-                className={cn(
-                  "relative aspect-square overflow-hidden rounded-2xl border-2 transition-all",
-                  displayedImage === image
-                    ? "border-brand-500 shadow-[0_0_0_3px_rgba(249,115,22,0.15)]"
-                    : "border-transparent opacity-70 hover:opacity-100"
-                )}
-              >
-                <Image
-                  src={image || "/images/product-placeholder.png"}
-                  alt={`${currentProduct.name} view ${index + 1}`}
-                  fill
-                  placeholder="blur"
-                  quality={80}
-                  blurDataURL={blurDataUrl}
-                  className="object-cover"
-                  sizes="120px"
-                />
-              </button>
-            ))}
+            {displayImages.map((image, index) => {
+              // Determine if this thumbnail belongs to a known variant
+              const thumbVariant = currentProduct.variants.find(
+                (v) => v.variantImageUrl && v.variantImageUrl === image
+              );
+              // A thumbnail is "active" when it matches the displayed image OR the selected color variant
+              const isActive =
+                displayedImage === image ||
+                (thumbVariant && thumbVariant.color === selectedColor && displayedImage === image);
+              return (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedImage(index);
+                    setDisplayedImage(image);
+                    // Sync color swatch: if this thumbnail belongs to a variant, select that color
+                    if (thumbVariant && thumbVariant.color !== selectedColor) {
+                      setSelectedColor(thumbVariant.color);
+                      setSelectedSize("");
+                      setNotifyOpen(false);
+                      setNotifyMessage(null);
+                    }
+                  }}
+                  className={cn(
+                    "relative aspect-square overflow-hidden rounded-2xl border-2 transition-all",
+                    isActive
+                      ? "border-brand-500 shadow-[0_0_0_3px_rgba(249,115,22,0.15)]"
+                      : "border-transparent opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <Image
+                    src={image || "/images/product-placeholder.png"}
+                    alt={`${currentProduct.name} view ${index + 1}`}
+                    fill
+                    placeholder="blur"
+                    quality={80}
+                    blurDataURL={blurDataUrl}
+                    className="object-cover"
+                    sizes="120px"
+                  />
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -783,11 +812,11 @@ export function ProductDetail({
             </p>
           </div>
 
-          {pageUrl ? (
+          {shareUrl ? (
             <ShareButton
-              title={currentProduct.name}
-              text={`Check out ${currentProduct.name} on Smartest Store KE${shareDescription ? `. ${shareDescription}` : ""}`}
-              url={pageUrl}
+              title={`${currentProduct.name}${selectedVariant ? ` – ${selectedVariant.color}, Size ${selectedVariant.size}` : ""}`}
+              text={normalizedShareMessage}
+              url={shareUrl}
               imageUrl={shareImageUrl}
               label="Share this product"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"

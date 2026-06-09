@@ -38,10 +38,14 @@ function buildProductDescription(
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const variantId = resolvedSearchParams?.variant as string | undefined;
   const [product, branding] = await Promise.all([
     getProductByIdentifier(slug),
     getStoreBranding().catch(() => null),
@@ -56,25 +60,34 @@ export async function generateMetadata({
 
   const storeName = branding?.storeName || "Smartest Store KE";
   const metadataBase = new URL(getAppUrl().includes("localhost") ? PRODUCT_SHARE_BASE_URL : getAppUrl());
-  const productUrl = buildAbsoluteUrl(buildProductHref(product));
+  const variant = variantId ? product.variants.find((v) => v.id === variantId) : null;
+  const variantUrlSuffix = variantId ? `?variant=${variantId}` : "";
+  const productUrl = buildAbsoluteUrl(`${buildProductHref(product)}${variantUrlSuffix}`);
   const primaryImage =
-    product.variants?.find((variant) => variant.variantImageUrl)?.variantImageUrl ||
+    variant?.variantImageUrl ||
+    product.variants?.find((v) => v.variantImageUrl)?.variantImageUrl ||
     product.images?.[0] ||
     "";
   const imageUrl = primaryImage
     ? buildAbsoluteUrl(primaryImage)
     : buildAbsoluteUrl("/og-image.jpg");
-  const description = buildProductDescription(product, storeName);
+  
+  const variantTitleSuffix = variant ? ` - ${variant.color}` : "";
+  const displayPrice = variant?.price ?? product.basePrice;
+  const description = buildProductDescription(
+    { name: `${product.name}${variantTitleSuffix}`, description: product.description, basePrice: displayPrice },
+    storeName
+  );
 
   return {
     metadataBase,
-    title: `${product.name} | ${storeName}`,
+    title: `${product.name}${variantTitleSuffix} | ${storeName}`,
     description,
     alternates: {
       canonical: productUrl,
     },
     openGraph: {
-      title: `${product.name} - ${formatKES(product.basePrice)}`,
+      title: `${product.name}${variantTitleSuffix} - ${formatKES(displayPrice)}`,
       description,
       url: productUrl,
       siteName: storeName,
@@ -91,12 +104,12 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `${product.name} - ${formatKES(product.basePrice)}`,
+      title: `${product.name}${variantTitleSuffix} - ${formatKES(displayPrice)}`,
       description,
       images: [imageUrl],
     },
     other: {
-      "og:price:amount": String(product.basePrice),
+      "og:price:amount": String(displayPrice),
       "og:price:currency": "KES",
     },
   };

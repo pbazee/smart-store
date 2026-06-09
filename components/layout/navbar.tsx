@@ -152,11 +152,13 @@ export function BrandMark({
 
   if (lightLogo || darkLogo) {
     return (
-      <div className={cn("flex min-w-0 items-center gap-2 overflow-visible", mobile && "gap-1")}>
+      <div className={cn("flex min-w-0 items-center overflow-visible", mobile ? "gap-1.5" : "gap-2")}>
         <div
           className={cn(
-            "relative h-10 sm:h-12 shrink-0 aspect-[3/1]", 
-            mobile ? "w-24" : "w-32" 
+            "relative shrink-0",
+            mobile
+              ? "h-12 w-[120px]"
+              : "h-14 sm:h-[72px] w-[160px] sm:w-[200px]"
           )}
         >
           {lightLogo ? (
@@ -164,8 +166,8 @@ export function BrandMark({
               src={lightLogo}
               alt={storeName}
               fill
-              sizes="132px"
-              className={cn("object-contain dark:hidden")}
+              sizes="(max-width: 768px) 120px, 200px"
+              className={cn("object-contain object-left dark:hidden")}
               priority
             />
           ) : null}
@@ -174,14 +176,14 @@ export function BrandMark({
               src={darkLogo}
               alt={storeName}
               fill
-              sizes="132px"
-              className={cn("hidden object-contain dark:block")}
+              sizes="(max-width: 768px) 120px, 200px"
+              className={cn("hidden object-contain object-left dark:block")}
               priority
             />
           ) : null}
         </div>
         <div className={cn("min-w-0 overflow-visible", mobile ? "hidden" : "hidden sm:block")}>
-          <span className="block whitespace-nowrap text-sm font-bold tracking-normal text-muted-foreground">
+          <span className="block whitespace-nowrap text-[10px] font-black tracking-[0.22em] uppercase text-muted-foreground/80">
             {branding.storeTagline}
           </span>
         </div>

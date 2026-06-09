@@ -78,12 +78,13 @@ export function ShareButton({
   const handleCopy = async () => {
     await navigator.clipboard.writeText(url);
     toast({
-      title: "Copied!",
-      description: "The link is ready to share.",
+      title: "Link copied!",
+      description: "The product link is ready to paste and share.",
     });
   };
 
-  const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
+  // WhatsApp: pass the full rich-text message so the link preview renders correctly.
+  const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(text.includes(url) ? text : `${text}\n\n${url}`)}`;
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
 
