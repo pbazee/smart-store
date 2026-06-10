@@ -17,8 +17,10 @@ import {
   getHomepagePageData,
 } from "@/lib/homepage-data";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// ISR: serve cached HTML instantly, rebuild in background every 60 s.
+// User-specific data (cart, wishlist) is client-fetched separately after hydration.
+export const revalidate = 60;
+export const dynamic = "force-static";
 export default async function HomePage() {
   const homepageDataPromise = getHomepagePageData();
   const heroSlidesPromise = homepageDataPromise.then((data) => data.heroSlides);

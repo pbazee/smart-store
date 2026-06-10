@@ -265,7 +265,7 @@ export function Navbar({
     <header className="relative z-40 w-full border-b border-border/70 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="hidden min-h-[66px] grid-cols-[auto,minmax(0,1fr),auto] items-center gap-5 py-2 md:grid">
-          <Link href="/" onClick={closeCart} className="flex min-w-0 items-center gap-2 overflow-visible">
+          <Link href="/" prefetch={true} onClick={closeCart} className="flex min-w-0 items-center gap-2 overflow-visible">
             <BrandMark storeSettings={storeSettings} />
           </Link>
 
@@ -336,6 +336,7 @@ export function Navbar({
           <div className="flex items-center gap-1.5">
             <Link
               href="/"
+              prefetch={true}
               onClick={closeCart}
               className="flex shrink-0 items-center justify-start"
             >
