@@ -514,32 +514,41 @@ export const getCachedHomepageLatestReviews = unstable_cache(
 );
 
 async function loadHomepageShellData(): Promise<HomepageShellData> {
-  const announcements = await getCachedAnnouncements().catch((error) => {
-    console.error("[HomepageShell] Failed to load announcements:", error);
-    return [];
-  });
-  const popups = await getCachedPopups().catch((error) => {
-    console.error("[HomepageShell] Failed to load popups:", error);
-    return [];
-  });
-  const socialLinks = await getCachedSocialLinks().catch((error) => {
-    console.error("[HomepageShell] Failed to load social links:", error);
-    return [];
-  });
-  const whatsAppSettings = await getCachedWhatsAppSettings().catch((error) => {
-    console.error("[HomepageShell] Failed to load WhatsApp settings:", error);
-    return null;
-  });
-  const storeSettings = await getCachedStoreSettings().catch((error) => {
-    console.error("[HomepageShell] Failed to load store settings:", error);
-    return null;
-  });
-  const navigationCategories = shouldSkipLiveDataDuringBuild()
-    ? []
-    : await getActiveCategories().catch((error) => {
-        console.error("[HomepageShell] Failed to load navigation categories:", error);
-        return [];
-      });
+  const [
+    announcements,
+    popups,
+    socialLinks,
+    whatsAppSettings,
+    storeSettings,
+    navigationCategories,
+  ] = await Promise.all([
+    getCachedAnnouncements().catch((error) => {
+      console.error("[HomepageShell] Failed to load announcements:", error);
+      return [] as Awaited<ReturnType<typeof getCachedAnnouncements>>;
+    }),
+    getCachedPopups().catch((error) => {
+      console.error("[HomepageShell] Failed to load popups:", error);
+      return [] as Awaited<ReturnType<typeof getCachedPopups>>;
+    }),
+    getCachedSocialLinks().catch((error) => {
+      console.error("[HomepageShell] Failed to load social links:", error);
+      return [] as Awaited<ReturnType<typeof getCachedSocialLinks>>;
+    }),
+    getCachedWhatsAppSettings().catch((error) => {
+      console.error("[HomepageShell] Failed to load WhatsApp settings:", error);
+      return null;
+    }),
+    getCachedStoreSettings().catch((error) => {
+      console.error("[HomepageShell] Failed to load store settings:", error);
+      return null;
+    }),
+    shouldSkipLiveDataDuringBuild()
+      ? Promise.resolve([] as Awaited<ReturnType<typeof getActiveCategories>>)
+      : getActiveCategories().catch((error) => {
+          console.error("[HomepageShell] Failed to load navigation categories:", error);
+          return [] as Awaited<ReturnType<typeof getActiveCategories>>;
+        }),
+  ]);
 
   return { announcements, popups, socialLinks, whatsAppSettings, storeSettings, navigationCategories };
 }
@@ -547,49 +556,39 @@ async function loadHomepageShellData(): Promise<HomepageShellData> {
 export const getHomepageShellData = cache(loadHomepageShellData);
 
 export const getHomepagePageData = cache(async () => {
-  console.log("[Homepage] getHomepagePageData: starting all section fetches...");
-
-  const heroSlides = await getCachedHeroSlides().catch((error) => {
-    console.error("[Homepage] ❌ heroSlides fetch failed:", error);
-    return [] as Awaited<ReturnType<typeof getCachedHeroSlides>>;
-  });
-
-  const categories = await getCachedHomepageCategories().catch((error) => {
-    console.error("[Homepage] ❌ categories fetch failed:", error);
-    return [] as Awaited<ReturnType<typeof getCachedHomepageCategories>>;
-  });
-
-  const criticalProducts = await getCachedHomepageCriticalProducts().catch((error) => {
-    console.error("[Homepage] ❌ criticalProducts fetch failed:", error);
-    return emptyCriticalProducts();
-  });
-
-  const deferredProducts = await getCachedHomepageDeferredProducts().catch((error) => {
-    console.error("[Homepage] ❌ deferredProducts fetch failed:", error);
-    return emptyDeferredProducts();
-  });
-
-  const latestReviews = await getCachedHomepageLatestReviews().catch((error) => {
-    console.error("[Homepage] ❌ latestReviews fetch failed:", error);
-    return [] as Awaited<ReturnType<typeof getCachedHomepageLatestReviews>>;
-  });
-
-  const blogPosts = await getCachedHomepageBlogPosts().catch((error) => {
-    console.error("[Homepage] ❌ blogPosts fetch failed:", error);
-    return [] as Awaited<ReturnType<typeof getCachedHomepageBlogPosts>>;
-  });
-
-  console.log("[Homepage] Section fetch results:", {
-    heroSlides: heroSlides.length,
-    categories: categories.length,
-    featuredProducts: criticalProducts.featured.length,
-    trendingProducts: criticalProducts.trending.length,
-    newArrivals: deferredProducts.newArrivals.length,
-    alsoBought: deferredProducts.alsoBought.length,
-    cityInspired: deferredProducts.cityInspired.length,
-    latestReviews: latestReviews.length,
-    blogPosts: blogPosts.length,
-  });
+  const [
+    heroSlides,
+    categories,
+    criticalProducts,
+    deferredProducts,
+    latestReviews,
+    blogPosts,
+  ] = await Promise.all([
+    getCachedHeroSlides().catch((error) => {
+      console.error("[Homepage] ❌ heroSlides fetch failed:", error);
+      return [] as Awaited<ReturnType<typeof getCachedHeroSlides>>;
+    }),
+    getCachedHomepageCategories().catch((error) => {
+      console.error("[Homepage] ❌ categories fetch failed:", error);
+      return [] as Awaited<ReturnType<typeof getCachedHomepageCategories>>;
+    }),
+    getCachedHomepageCriticalProducts().catch((error) => {
+      console.error("[Homepage] ❌ criticalProducts fetch failed:", error);
+      return emptyCriticalProducts();
+    }),
+    getCachedHomepageDeferredProducts().catch((error) => {
+      console.error("[Homepage] ❌ deferredProducts fetch failed:", error);
+      return emptyDeferredProducts();
+    }),
+    getCachedHomepageLatestReviews().catch((error) => {
+      console.error("[Homepage] ❌ latestReviews fetch failed:", error);
+      return [] as Awaited<ReturnType<typeof getCachedHomepageLatestReviews>>;
+    }),
+    getCachedHomepageBlogPosts().catch((error) => {
+      console.error("[Homepage] ❌ blogPosts fetch failed:", error);
+      return [] as Awaited<ReturnType<typeof getCachedHomepageBlogPosts>>;
+    }),
+  ]);
 
   return {
     heroSlides,

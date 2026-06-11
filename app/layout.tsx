@@ -29,8 +29,6 @@ const display = Bricolage_Grotesque({
 });
 const metadataBase = new URL(getAppUrl());
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export const metadata: Metadata = {
   metadataBase,
