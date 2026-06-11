@@ -1228,7 +1228,7 @@ function ReviewStep({
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
         <div className="flex items-center gap-2">
           <CheckCircle className="h-4 w-4" />
-          Payment success will clear your cart and redirect to your order confirmation page.
+          Payment success will clear your cart and take you to your orders page to track delivery.
         </div>
       </div>
     </div>

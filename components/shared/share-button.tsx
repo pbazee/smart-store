@@ -24,8 +24,17 @@ export function ShareButton({
 
   const handleShare = async () => {
     if (navigator.share) {
-      // Try to share with the product image file attached (mobile share sheet shows image)
-      if (imageUrl && navigator.canShare) {
+      const shareData: ShareData = {
+        title,
+        text,
+        url, // always include URL so native share dialogs on desktop show it
+      };
+
+      // Only attach an image file on mobile where the share sheet supports it.
+      // On desktop (Windows/macOS) passing `files` causes the URL to be silently
+      // dropped from the native share dialog.
+      const isMobile = /mobile|android|iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isMobile && imageUrl && navigator.canShare) {
         try {
           const response = await fetch(imageUrl, { cache: "force-cache" });
           const blob = await response.blob();
@@ -41,7 +50,7 @@ export function ShareButton({
           ];
 
           if (navigator.canShare({ files })) {
-            await navigator.share({ title, text, url, files });
+            await navigator.share({ ...shareData, files });
             return;
           }
         } catch {
@@ -49,7 +58,7 @@ export function ShareButton({
         }
       }
 
-      await navigator.share({ title, text, url });
+      await navigator.share(shareData);
       return;
     }
 

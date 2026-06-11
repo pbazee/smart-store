@@ -27,7 +27,6 @@ export function getAuthRedirectPath(input: {
 
   if (
     pathname.startsWith("/orders") ||
-    pathname.startsWith("/order-confirmation") ||
     pathname.startsWith("/account") ||
     pathname.startsWith("/wishlist") ||
     pathname.startsWith("/checkout")

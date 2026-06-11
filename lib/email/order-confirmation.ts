@@ -140,11 +140,16 @@ function renderCustomerEmail(details: OrderEmailDetails, baseUrl: string) {
               <tr>
                 <td style="text-align:left;">
                   <div style="display:flex;align-items:center;gap:12px;">
-                    ${
-                      details.storeSettings?.logoDarkUrl || details.storeSettings?.logoUrl
-                        ? `<img src="${details.storeSettings.logoDarkUrl || details.storeSettings.logoUrl}" alt="${details.storeSettings.storeName || "Smartest Store KE"}" style="height:36px;max-width:140px;object-fit:contain;display:block;" />`
-                        : `<div style="width:36px;height:36px;border-radius:8px;background:#fb923c;display:flex;align-items:center;justify-content:center;color:#0f172a;font-weight:800;font-size:14px;">SK</div>`
-                    }
+                    ${(() => {
+                      const storeName = details.storeSettings?.storeName || "Smartest Store KE";
+                      const rawLogoUrl = details.storeSettings?.logoDarkUrl || details.storeSettings?.logoUrl;
+                      const isAbsoluteUrl = rawLogoUrl && (rawLogoUrl.startsWith("https://") || rawLogoUrl.startsWith("http://"));
+                      if (isAbsoluteUrl) {
+                        return `<img src="${rawLogoUrl}" alt="${storeName}" style="height:36px;max-width:140px;object-fit:contain;display:block;" />`;
+                      }
+                      // No valid logo URL — show text-only badge instead of broken image
+                      return `<div style="display:inline-flex;align-items:center;gap:8px;"><div style="width:36px;height:36px;border-radius:8px;background:#fb923c;display:flex;align-items:center;justify-content:center;color:#0f172a;font-weight:800;font-size:14px;">SK</div></div>`;
+                    })()}
                     <div style="font-weight:800;font-size:18px;color:#fff;">${
                       details.storeSettings?.storeName || "Smartest Store KE"
                     }</div>
@@ -226,7 +231,7 @@ function renderCustomerEmail(details: OrderEmailDetails, baseUrl: string) {
               <tr>
                 <td colspan="2" style="text-align:center;">
                   <a
-                    href="${baseUrl}/orders/${details.order.id}"
+                    href="${baseUrl}/track-order"
                     class="cta"
                     style="background:#f97316;color:#0f172a;font-weight:800;padding:14px 22px;border-radius:999px;text-decoration:none;display:inline-block;box-shadow:0 12px 30px rgba(249,115,22,0.25);"
                   >

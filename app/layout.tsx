@@ -111,6 +111,8 @@ export default async function RootLayout({
         {shellData.storeSettings?.faviconUrl ? (
           <link rel="icon" href={shellData.storeSettings.faviconUrl} />
         ) : null}
+        {/* Proactively prefetch the homepage so return-navigation is instant */}
+        <link rel="prefetch" href="/" />
       </head>
       <body
         className="font-sans antialiased"

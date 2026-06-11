@@ -412,9 +412,15 @@ export function ProductDetail({
     }
 
     if (navigator.share) {
+      // Use clean text without the inline URL — the `url` field in ShareData handles it.
+      // Passing the URL in both `text` and `url` causes it to appear twice in native dialogs.
+      const variantDetail = selectedVariant
+        ? ` (${selectedVariant.color}, Size ${selectedVariant.size})`
+        : "";
+      const cleanShareText = `🛍️ ${currentProduct.name}${variantDetail} — ${sharePriceLabel}${shareDescription ? `\n${shareDescription}` : ""}`;
       await navigator.share({
         title: currentProduct.name,
-        text: normalizedShareMessage,
+        text: cleanShareText,
         url: pageUrl,
       });
       return;

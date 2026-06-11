@@ -119,10 +119,10 @@ function CheckoutCompleteContent({
               )
               .catch(() => undefined);
             setResult(confirmation);
-            // Redirect to the dedicated order confirmation page after a short delay
+            // Redirect to the track-order page after a short delay
             // so the confetti animation has time to play
             setTimeout(() => {
-              router.replace(`/order-confirmation/${confirmation.orderId}`);
+              router.replace(`/track-order`);
             }, 1200);
             return;
           }
