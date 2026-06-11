@@ -61,6 +61,7 @@ export function RootLayoutShell({
   }, [isAdminLoginPath, isAdminPath, isAuthPath, pathname]);
 
   if (isAdminPath || isAdminLoginPath || isAuthPath) {
+    // Return children only (no storefront overlays like WhatsApp on admin/auth paths)
     return <>{children}</>;
   }
 

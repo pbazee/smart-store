@@ -8,7 +8,7 @@ import { updateAdminSiteSettingsAction } from "@/app/admin/settings/actions";
 import { useToast } from "@/lib/use-toast";
 import type { SiteSettings } from "@/types";
 
-type LegalTab = "terms" | "privacy";
+type LegalTab = "terms" | "privacy" | "returns";
 
 export function LegalPoliciesForm({ initialSettings }: { initialSettings: SiteSettings | null }) {
   const { toast } = useToast();
@@ -18,12 +18,15 @@ export function LegalPoliciesForm({ initialSettings }: { initialSettings: SiteSe
   const [privacyContent, setPrivacyContent] = useState(
     initialSettings?.privacyContent ?? "<p></p>"
   );
+  const [returnsContent, setReturnsContent] = useState(
+    initialSettings?.returnsContent ?? "<p></p>"
+  );
 
   const handleSave = () => {
     startTransition(() => {
       void (async () => {
         try {
-          const result = await updateAdminSiteSettingsAction({ termsContent, privacyContent });
+          const result = await updateAdminSiteSettingsAction({ termsContent, privacyContent, returnsContent });
           if (!result.success) {
             throw new Error(result.error || "Unable to save legal content.");
           }
@@ -61,6 +64,7 @@ export function LegalPoliciesForm({ initialSettings }: { initialSettings: SiteSe
         {[
           { key: "terms" as const, label: "Terms of Service" },
           { key: "privacy" as const, label: "Privacy Policy" },
+          { key: "returns" as const, label: "Return Policy" },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -81,14 +85,20 @@ export function LegalPoliciesForm({ initialSettings }: { initialSettings: SiteSe
         <div className="mb-4 flex items-center gap-3">
           <FileText className="h-4 w-4 text-brand-300" />
           <p className="text-sm font-semibold text-zinc-200">
-            {activeTab === "terms" ? "Terms of Service" : "Privacy Policy"}
+            {activeTab === "terms" && "Terms of Service"}
+            {activeTab === "privacy" && "Privacy Policy"}
+            {activeTab === "returns" && "Return Policy"}
           </p>
         </div>
 
-        {activeTab === "terms" ? (
+        {activeTab === "terms" && (
           <RichTextEditor value={termsContent} onChange={setTermsContent} />
-        ) : (
+        )}
+        {activeTab === "privacy" && (
           <RichTextEditor value={privacyContent} onChange={setPrivacyContent} />
+        )}
+        {activeTab === "returns" && (
+          <RichTextEditor value={returnsContent} onChange={setReturnsContent} />
         )}
       </div>
 

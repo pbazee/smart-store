@@ -36,10 +36,10 @@ const imageUrlSchema = z
 
 const adminHeroSlideSchema = z.object({
   id: z.string().optional(),
-  title: z.string().trim().min(3, "Title is required").max(120, "Keep it under 120 characters"),
-  subtitle: z.string().trim().min(12, "Subtitle is required").max(280, "Keep it under 280 characters"),
+  title: z.string().trim().min(1, "Title is required").max(120, "Keep it under 120 characters"),
+  subtitle: z.string().trim().min(1, "Subtitle is required").max(280, "Keep it under 280 characters"),
   imageUrl: imageUrlSchema,
-  ctaText: z.string().trim().min(2, "CTA text is required").max(40, "Keep it under 40 characters"),
+  ctaText: z.string().trim().min(1, "CTA text is required").max(40, "Keep it under 40 characters"),
   ctaLink: optionalLinkSchema,
   moodTags: z.array(z.string().trim().min(1).max(24)).max(6).default([]),
   locationBadge: z.string().trim().max(80, "Keep it under 80 characters").default(""),
@@ -109,19 +109,25 @@ export async function createAdminHeroSlideAction(input: AdminHeroSlideInput) {
   await ensureAdmin();
   const data = normalizeHeroSlideInput(input);
 
-  const slide = await prisma.heroSlide.create({
-    data: {
-      title: data.title,
-      subtitle: data.subtitle,
-      imageUrl: data.imageUrl,
-      ctaText: data.ctaText,
-      ctaLink: data.ctaLink,
-      moodTags: data.moodTags,
-      locationBadge: data.locationBadge,
-      isActive: data.isActive,
-      order: data.order,
-    },
-  });
+  let slide;
+  try {
+    slide = await prisma.heroSlide.create({
+      data: {
+        title: data.title,
+        subtitle: data.subtitle,
+        imageUrl: data.imageUrl,
+        ctaText: data.ctaText,
+        ctaLink: data.ctaLink,
+        moodTags: data.moodTags,
+        locationBadge: data.locationBadge,
+        isActive: data.isActive,
+        order: data.order,
+      },
+    });
+  } catch (err) {
+    console.error("[Hero] createAdminHeroSlideAction failed:", err);
+    throw new Error("Failed to create the hero slide. Please try again.");
+  }
 
   revalidateHeroPaths();
   return { ...slide, moodTags: data.moodTags } as HeroSlide;
@@ -135,20 +141,26 @@ export async function updateAdminHeroSlideAction(input: AdminHeroSlideInput) {
   const existingSlide = await prisma.heroSlide.findUnique({ where: { id: data.id } });
   if (!existingSlide) throw new Error("Hero slide not found.");
 
-  const slide = await prisma.heroSlide.update({
-    where: { id: data.id },
-    data: {
-      title: normalized.title,
-      subtitle: normalized.subtitle,
-      imageUrl: normalized.imageUrl,
-      ctaText: normalized.ctaText,
-      ctaLink: normalized.ctaLink,
-      moodTags: normalized.moodTags,
-      locationBadge: normalized.locationBadge,
-      isActive: normalized.isActive,
-      order: normalized.order,
-    },
-  });
+  let slide;
+  try {
+    slide = await prisma.heroSlide.update({
+      where: { id: data.id },
+      data: {
+        title: normalized.title,
+        subtitle: normalized.subtitle,
+        imageUrl: normalized.imageUrl,
+        ctaText: normalized.ctaText,
+        ctaLink: normalized.ctaLink,
+        moodTags: normalized.moodTags,
+        locationBadge: normalized.locationBadge,
+        isActive: normalized.isActive,
+        order: normalized.order,
+      },
+    });
+  } catch (err) {
+    console.error("[Hero] updateAdminHeroSlideAction failed:", err);
+    throw new Error("Failed to update the hero slide. Please try again.");
+  }
 
   if (existingSlide.imageUrl !== normalized.imageUrl) {
     await deleteHeroSlideImage(existingSlide.imageUrl);

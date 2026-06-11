@@ -12,22 +12,11 @@ const CartSessionSync = dynamic(
     import("@/components/shop/cart-session-sync").then((module) => module.CartSessionSync),
   { ssr: false }
 );
-const WishlistSessionSync = dynamic(
-  () =>
-    import("@/components/shop/wishlist-session-sync").then(
-      (module) => module.WishlistSessionSync
-    ),
-  { ssr: false }
-);
 const MarketingPopupClient = dynamic(
   () =>
     import("@/components/layout/marketing-popup-client").then(
       (module) => module.MarketingPopupClient
     ),
-  { ssr: false }
-);
-const Toaster = dynamic(
-  () => import("@/components/ui/toaster").then((module) => module.Toaster),
   { ssr: false }
 );
 
@@ -37,8 +26,7 @@ export function StorefrontDeferredUI({ popups }: { popups: Popup[] }) {
       {popups.length > 0 ? <MarketingPopupClient popups={popups} /> : null}
       <CartDrawer />
       <CartSessionSync />
-      <WishlistSessionSync />
-      <Toaster />
     </>
   );
 }
+

@@ -17,10 +17,11 @@ function getPrismaDatasourceUrl() {
 
     // In Vercel serverless, each function instance is isolated.
     // 3 connections per instance is safe — avoids pool starvation under concurrent
-    // requests. In local development, we allow 10 to avoid ECHECKOUTTIMEOUT during HMR.
+    // requests. In local development, we allow 5 connections with a 30s pool timeout
+    // to avoid ECHECKOUTTIMEOUT when many sections fire concurrent DB queries on first load.
     const isDev = process.env.NODE_ENV !== "production";
-    url.searchParams.set("connection_limit", process.env.PRISMA_CONNECTION_LIMIT || (isDev ? "10" : "3"));
-    url.searchParams.set("pool_timeout", process.env.PRISMA_POOL_TIMEOUT || "15");
+    url.searchParams.set("connection_limit", process.env.PRISMA_CONNECTION_LIMIT || (isDev ? "5" : "3"));
+    url.searchParams.set("pool_timeout", process.env.PRISMA_POOL_TIMEOUT || (isDev ? "30" : "15"));
     url.searchParams.set("connect_timeout", "15");
     url.searchParams.set("sslmode", "require");
 

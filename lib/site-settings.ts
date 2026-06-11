@@ -4,6 +4,35 @@ import { prisma } from "@/lib/prisma";
 import { normalizeRichTextHtml } from "@/lib/rich-text";
 import type { SiteSettings } from "@/types";
 
+export const DEFAULT_RETURNS_CONTENT = `
+<h1>Returns &amp; Exchanges</h1>
+<p>Last updated: March 9, 2026</p>
+<h2>30-Day Return Window</h2>
+<p>Return any item within 30 days of delivery for a full refund or exchange. Items must be in original condition with tags attached and original packaging intact.</p>
+<h2>How to Return</h2>
+<ol>
+  <li>Contact us at our support email or phone with your order number.</li>
+  <li>Pack your items securely using the original packaging, including all accessories and tags.</li>
+  <li>We will provide a return label and pickup instructions for Nairobi customers.</li>
+  <li>Refunds are processed within 3–5 business days after we receive your return.</li>
+</ol>
+<h2>Free Returns in Nairobi</h2>
+<p>We cover return shipping costs for Nairobi deliveries. Customers outside Nairobi are responsible for return shipping fees.</p>
+<h2>Exchanges</h2>
+<h3>Size Exchanges</h3>
+<p>Free for Nairobi customers within 7 days of delivery. Items must be unworn with tags attached.</p>
+<h3>Product Exchanges</h3>
+<p>Exchange for any item of equal or greater value. Pay the difference for higher-value items; receive a refund for lower-value items.</p>
+<h2>Non-Returnable Items</h2>
+<ul>
+  <li>Items that have been worn, washed, or altered</li>
+  <li>Items without original tags or packaging</li>
+  <li>Sale or clearance items (unless faulty)</li>
+</ul>
+<h2>Contact Us</h2>
+<p>Our customer service team is here to help with any return or exchange questions. Reach out via our Contact page.</p>
+`;
+
 export const DEFAULT_PRIVACY_CONTENT = `
 <h1>Privacy Policy</h1>
 <p>Last updated: March 9, 2026</p>
@@ -93,13 +122,17 @@ export async function getSiteSettings() {
   });
 
   if (settings) {
-    return settings as SiteSettings;
+    return {
+      ...settings,
+      returnsContent: settings.returnsContent ?? normalizeRichTextHtml(DEFAULT_RETURNS_CONTENT),
+    } as SiteSettings;
   }
 
   return {
     id: "default",
     termsContent: normalizeRichTextHtml(DEFAULT_TERMS_CONTENT),
     privacyContent: normalizeRichTextHtml(DEFAULT_PRIVACY_CONTENT),
+    returnsContent: normalizeRichTextHtml(DEFAULT_RETURNS_CONTENT),
     createdAt: new Date(),
     updatedAt: new Date(),
   } as SiteSettings;
@@ -108,17 +141,20 @@ export async function getSiteSettings() {
 export async function updateSiteSettings(input: {
   termsContent: string;
   privacyContent: string;
+  returnsContent: string;
 }) {
   const settings = await prisma.siteSettings.upsert({
     where: { id: "default" },
     update: {
       termsContent: normalizeRichTextHtml(input.termsContent),
       privacyContent: normalizeRichTextHtml(input.privacyContent),
+      returnsContent: normalizeRichTextHtml(input.returnsContent),
     },
     create: {
       id: "default",
       termsContent: normalizeRichTextHtml(input.termsContent),
       privacyContent: normalizeRichTextHtml(input.privacyContent),
+      returnsContent: normalizeRichTextHtml(input.returnsContent),
     },
   });
 

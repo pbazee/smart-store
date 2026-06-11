@@ -26,6 +26,7 @@ type HeroSlideFormState = {
   subtitle: string;
   imageUrl: string;
   ctaText: string;
+  ctaLink: string;
   isActive: boolean;
   order: string;
 };
@@ -35,7 +36,8 @@ function createEmptyFormState(): HeroSlideFormState {
     title: "",
     subtitle: "",
     imageUrl: "",
-    ctaText: "Shop the Edit",
+    ctaText: "Shop Collection",
+    ctaLink: "/shop",
     isActive: true,
     order: "0",
   };
@@ -52,6 +54,7 @@ function createFormState(slide?: HeroSlide | null): HeroSlideFormState {
     subtitle: slide.subtitle,
     imageUrl: slide.imageUrl,
     ctaText: slide.ctaText,
+    ctaLink: slide.ctaLink || "",
     isActive: slide.isActive,
     order: String(slide.order),
   };
@@ -64,7 +67,7 @@ function toPayload(form: HeroSlideFormState, imageUrl: string): AdminHeroSlideIn
     subtitle: form.subtitle.trim(),
     imageUrl,
     ctaText: form.ctaText.trim(),
-    ctaLink: "/shop",
+    ctaLink: form.ctaLink.trim() || undefined,
     moodTags: [],
     locationBadge: "",
     isActive: form.isActive,
@@ -88,12 +91,14 @@ export function HeroFormDialog({
   const [form, setForm] = useState<HeroSlideFormState>(() => createFormState(slide));
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(form.imageUrl);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const nextForm = createFormState(slide);
     setForm(nextForm);
     setSelectedFile(null);
     setPreviewUrl(nextForm.imageUrl);
+    setImageError(false);
   }, [slide, open]);
 
   useEffect(() => {
@@ -128,6 +133,7 @@ export function HeroFormDialog({
           }
 
           if (!imageUrl) {
+            setImageError(true);
             throw new Error("Please upload an image before saving.");
           }
 
@@ -212,6 +218,18 @@ export function HeroFormDialog({
             </label>
 
             <label className="space-y-2 text-sm">
+              <span className="font-medium text-zinc-300">CTA link</span>
+              <input
+                value={form.ctaLink}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, ctaLink: event.target.value }))
+                }
+                placeholder="/shop or https://..."
+                className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm">
               <span className="font-medium text-zinc-300">Order</span>
               <input
                 required
@@ -226,21 +244,39 @@ export function HeroFormDialog({
             </label>
 
             <div className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Image upload</span>
-              <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
-                <ImagePlus className="h-4 w-4" />
-                <span>{selectedFile ? selectedFile.name : "Choose hero image"}</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/avif"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] || null;
-                    setSelectedFile(file);
-                  }}
-                />
-              </label>
-              <p className="text-xs text-zinc-500">
+              <span className="font-medium text-zinc-300">Image upload {imageError && <span className="text-red-400 ml-2">*Required</span>}</span>
+              <div className="flex items-center gap-3">
+                <label className={`flex flex-1 cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed bg-black/60 px-4 py-5 text-sm transition-colors hover:text-white ${
+                  imageError ? "border-red-500/50 text-red-400 hover:border-red-400" : "border-zinc-700 text-zinc-300 hover:border-brand-400"
+                }`}>
+                  <ImagePlus className="h-4 w-4" />
+                  <span>{selectedFile ? selectedFile.name : "Choose hero image"}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+                      setSelectedFile(file);
+                      setImageError(false);
+                    }}
+                  />
+                </label>
+                {(selectedFile || previewUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPreviewUrl("");
+                      setForm((cur) => ({ ...cur, imageUrl: "" }));
+                    }}
+                    className="shrink-0 rounded-xl bg-red-500/10 px-4 py-5 text-sm font-semibold text-red-500 hover:bg-red-500/20"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-500 mt-2">
                 JPG, PNG, WebP, or AVIF up to 5MB. Hero images are stored for the homepage carousel.
               </p>
             </div>
@@ -272,27 +308,27 @@ export function HeroFormDialog({
                     : undefined
                 }
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  <p className="text-2xl font-black text-white">
-                    {form.title || "Hero title"}
-                  </p>
-                  <p className="mt-2 text-sm text-white/75">
-                    {form.subtitle || "Hero subtitle preview appears here."}
-                  </p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <h3 className="font-sans text-2xl font-black text-white">{form.title || "Headline"}</h3>
+                  <p className="mt-2 text-sm text-zinc-300">{form.subtitle || "Subtitle preview"}</p>
+                  <div className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-black">
+                    {form.ctaText}
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-4 text-sm text-zinc-400">
+              <div className="space-y-3 text-sm text-zinc-400">
                 <div>
-                  <p className="font-medium text-zinc-300">CTA</p>
-                  <p className="mt-1">{form.ctaText || "Shop the Edit"}</p>
+                  <p className="font-medium text-zinc-300">File attached</p>
+                  <p className="mt-1 truncate">{selectedFile ? selectedFile.name : previewUrl ? "Existing image" : "None"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-zinc-300">Display order</p>
+                  <p className="mt-1">Position #{form.order}</p>
                 </div>
                 <div>
                   <p className="font-medium text-zinc-300">Visibility</p>
-                  <p className="mt-1">
-                    {form.isActive ? "Visible on the homepage" : "Hidden from the homepage"}
-                  </p>
+                  <p className="mt-1">{form.isActive ? "Visible in carousel" : "Hidden from carousel"}</p>
                 </div>
               </div>
             </div>

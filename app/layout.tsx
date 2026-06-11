@@ -11,6 +11,8 @@ import { StorefrontDeferredUI } from "@/components/layout/storefront-deferred-ui
 import { WhatsAppWidget } from "@/components/layout/whatsapp-widget";
 import { ProvidersClient } from "@/components/providers/providers-client";
 import { SupabaseProvider } from "@/components/supabase-provider";
+import { Toaster } from "@/components/ui/toaster";
+
 import { getAppUrl } from "@/lib/app-url";
 import { getHomepageShellData } from "@/lib/homepage-data";
 import { cn } from "@/lib/utils";
@@ -148,6 +150,7 @@ export default async function RootLayout({
               >
                 {children}
               </RootLayoutShell>
+              <Toaster />
             </ThemeProvider>
           </ProvidersClient>
         </SupabaseProvider>

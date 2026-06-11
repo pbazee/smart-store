@@ -254,6 +254,7 @@ export interface SiteSettings {
   id: string;
   termsContent: string;
   privacyContent: string;
+  returnsContent?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

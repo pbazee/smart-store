@@ -256,20 +256,44 @@ export function PromoBannerFormDialog({
             </label>
 
             <div className="space-y-2 text-sm">
-              <span className="font-medium text-zinc-300">Background image upload</span>
-              <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
-                {isUploadingImage ? <RippleSpinner size={28} color="currentColor" label="Uploading" /> : <ImagePlus className="h-4 w-4" />}
-                <span>{isUploadingImage ? "Uploading image..." : "Choose banner image"}</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/avif"
-                  className="hidden"
-                  onChange={(event) => {
-                    void handleImageSelect(event.target.files?.[0] || null);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </label>
+              <span className="font-medium text-zinc-300">Background image</span>
+              <div className="flex items-center gap-3">
+                <label className="flex flex-1 cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
+                  {isUploadingImage ? (
+                    <RippleSpinner size={28} color="currentColor" label="Uploading" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  <span>
+                    {isUploadingImage
+                      ? "Uploading image..."
+                      : previewUrl
+                        ? "Replace image"
+                        : "Choose banner image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleImageSelect(event.target.files?.[0] || null);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {previewUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewUrl("");
+                      setForm((cur) => ({ ...cur, backgroundImageUrl: "" }));
+                    }}
+                    className="shrink-0 rounded-xl bg-red-500/10 px-4 py-5 text-sm font-semibold text-red-500 hover:bg-red-500/20"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
 
             <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300 md:col-span-2">

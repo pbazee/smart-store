@@ -27,7 +27,6 @@ import type {
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
 const STATIC_STORE_DATA_REVALIDATE_SECONDS = 900;
-const SHELL_MEMORY_CACHE_MS = 15_000;
 
 export type HomepageShellData = {
   announcements: AnnouncementMessage[];
@@ -38,13 +37,8 @@ export type HomepageShellData = {
   navigationCategories: Category[];
 };
 
-const globalForHomepageData = globalThis as typeof globalThis & {
-  _homepageShellData?: {
-    expiresAt: number;
-    data: HomepageShellData;
-  };
-  _pendingHomepageShellData?: Promise<HomepageShellData>;
-};
+
+
 
 export type HomepageProductSectionsData = {
   featured: Product[];
@@ -550,33 +544,7 @@ async function loadHomepageShellData(): Promise<HomepageShellData> {
   return { announcements, popups, socialLinks, whatsAppSettings, storeSettings, navigationCategories };
 }
 
-export async function getHomepageShellData() {
-  const cached = globalForHomepageData._homepageShellData;
-
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.data;
-  }
-
-  if (globalForHomepageData._pendingHomepageShellData) {
-    return globalForHomepageData._pendingHomepageShellData;
-  }
-
-  const request = loadHomepageShellData()
-    .then((data) => {
-      globalForHomepageData._homepageShellData = {
-        data,
-        expiresAt: Date.now() + SHELL_MEMORY_CACHE_MS,
-      };
-      return data;
-    })
-    .finally(() => {
-      globalForHomepageData._pendingHomepageShellData = undefined;
-    });
-
-  globalForHomepageData._pendingHomepageShellData = request;
-
-  return request;
-}
+export const getHomepageShellData = cache(loadHomepageShellData);
 
 export const getHomepagePageData = cache(async () => {
   console.log("[Homepage] getHomepagePageData: starting all section fetches...");

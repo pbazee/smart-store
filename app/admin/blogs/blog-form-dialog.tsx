@@ -141,6 +141,8 @@ export function BlogFormDialog({
   const [form, setForm] = useState<BlogFormState>(() => createFormState(post));
   const [previewUrl, setPreviewUrl] = useState(form.imageUrl);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(form.authorAvatarUrl);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
 
   useEffect(() => {
@@ -148,21 +150,24 @@ export function BlogFormDialog({
     setForm(nextForm);
     setPreviewUrl(nextForm.imageUrl);
     setSelectedFile(null);
+    setAvatarPreviewUrl(nextForm.authorAvatarUrl);
+    setSelectedAvatarFile(null);
     setSlugTouched(Boolean(post));
   }, [open, post]);
 
   useEffect(() => {
-    if (!selectedFile) {
-      return;
-    }
-
+    if (!selectedFile) return;
     const objectUrl = URL.createObjectURL(selectedFile);
     setPreviewUrl(objectUrl);
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
+    return () => URL.revokeObjectURL(objectUrl);
   }, [selectedFile]);
+
+  useEffect(() => {
+    if (!selectedAvatarFile) return;
+    const objectUrl = URL.createObjectURL(selectedAvatarFile);
+    setAvatarPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedAvatarFile]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -173,6 +178,7 @@ export function BlogFormDialog({
 
         try {
           let imageUrl = form.imageUrl.trim();
+          let authorAvatarUrl = form.authorAvatarUrl.trim();
 
           if (selectedFile) {
             const uploadFormData = new FormData();
@@ -182,11 +188,18 @@ export function BlogFormDialog({
             imageUrl = uploadedImageUrl;
           }
 
+          if (selectedAvatarFile) {
+            const uploadFormData = new FormData();
+            uploadFormData.append("file", selectedAvatarFile);
+            const uploadResult = await uploadBlogImageAction(uploadFormData);
+            authorAvatarUrl = uploadResult.imageUrl;
+          }
+
           if (!imageUrl) {
             throw new Error("Please upload a featured image before saving.");
           }
 
-          const payload = toPayload(form, imageUrl);
+          const payload = toPayload({ ...form, authorAvatarUrl }, imageUrl);
           const savedPost = form.id
             ? await updateAdminBlogAction(payload)
             : await createAdminBlogAction(payload);
@@ -279,17 +292,42 @@ export function BlogFormDialog({
                   />
                 </label>
 
-                <label className="space-y-2 text-sm">
-                  <span className="font-medium text-zinc-300">Author avatar URL</span>
-                  <input
-                    value={form.authorAvatarUrl}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, authorAvatarUrl: event.target.value }))
-                    }
-                    placeholder="Optional image URL"
-                    className="w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-zinc-100 placeholder:text-zinc-600"
-                  />
-                </label>
+                <div className="space-y-2 text-sm">
+                  <span className="font-medium text-zinc-300">Author avatar</span>
+                  <div className="flex items-center gap-3">
+                    {avatarPreviewUrl && (
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-zinc-700 bg-zinc-900">
+                        <img src={avatarPreviewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                      </div>
+                    )}
+                    <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-700 bg-black px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
+                      <ImagePlus className="h-4 w-4" />
+                      <span className="truncate">{selectedAvatarFile ? selectedAvatarFile.name : "Choose avatar image"}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/avif"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] || null;
+                          setSelectedAvatarFile(file);
+                        }}
+                      />
+                    </label>
+                    {(selectedAvatarFile || avatarPreviewUrl) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAvatarFile(null);
+                          setAvatarPreviewUrl("");
+                          setForm((cur) => ({ ...cur, authorAvatarUrl: "" }));
+                        }}
+                        className="shrink-0 rounded-xl bg-red-500/10 px-3 py-3 text-xs font-semibold text-red-500 hover:bg-red-500/20"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <label className="space-y-2 text-sm">
                   <span className="font-medium text-zinc-300">Category</span>
@@ -317,19 +355,34 @@ export function BlogFormDialog({
 
                 <div className="space-y-2 text-sm md:col-span-2">
                   <span className="font-medium text-zinc-300">Featured image</span>
-                  <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
-                    <ImagePlus className="h-4 w-4" />
-                    <span>{selectedFile ? selectedFile.name : "Choose blog cover image"}</span>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/avif"
-                      className="hidden"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] || null;
-                        setSelectedFile(file);
-                      }}
-                    />
-                  </label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex flex-1 cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
+                      <ImagePlus className="h-4 w-4" />
+                      <span>{selectedFile ? selectedFile.name : "Choose blog cover image"}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/avif"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] || null;
+                          setSelectedFile(file);
+                        }}
+                      />
+                    </label>
+                    {(selectedFile || previewUrl) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setPreviewUrl("");
+                          setForm((cur) => ({ ...cur, imageUrl: "" }));
+                        }}
+                        className="shrink-0 rounded-xl bg-red-500/10 px-4 py-5 text-sm font-semibold text-red-500 hover:bg-red-500/20"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <label className="space-y-2 text-sm">

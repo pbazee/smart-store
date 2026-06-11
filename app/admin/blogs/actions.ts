@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
@@ -27,7 +28,7 @@ const adminBlogSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(2, "Title is required").max(160, "Keep it under 160 characters"),
   slug: z.string().trim().max(180, "Keep it under 180 characters").optional(),
-  content: z.string().trim().min(40, "Content is too short"),
+  content: z.string().trim().min(10, "Content is too short"),
   imageUrl: imageUrlSchema,
   authorName: z.string().trim().min(2, "Author name is required").max(120, "Keep it under 120 characters"),
   authorAvatarUrl: z.string().trim().optional(),
@@ -108,25 +109,36 @@ export async function createAdminBlogAction(input: AdminBlogInput) {
   const data = normalizeBlogInput(input);
   const publishedAt = data.isPublished ? new Date() : null;
 
-  const post = await prisma.blog.create({
-    data: {
-      title: data.title,
-      slug: data.slug,
-      content: data.content,
-      imageUrl: data.imageUrl,
-      authorName: data.authorName,
-      authorAvatarUrl: data.authorAvatarUrl,
-      category: data.category,
-      tags: data.tags,
-      metaTitle: data.metaTitle,
-      metaDescription: data.metaDescription,
-      ogImage: data.ogImage,
-      focusKeyword: data.focusKeyword,
-      canonicalUrl: data.canonicalUrl,
-      isPublished: data.isPublished,
-      publishedAt,
-    },
-  });
+  let post;
+  try {
+    post = await prisma.blog.create({
+      data: {
+        title: data.title,
+        slug: data.slug,
+        content: data.content,
+        imageUrl: data.imageUrl,
+        authorName: data.authorName,
+        authorAvatarUrl: data.authorAvatarUrl,
+        category: data.category,
+        tags: data.tags,
+        metaTitle: data.metaTitle,
+        metaDescription: data.metaDescription,
+        ogImage: data.ogImage,
+        focusKeyword: data.focusKeyword,
+        canonicalUrl: data.canonicalUrl,
+        isPublished: data.isPublished,
+        publishedAt,
+      },
+    });
+  } catch (err) {
+    console.error("[Blog] createAdminBlogAction failed:", err);
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error(
+        `A blog post with the slug "${data.slug}" already exists. Change the title or edit the slug field to make it unique.`
+      );
+    }
+    throw err;
+  }
 
   revalidateBlogPaths([data.slug]);
   return post as BlogPost;
@@ -140,26 +152,37 @@ export async function updateAdminBlogAction(input: AdminBlogInput) {
   const existingPost = await prisma.blog.findUnique({ where: { id: data.id } });
   if (!existingPost) throw new Error("Blog post not found.");
 
-  const post = await prisma.blog.update({
-    where: { id: data.id },
-    data: {
-      title: normalized.title,
-      slug: normalized.slug,
-      content: normalized.content,
-      imageUrl: normalized.imageUrl,
-      authorName: normalized.authorName,
-      authorAvatarUrl: normalized.authorAvatarUrl,
-      category: normalized.category,
-      tags: normalized.tags,
-      metaTitle: normalized.metaTitle,
-      metaDescription: normalized.metaDescription,
-      ogImage: normalized.ogImage,
-      focusKeyword: normalized.focusKeyword,
-      canonicalUrl: normalized.canonicalUrl,
-      isPublished: normalized.isPublished,
-      publishedAt: normalized.isPublished ? existingPost.publishedAt ?? new Date() : null,
-    },
-  });
+  let post;
+  try {
+    post = await prisma.blog.update({
+      where: { id: data.id },
+      data: {
+        title: normalized.title,
+        slug: normalized.slug,
+        content: normalized.content,
+        imageUrl: normalized.imageUrl,
+        authorName: normalized.authorName,
+        authorAvatarUrl: normalized.authorAvatarUrl,
+        category: normalized.category,
+        tags: normalized.tags,
+        metaTitle: normalized.metaTitle,
+        metaDescription: normalized.metaDescription,
+        ogImage: normalized.ogImage,
+        focusKeyword: normalized.focusKeyword,
+        canonicalUrl: normalized.canonicalUrl,
+        isPublished: normalized.isPublished,
+        publishedAt: normalized.isPublished ? existingPost.publishedAt ?? new Date() : null,
+      },
+    });
+  } catch (err) {
+    console.error("[Blog] updateAdminBlogAction failed:", err);
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error(
+        `A blog post with the slug "${normalized.slug}" already exists. Change the slug field to make it unique.`
+      );
+    }
+    throw err;
+  }
 
   if (existingPost.imageUrl !== normalized.imageUrl) {
     await deleteBlogImage(existingPost.imageUrl);

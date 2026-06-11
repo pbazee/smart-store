@@ -59,6 +59,7 @@ function revalidateStorefront() {
 const legalSettingsSchema = z.object({
   termsContent: z.string().trim().min(1, "Terms of Service content is required"),
   privacyContent: z.string().trim().min(1, "Privacy Policy content is required"),
+  returnsContent: z.string().trim().min(1, "Return Policy content is required"),
 });
 
 export async function fetchAdminSiteSettings() {
@@ -70,6 +71,7 @@ export async function fetchAdminSiteSettings() {
 export async function updateAdminSiteSettingsAction(input: {
   termsContent: string;
   privacyContent: string;
+  returnsContent: string;
 }) {
   const isAdmin = await requireAdminAuth();
   if (!isAdmin) {

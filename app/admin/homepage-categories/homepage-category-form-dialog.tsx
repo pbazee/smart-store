@@ -89,6 +89,7 @@ export function HomepageCategoryFormDialog({
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(form.imageUrl);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     const nextForm = createFormState(category, topLevelCategories);
@@ -121,6 +122,7 @@ export function HomepageCategoryFormDialog({
           let imageUrl = form.imageUrl.trim();
 
           if (selectedFile) {
+            setIsUploadingImage(true);
             const uploadFormData = new FormData();
             uploadFormData.append("file", selectedFile);
             const uploadResult = await uploadHomepageCategoryImageAction(uploadFormData);
@@ -158,6 +160,8 @@ export function HomepageCategoryFormDialog({
               error instanceof Error ? error.message : "Please review the form and try again.",
             variant: "destructive",
           });
+        } finally {
+          setIsUploadingImage(false);
         }
       })();
     });
@@ -241,23 +245,49 @@ export function HomepageCategoryFormDialog({
             </label>
 
             <div className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium text-zinc-300">Image upload</span>
-              <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
-                <ImagePlus className="h-4 w-4" />
-                <span>{selectedFile ? selectedFile.name : "Choose category image"}</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/avif"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] || null;
-                    setSelectedFile(file);
-                  }}
-                />
-              </label>
-              <p className="text-xs text-zinc-500">
-                JPG, PNG, WebP, or AVIF up to 5MB. Uploaded images are reused on the homepage cards.
-              </p>
+              <span className="font-medium text-zinc-300">Category image upload</span>
+              <div className="flex items-center gap-3">
+                <label className="flex flex-1 cursor-pointer items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-zinc-700 bg-black/60 px-4 py-5 text-sm text-zinc-300 transition-colors hover:border-brand-400 hover:text-white">
+                  {isUploadingImage ? (
+                    <RippleSpinner size={28} color="currentColor" label="Uploading" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  <span>
+                    {isUploadingImage
+                      ? "Uploading image..."
+                      : previewUrl
+                        ? "Replace image"
+                        : "Choose category image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+                      setSelectedFile(file);
+                      if (file) {
+                        setForm((current) => ({ ...current, imageUrl: "" }));
+                      }
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {previewUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewUrl("");
+                      setSelectedFile(null);
+                      setForm((cur) => ({ ...cur, imageUrl: "" }));
+                    }}
+                    className="shrink-0 rounded-xl bg-red-500/10 px-4 py-5 text-sm font-semibold text-red-500 hover:bg-red-500/20"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
 
             <label className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300 md:col-span-2">
@@ -274,27 +304,14 @@ export function HomepageCategoryFormDialog({
 
           <div className="rounded-[1.75rem] border border-zinc-800 bg-black/50 p-5">
             <p className="text-sm font-medium text-zinc-300">Preview</p>
-            <div className="mt-4 grid gap-4 lg:grid-cols-[220px,1fr]">
-              <div
-                className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-900"
-                style={
-                  previewUrl
-                    ? {
-                        backgroundImage: `url("${previewUrl}")`,
-                        backgroundPosition: "center",
-                        backgroundSize: "cover",
-                      }
-                    : undefined
-                }
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4">
-                  <span className="rounded-full bg-white/90 px-4 py-2 text-sm font-bold text-neutral-900 shadow-sm backdrop-blur-sm">
-                    {form.title || "Category title"}
-                  </span>
-                </div>
-              </div>
-
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Category preview"
+                className="mt-4 h-32 w-full rounded-lg object-cover"
+              />
+            )}
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_250px]">
               <div className="space-y-3 text-sm text-zinc-400">
                 <div>
                   <p className="font-medium text-zinc-300">Master category</p>

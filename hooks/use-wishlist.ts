@@ -269,7 +269,8 @@ export function useWishlist() {
     isLoaded,
     isSignedIn,
     isSynced,
-    isSyncing,
+    // NOTE: isSyncing deliberately excluded — checked at runtime but must not be a dep
+    // to avoid recreating the callback on every fetch tick.
     resetForUser,
     setSyncingForUser,
     setWishlistForUser,
@@ -417,6 +418,7 @@ export function useWishlistSync() {
     setSyncingForUser,
     setWishlistForUser,
     syncedUserIds,
-    syncingUserIds,
+    // NOTE: syncingUserIds deliberately excluded — it's checked at runtime inside the guard
+    // but must not be a dep or the effect re-triggers when the fetch starts syncing.
   ]);
 }
