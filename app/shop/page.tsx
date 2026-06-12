@@ -1,12 +1,14 @@
 import { Suspense } from "react";
 import { CatalogBrowser } from "@/components/shop/catalog-browser";
-import { InlineLoader } from "@/components/ui/ripple-loader";
 import { buildCatalogHref } from "@/lib/catalog-routing";
 import { getCatalogPageData } from "@/lib/catalog-page-data";
 import type { CatalogQueryInput } from "@/lib/catalog-routing";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Allow Next.js to cache this page per unique filter combination.
+// Products are revalidated every 5 minutes via unstable_cache in data-service.ts.
+// Removing force-dynamic means repeat navigations (Shop → Women → Men → Shop)
+// are served from the cache after the first load, making them near-instant.
+export const revalidate = 300;
 
 export default async function ShopPage({
   searchParams,
@@ -14,13 +16,13 @@ export default async function ShopPage({
   searchParams: Promise<CatalogQueryInput>;
 }) {
   const params = await searchParams;
-  const { heading, products, categories } = await getCatalogPageData(params, {
-    disableProductCache: true,
-  });
+  // disableProductCache removed — let the 300-second unstable_cache in
+  // data-service.ts do its job for each unique filter combination.
+  const { heading, products, categories } = await getCatalogPageData(params);
   const browserKey = buildCatalogHref(params);
 
   return (
-    <Suspense fallback={<InlineLoader label="Loading products..." />}>
+    <Suspense>
       <CatalogBrowser
         key={browserKey}
         heading={heading}
@@ -30,3 +32,4 @@ export default async function ShopPage({
     </Suspense>
   );
 }
+

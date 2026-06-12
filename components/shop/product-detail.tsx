@@ -129,7 +129,11 @@ export function ProductDetail({
   );
   const averageRating = currentProduct.rating;
   const isFootwearProduct = isFootwearProductLike(currentProduct);
-  const displayedPrice = selectedVariant?.price ?? selectedColorVariant?.price ?? currentProduct.basePrice;
+  // FIX 2: price is derived ONLY from a fully-selected variant (color + size).
+  // Dropping the selectedColorVariant fallback prevents the price sticking at a
+  // previously-selected variant's price when the user clicks back to a color
+  // without yet picking a size.
+  const displayedPrice = selectedVariant?.price ?? currentProduct.basePrice;
   const sharePrice = displayedPrice;
   const sharePriceLabel = `Ksh ${sharePrice.toLocaleString()}`;
   const normalizedShareSummary = `${currentProduct.name} - ${sharePriceLabel}`;
@@ -154,11 +158,18 @@ export function ProductDetail({
   const variantDetail = selectedVariant
     ? ` (${selectedVariant.color}, Size ${selectedVariant.size})`
     : "";
-  const normalizedShareMessage = shareUrl
-    ? `🛍️ *${currentProduct.name}${variantDetail}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}\n\n👉 Shop here: ${shareUrl}`
-    : `🛍️ *${currentProduct.name}${variantDetail}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}`;
+
+  // FIX 4 — platform-diagnostic URL deduplication:
+  // The message BODY never embeds the product URL. Each sharing platform
+  // receives the URL via its own dedicated channel:
+  //   • navigator.share  → `url` field in ShareData
+  //   • WhatsApp         → appended once at the end of the wa.me text
+  //   • Twitter          → separate `url=` query param
+  //   • ShareButton      → `url` prop (clipboard fallback writes only the url)
+  // This ensures exactly one URL appears regardless of platform.
+  const normalizedShareMessageBody = `🛍️ *${currentProduct.name}${variantDetail}*\n💰 ${sharePriceLabel}${shareDescription ? `\n\n${shareDescription}` : ""}`;
   const normalizedWhatsappShareUrl = shareUrl
-    ? `https://wa.me/?text=${encodeURIComponent(normalizedShareMessage)}`
+    ? `https://wa.me/?text=${encodeURIComponent(`${normalizedShareMessageBody}\n\n👉 Shop here: ${shareUrl}`)}`
     : "";
   const normalizedTwitterShareUrl = shareUrl
     ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(normalizedShareSummary)}&url=${encodeURIComponent(shareUrl)}`
@@ -710,6 +721,11 @@ export function ProductDetail({
           )}
 
           <div className="grid gap-3 sm:grid-cols-[1fr,auto]">
+            {/* FIX 1 — 4-state Add to Cart button.
+                State A: all sizes OOS or no-variant product OOS → Notify me
+                State B: selected variant is OOS (stock=0) → disabled "Out of stock" + auto-open Notify Me
+                State C: variants exist but not fully selected → disabled "Select options to continue"
+                State D: ready → active "Add to cart - Ksh X" */}
             {defaultProductOutOfStock || allSizesOutOfStock ? (
               <button
                 type="button"
@@ -721,6 +737,20 @@ export function ProductDetail({
               >
                 Notify me
               </button>
+            ) : selectedVariant && selectedVariant.stock === 0 ? (
+              // State B — a specific variant is selected but has zero stock
+              <button
+                type="button"
+                disabled
+                onClick={() => {
+                  setNotifyOpen(true);
+                  setNotifyMessage(null);
+                }}
+                className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] bg-muted px-6 py-4 text-base font-bold text-muted-foreground shadow-none cursor-not-allowed"
+              >
+                <ShoppingBag className="h-5 w-5" />
+                Out of stock
+              </button>
             ) : (
               <motion.button
                 whileTap={{ scale: 0.985 }}
@@ -731,7 +761,7 @@ export function ProductDetail({
               >
                 <ShoppingBag className="h-5 w-5" />
                 {hasVariants && (!selectedColor || !selectedSize)
-                  ? "Select options"
+                  ? "Select options to continue"
                   : `Add to cart - ${formatKES(displayedPrice)}`}
               </motion.button>
             )}
@@ -751,6 +781,20 @@ export function ProductDetail({
               Wishlist
             </button>
           </div>
+
+          {/* State B — auto-surface Notify Me when selected variant is OOS */}
+          {selectedVariant && selectedVariant.stock === 0 && !notifyOpen && (
+            <button
+              type="button"
+              onClick={() => {
+                setNotifyOpen(true);
+                setNotifyMessage(null);
+              }}
+              className="-mt-1 flex w-full items-center justify-center gap-2 rounded-[1.35rem] border border-border px-6 py-3.5 text-sm font-bold text-foreground transition-colors hover:border-brand-300 hover:text-brand-600"
+            >
+              Notify me when back in stock
+            </button>
+          )}
 
           {notifyOpen ? (
             <div className="rounded-[1.35rem] border border-border bg-card p-4">
@@ -821,7 +865,7 @@ export function ProductDetail({
           {shareUrl ? (
             <ShareButton
               title={`${currentProduct.name}${selectedVariant ? ` – ${selectedVariant.color}, Size ${selectedVariant.size}` : ""}`}
-              text={normalizedShareMessage}
+              text={normalizedShareMessageBody}
               url={shareUrl}
               imageUrl={shareImageUrl}
               label="Share this product"

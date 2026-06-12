@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -43,16 +43,23 @@ function DesktopNavLink({
   active: boolean;
   onClick?: () => void;
 }) {
+  const [isPending, startTransition] = useTransition();
+
   return (
     <Link
       href={href}
       prefetch
-      onClick={onClick}
+      onClick={() => {
+        startTransition(() => {
+          onClick?.();
+        });
+      }}
       className={cn(
-        "rounded-full px-3 py-2 text-sm font-semibold transition-colors",
+        "rounded-full px-3 py-2 text-sm font-semibold transition-all",
         active
           ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        isPending && !active && "opacity-50"
       )}
     >
       {label}
