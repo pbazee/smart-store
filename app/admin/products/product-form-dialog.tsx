@@ -1547,11 +1547,11 @@ export function ProductFormDialog({
             </button>
             <button
               type="submit"
-              disabled={isPending || hasValidationErrors || !hasUnsavedChanges}
+              disabled={saveState === "saving" || hasValidationErrors || !hasUnsavedChanges}
               className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {isPending ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Plus className="h-4 w-4" />}
-              {isPending
+              {saveState === "saving" ? <RippleSpinner size={28} color="currentColor" label="Saving" /> : <Plus className="h-4 w-4" />}
+              {saveState === "saving"
                 ? "Saving..."
                 : form.id
                   ? saveState === "saved"

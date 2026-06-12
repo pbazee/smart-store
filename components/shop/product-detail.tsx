@@ -599,8 +599,24 @@ export function ProductDetail({
                         key={color}
                         type="button"
                         onClick={() => {
+                          // Compute sizes for the clicked color inline so we can auto-select
+                          // if there is only one size available for this color (covers One Size,
+                          // single-size-per-color accessories, and single-size clothing variants).
+                          const sizesForClickedColor = [
+                            ...new Set(
+                              currentProduct.variants
+                                .filter((v) => v.color === color)
+                                .map((v) => v.size.trim())
+                                .filter(Boolean)
+                            ),
+                          ];
+                          const autoSize =
+                            sizesForClickedColor.length === 1 && sizesForClickedColor[0]
+                              ? sizesForClickedColor[0]
+                              : "";
+
                           setSelectedColor(color);
-                          setSelectedSize("");
+                          setSelectedSize(autoSize);
                           const variantImg = variant?.variantImageUrl || currentProduct.images[0] || initialDisplayImage;
                           setDisplayedImage(variantImg);
                           setNotifyOpen(false);
