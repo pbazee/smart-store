@@ -367,7 +367,7 @@ function toCatalogListProduct(product: CatalogProductListRow): Product {
     ...product,
     description: "",
     gender: product.gender as Product["gender"],
-    images: product.images.filter((image) => !image.startsWith("data:image/")).slice(0, 1),
+    images: product.images.length > 0 ? [product.images[0]] : [],
   };
 }
 
