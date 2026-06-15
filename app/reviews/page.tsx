@@ -17,7 +17,7 @@ type ReviewWithProduct = {
     };
 };
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export default async function ReviewsPage() {
     const reviews = await getLatestApprovedReviews(50) as unknown as ReviewWithProduct[];

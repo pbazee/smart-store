@@ -79,7 +79,6 @@ function normalizeCouponInput(input: AdminCouponInput) {
 }
 
 function revalidateCouponPaths() {
-  revalidatePath("/checkout");
   revalidatePath("/admin");
   revalidatePath("/admin/coupons");
 }

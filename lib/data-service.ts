@@ -55,11 +55,12 @@ type LiveDataQueryOptions = {
   revalidateSeconds?: number;
   tags?: string[];
   disableCache?: boolean;
+  fallbackOnConnectionError?: boolean;
 };
 
 const DEFAULT_LIVE_DATA_TIMEOUT_MS = 10_000;
-const DEFAULT_PRODUCTS_REVALIDATE_SECONDS = 300;
-const DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS = 300;
+const DEFAULT_PRODUCTS_REVALIDATE_SECONDS = 3600;
+const DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS = 3600;
 const ADMIN_STATS_REVALIDATE_SECONDS = 60;
 const LIVE_DATA_TIMEOUT_MS = getLiveDataTimeoutMs();
 
@@ -220,6 +221,16 @@ const CATALOG_VARIANT_SELECT = {
   variantImageUrl: true,
 } satisfies Prisma.VariantSelect;
 
+const CATALOG_VARIANT_LIST_SELECT = {
+  id: true,
+  color: true,
+  colorHex: true,
+  size: true,
+  stock: true,
+  price: true,
+  variantImageUrl: true,
+} satisfies Prisma.VariantSelect;
+
 const CATALOG_PRODUCT_SELECT = {
   id: true,
   name: true,
@@ -247,8 +258,39 @@ const CATALOG_PRODUCT_SELECT = {
   },
 } satisfies Prisma.ProductSelect;
 
+const CATALOG_PRODUCT_LIST_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  category: true,
+  subcategory: true,
+  categoryId: true,
+  gender: true,
+  tags: true,
+  basePrice: true,
+  images: true,
+  rating: true,
+  reviewCount: true,
+  isFeatured: true,
+  isNew: true,
+  isPopular: true,
+  isTrending: true,
+  isRecommended: true,
+  createdAt: true,
+  updatedAt: true,
+  variants: {
+    select: CATALOG_VARIANT_LIST_SELECT,
+    orderBy: [{ stock: "desc" }, { price: "asc" }],
+    take: 6,
+  },
+} satisfies Prisma.ProductSelect;
+
 type CatalogProductRow = Prisma.ProductGetPayload<{
   select: typeof CATALOG_PRODUCT_SELECT;
+}>;
+
+type CatalogProductListRow = Prisma.ProductGetPayload<{
+  select: typeof CATALOG_PRODUCT_LIST_SELECT;
 }>;
 
 function getLiveDataTimeoutMs() {
@@ -320,6 +362,15 @@ function toCatalogProduct(product: CatalogProductRow): Product {
   };
 }
 
+function toCatalogListProduct(product: CatalogProductListRow): Product {
+  return {
+    ...product,
+    description: "",
+    gender: product.gender as Product["gender"],
+    images: product.images.filter((image) => !image.startsWith("data:image/")).slice(0, 1),
+  };
+}
+
 async function loadProductsFromDb(
   filters: ProductQueryFilters,
   options: LiveDataQueryOptions = {}
@@ -331,18 +382,25 @@ async function loadProductsFromDb(
   try {
     return await withLiveData(
       "getProducts",
-      async () =>
-        (await prisma.product.findMany({
+      async () => {
+        const products = await prisma.product.findMany({
           where: buildProductWhere(filters),
-          select: CATALOG_PRODUCT_SELECT,
+          select: CATALOG_PRODUCT_LIST_SELECT,
           orderBy: productOrderBy,
           take: filters.take,
           skip: filters.skip,
-        })).map(toCatalogProduct),
+        });
+
+        return products.map(toCatalogListProduct);
+      },
       options
     );
   } catch (error) {
     if (isPrismaConnectionError(error)) {
+      if (options.fallbackOnConnectionError === false) {
+        throw error;
+      }
+
       console.error("[Products] Database unavailable, returning empty catalog result:", error);
       return [];
     }
@@ -363,8 +421,8 @@ export async function getProducts(
   }
 
   return unstable_cache(
-    () => loadProductsFromDb(normalizedFilters, options),
-    ["products", cacheKey],
+    () => loadProductsFromDb(normalizedFilters, { ...options, fallbackOnConnectionError: false }),
+    ["products-v2", cacheKey],
     {
       revalidate: options.revalidateSeconds ?? DEFAULT_PRODUCTS_REVALIDATE_SECONDS,
       tags: buildProductCacheTags(cacheKey, options.tags),
@@ -444,7 +502,14 @@ export async function getProductStaticSlugs(take = 200) {
 }
 
 export async function getProductByIdentifier(identifier: string): Promise<Product | null> {
-  return loadProductByIdentifier(identifier);
+  return unstable_cache(
+    () => loadProductByIdentifier(identifier),
+    ["product-detail", identifier],
+    {
+      revalidate: DEFAULT_PRODUCT_DETAIL_REVALIDATE_SECONDS,
+      tags: [PRODUCTS_CACHE_TAG, `product:${identifier}`],
+    }
+  )();
 }
 
 export async function getCountProducts(filters?: ProductQueryFilters) {

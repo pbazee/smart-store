@@ -2,16 +2,26 @@ import { shouldSkipLiveDataDuringBuild } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { ProductReview } from "@/types";
 
+import { unstable_cache } from "next/cache";
+
 export async function getProductReviews(productId: string) {
   if (shouldSkipLiveDataDuringBuild()) {
     return [];
   }
 
-
-  return await prisma.review.findMany({
-    where: { productId, isApproved: true },
-    orderBy: { createdAt: "desc" },
-  });
+  return unstable_cache(
+    async () => {
+      return await prisma.review.findMany({
+        where: { productId, isApproved: true },
+        orderBy: { createdAt: "desc" },
+      });
+    },
+    ["product-reviews", productId],
+    {
+      revalidate: 3600,
+      tags: ["reviews", `product-reviews:${productId}`],
+    }
+  )();
 }
 
 export async function getLatestApprovedReviews(limit: number = 6) {
@@ -55,18 +65,30 @@ export async function getAllReviewsAdmin() {
 }
 
 export async function updateReviewAdmin(id: string, data: Partial<{ isApproved: boolean, rating: number, title: string, content: string }>) {
-
-  return await prisma.review.update({
+  const updated = await prisma.review.update({
     where: { id },
     data,
   });
+  
+  const { revalidateTag } = await import("next/cache");
+  revalidateTag("reviews");
+  revalidateTag("products");
+  revalidateTag(`product:${updated.productId}`);
+  revalidateTag(`product-reviews:${updated.productId}`);
+  return updated;
 }
 
 export async function deleteReviewAdmin(id: string) {
-
-  return await prisma.review.delete({
+  const deleted = await prisma.review.delete({
     where: { id },
   });
+  
+  const { revalidateTag } = await import("next/cache");
+  revalidateTag("reviews");
+  revalidateTag("products");
+  revalidateTag(`product:${deleted.productId}`);
+  revalidateTag(`product-reviews:${deleted.productId}`);
+  return deleted;
 }
 
 export async function createProductReview(input: {
@@ -111,6 +133,12 @@ export async function createProductReview(input: {
 
     return createdReview;
   });
+
+  const { revalidateTag } = await import("next/cache");
+  revalidateTag("reviews");
+  revalidateTag("products");
+  revalidateTag(`product:${input.productId}`);
+  revalidateTag(`product-reviews:${input.productId}`);
 
   return review as ProductReview;
 }

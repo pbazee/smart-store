@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: "Style notes, Nairobi trend reports, and quick outfit guides from Smartest Store KE.",
 };
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 function formatPostDate(post: BlogPost) {
   return new Date(post.publishedAt || post.createdAt).toLocaleDateString("en-KE", {

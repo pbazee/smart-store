@@ -26,7 +26,9 @@ import type {
 } from "@/types";
 
 export const HOMEPAGE_CACHE_TAG = "homepage";
+export const HOMEPAGE_PRODUCTS_CACHE_TAG = "homepage-products";
 const STATIC_STORE_DATA_REVALIDATE_SECONDS = 900;
+const HOMEPAGE_PRODUCTS_REVALIDATE_SECONDS = 3600;
 
 export type HomepageShellData = {
   announcements: AnnouncementMessage[];
@@ -94,8 +96,7 @@ const HOMEPAGE_PRODUCT_SELECT = {
   variants: {
     select: HOMEPAGE_PRODUCT_VARIANT_SELECT,
     orderBy: [{ stock: "desc" }, { price: "asc" }] as const,
-    // Limit variants per product to keep payload small
-    take: 4,
+    take: 6,
   },
 } satisfies Prisma.ProductSelect;
 
@@ -218,8 +219,8 @@ const getCachedHomepageCollectionProducts = (key: HomepageCollectionKey) =>
     },
     ["homepage-products", key],
     {
-      revalidate: 120,
-      tags: [HOMEPAGE_CACHE_TAG, "products", `homepage-products:${key}`],
+      revalidate: HOMEPAGE_PRODUCTS_REVALIDATE_SECONDS,
+      tags: [HOMEPAGE_CACHE_TAG, "products", HOMEPAGE_PRODUCTS_CACHE_TAG, `homepage-products:${key}`],
     }
   );
 

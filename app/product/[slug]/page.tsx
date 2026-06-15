@@ -14,8 +14,7 @@ import { formatKES } from "@/lib/utils";
 import { ProductRecommendations } from "./product-recommendations";
 
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 3600;
 const PRODUCT_SHARE_BASE_URL = "https://smart-store-iota.vercel.app";
 
 function buildAbsoluteUrl(pathOrUrl: string) {

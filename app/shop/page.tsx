@@ -5,10 +5,10 @@ import { getCatalogPageData } from "@/lib/catalog-page-data";
 import type { CatalogQueryInput } from "@/lib/catalog-routing";
 
 // Allow Next.js to cache this page per unique filter combination.
-// Products are revalidated every 5 minutes via unstable_cache in data-service.ts.
+// Products are revalidated every 1 hour via unstable_cache in data-service.ts.
 // Removing force-dynamic means repeat navigations (Shop → Women → Men → Shop)
 // are served from the cache after the first load, making them near-instant.
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function ShopPage({
   searchParams,

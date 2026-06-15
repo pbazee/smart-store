@@ -6,7 +6,7 @@ import { z } from "zod";
 import { buildAdminProductCreateData } from "@/lib/admin-products";
 import { requireAdminAuth } from "@/lib/auth-utils";
 import { PRODUCTS_CACHE_TAG } from "@/lib/data-service";
-import { HOMEPAGE_CACHE_TAG } from "@/lib/homepage-data";
+import { HOMEPAGE_CACHE_TAG, HOMEPAGE_PRODUCTS_CACHE_TAG } from "@/lib/homepage-data";
 import { prisma } from "@/lib/prisma";
 import {
   buildInvalidCatalogProductWhere,
@@ -96,13 +96,25 @@ async function ensureAdmin() {
 }
 
 function revalidateCatalogPaths() {
-  revalidateTag('products');
-  revalidateTag('homepage-products');
+  revalidateTag(PRODUCTS_CACHE_TAG);
+  revalidateTag(HOMEPAGE_CACHE_TAG);
+  revalidateTag(HOMEPAGE_PRODUCTS_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/shop");
-  revalidatePath("/wishlist");
   revalidatePath("/admin");
   revalidatePath("/admin/products");
+}
+
+function revalidateProductDetail(product: Pick<Product, "id" | "slug">, previousSlug?: string | null) {
+  const slugs = Array.from(
+    new Set([product.slug, previousSlug].filter((slug): slug is string => Boolean(slug)))
+  );
+
+  revalidateTag(`product:${product.id}`);
+  for (const slug of slugs) {
+    revalidateTag(`product:${slug}`);
+    revalidatePath(`/product/${slug}`);
+  }
 }
 
 async function normalizeAdminProductInput(input: AdminProductInput) {
@@ -258,6 +270,7 @@ export async function createAdminProductAction(input: AdminProductInput) {
   });
 
   revalidateCatalogPaths();
+  revalidateProductDetail(product);
   return product as Product;
 }
 
@@ -265,6 +278,10 @@ export async function updateAdminProductAction(input: AdminProductInput) {
   await ensureAdmin();
   const data = adminProductSchema.extend({ id: z.string().min(1) }).parse(input);
   const normalizedData = await normalizeAdminProductUpdateInput(data);
+  const existingProduct = await prisma.product.findUnique({
+    where: { id: normalizedData.id },
+    select: { slug: true },
+  });
 
   const product = await prisma.product.update({
     where: { id: normalizedData.id },
@@ -300,6 +317,7 @@ export async function updateAdminProductAction(input: AdminProductInput) {
   });
 
   revalidateCatalogPaths();
+  revalidateProductDetail(product, existingProduct?.slug);
   return product as Product;
 }
 
@@ -320,6 +338,11 @@ export async function deleteAdminProductsAction(productIds: string[]) {
   await ensureAdmin();
   const ids = z.array(z.string().min(1)).min(1).parse(productIds);
 
+  const products = await prisma.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, slug: true },
+  });
+
   await prisma.product.deleteMany({
     where: {
       id: {
@@ -329,5 +352,8 @@ export async function deleteAdminProductsAction(productIds: string[]) {
   });
 
   revalidateCatalogPaths();
+  products.forEach((p) => {
+    revalidateProductDetail(p);
+  });
   return { deletedIds: ids };
 }

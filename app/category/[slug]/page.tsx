@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { buildCatalogHrefFromCategorySlug } from "@/lib/catalog-routing";
 
 export const dynamic = "force-static";
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function CategoryPage({
   params,

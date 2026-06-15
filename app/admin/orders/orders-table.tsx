@@ -188,7 +188,7 @@ export function OrdersTable({
         },
       },
       keepPreviousData: true,
-      revalidateOnFocus: true,
+      revalidateOnFocus: false,
       dedupingInterval: 30_000,
     }
   );

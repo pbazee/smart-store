@@ -237,6 +237,20 @@ export function ProductDetail({
     setSelectedColor("");
     setSelectedSize("");
     setDisplayedImage(nextDisplayImage);
+
+    // Fetch live stock/price so the cached page immediately updates with reality
+    const fetchLiveProduct = async () => {
+      try {
+        const res = await fetch(`/api/products/${product.slug}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            setLiveProduct(json.data);
+          }
+        }
+      } catch (err) {}
+    };
+    fetchLiveProduct();
   }, [product]);
 
   useEffect(() => {

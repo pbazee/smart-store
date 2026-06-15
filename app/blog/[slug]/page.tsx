@@ -14,7 +14,7 @@ import { BlogNewsletterForm } from "@/components/blog/blog-newsletter-form";
 import { sanitizeRichHtml } from "@/lib/rich-text";
 import { createBlurDataURL } from "@/lib/utils";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 function buildAbsoluteUrl(pathOrUrl: string) {
   return new URL(pathOrUrl, getAppUrl()).toString();
