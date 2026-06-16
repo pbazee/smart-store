@@ -17,9 +17,11 @@ import {
   getHomepagePageData,
 } from "@/lib/homepage-data";
 
-// ISR: serve cached HTML instantly, rebuild in background every 1 hour.
-// User-specific data (cart, wishlist) is client-fetched separately after hydration.
-export const revalidate = 3600;
+// Force dynamic rendering so every request gets a fresh server render.
+// Data caching is handled at the data layer via unstable_cache (3600s TTL).
+// This avoids the ISR pitfall where Vercel can cache a build-time-empty page
+// (skeleton fallbacks only) and serve it to the first visitor after deployment.
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const homepageDataPromise = getHomepagePageData();

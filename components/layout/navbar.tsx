@@ -8,6 +8,7 @@ import { Heart, Menu, Moon, Search, ShoppingCart, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
+import useSWR from "swr";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { buildCatalogHref } from "@/lib/catalog-routing";
 import { getStoreLogoSetFromSettings } from "@/lib/store-branding-shared";
@@ -236,11 +237,26 @@ export function Navbar({
       closeCart: state.closeCart,
     }))
   );
+
+  // If the server couldn't load store settings (cold cache / DB timeout after
+  // fresh deployment), fetch them client-side so the logo never shows as default.
+  const { data: clientSettings } = useSWR<StoreSettings | null>(
+    initialStoreSettings ? null : "/api/store-settings",
+    async (url: string) => {
+      const res = await fetch(url);
+      const json = await res.json() as { data?: StoreSettings };
+      return json.data ?? null;
+    },
+    { revalidateOnFocus: false, revalidateOnMount: true }
+  );
+
+  // Prefer server-provided settings; fall back to client-fetched if server returned null
+  const storeSettings = initialStoreSettings ?? clientSettings ?? null;
+
   const count = hasHydrated ? cartCount : 0;
   const searchValue = searchParams.get("search") ?? "";
   const wishlistHref = "/wishlist";
   const accountHref = "/account";
-  const storeSettings = initialStoreSettings;
   const drawerCategoryLinks = getDrawerCategoryLinks(initialCategories ?? []);
 
   useRoutePrefetch([
