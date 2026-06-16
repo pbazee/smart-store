@@ -235,15 +235,10 @@ export async function getHomepageCollectionProducts(key: HomepageCollectionKey) 
 
 export const getCachedHeroSlides = unstable_cache(
   async (): Promise<HeroSlide[]> => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return [];
-      }
-      return await getActiveHeroSlides();
-    } catch (error) {
-      console.error("[HeroSlides] DB error, returning empty fallback:", error);
+    if (shouldSkipLiveDataDuringBuild()) {
       return [];
     }
+    return await getActiveHeroSlides();
   },
   ["hero-slides"],
   { revalidate: 60, tags: ["hero-slides", HOMEPAGE_CACHE_TAG] }
@@ -251,31 +246,28 @@ export const getCachedHeroSlides = unstable_cache(
 
 export const getCachedAnnouncements = unstable_cache(
   async () => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return [];
-      }
-
-      return await prisma.announcementMessage.findMany({
-        where: { isActive: true },
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          text: true,
-          icon: true,
-          link: true,
-          bgColor: true,
-          textColor: true,
-          isActive: true,
-          order: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-    } catch (error) {
-      console.error("[Announcements] DB error, returning empty fallback:", error);
+    if (shouldSkipLiveDataDuringBuild()) {
       return [];
     }
+    return await prisma.announcement.findMany({
+      where: {
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+      },
+      orderBy: { order: "asc" },
+      select: {
+        id: true,
+        message: true,
+        ctaText: true,
+        ctaLink: true,
+        isHighlight: true,
+        isActive: true,
+        expiresAt: true,
+        order: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   },
   ["announcements"],
   { revalidate: 60, tags: ["announcements", HOMEPAGE_CACHE_TAG] }
@@ -283,12 +275,7 @@ export const getCachedAnnouncements = unstable_cache(
 
 export const getCachedPromoBanners = unstable_cache(
   async () => {
-    try {
-      return await getPromoBanners({ activeOnly: true, seedIfEmpty: false });
-    } catch (error) {
-      console.error("[PromoBanners] DB error, returning empty fallback:", error);
-      return [];
-    }
+    return await getPromoBanners({ activeOnly: true, seedIfEmpty: false });
   },
   ["promo-banners"],
   { revalidate: 300, tags: ["promo-banners", HOMEPAGE_CACHE_TAG] }
@@ -344,12 +331,7 @@ export async function getCachedHomepageProducts(): Promise<HomepageProductSectio
 
 export const getCachedHomepageCategories = unstable_cache(
   async () => {
-    try {
-      return await getActiveHomepageCategories();
-    } catch (error) {
-      console.error("[HomepageCategories] DB error, returning empty fallback:", error);
-      return [];
-    }
+    return await getActiveHomepageCategories();
   },
   ["homepage-categories"],
   { revalidate: 600, tags: ["homepage-categories", HOMEPAGE_CACHE_TAG] }
@@ -357,25 +339,10 @@ export const getCachedHomepageCategories = unstable_cache(
 
 export const getCachedStoreSettings = unstable_cache(
   async () => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return await getPersistedStoreSettings({
-          seedIfEmpty: false,
-          fallbackOnError: false,
-        });
-      }
-
-      return await getPersistedStoreSettings({
-        seedIfEmpty: false,
-        fallbackOnError: false,
-      });
-    } catch (error) {
-      console.error("[StoreSettings] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return null;
-      }
-      throw error;
+    if (shouldSkipLiveDataDuringBuild()) {
+      return await getPersistedStoreSettings({ seedIfEmpty: false, fallbackOnError: false });
     }
+    return await getPersistedStoreSettings({ seedIfEmpty: false, fallbackOnError: false });
   },
   ["store-settings"],
   { revalidate: STATIC_STORE_DATA_REVALIDATE_SECONDS, tags: ["store-settings", HOMEPAGE_CACHE_TAG] }
@@ -383,39 +350,31 @@ export const getCachedStoreSettings = unstable_cache(
 
 export const getCachedPopups = unstable_cache(
   async () => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return [];
-      }
-
-      return await prisma.popup.findMany({
-        where: {
-          isActive: true,
-          OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-        },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          title: true,
-          message: true,
-          imageUrl: true,
-          ctaText: true,
-          ctaLink: true,
-          showOn: true,
-          delaySeconds: true,
-          isActive: true,
-          expiresAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-    } catch (error) {
-      console.error("[Popups] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+    if (shouldSkipLiveDataDuringBuild()) {
+      return [];
     }
+
+    return await prisma.popup.findMany({
+      where: {
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        message: true,
+        imageUrl: true,
+        ctaText: true,
+        ctaLink: true,
+        showOn: true,
+        delaySeconds: true,
+        isActive: true,
+        expiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   },
   ["popups"],
   { revalidate: STATIC_STORE_DATA_REVALIDATE_SECONDS, tags: ["popups", HOMEPAGE_CACHE_TAG] }
@@ -423,25 +382,10 @@ export const getCachedPopups = unstable_cache(
 
 export const getCachedWhatsAppSettings = unstable_cache(
   async () => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return await getPersistedWhatsAppSettings({
-          seedIfEmpty: false,
-          fallbackOnError: false,
-        });
-      }
-
-      return await getPersistedWhatsAppSettings({
-        seedIfEmpty: false,
-        fallbackOnError: false,
-      });
-    } catch (error) {
-      console.error("[WhatsAppSettings] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return null;
-      }
-      throw error;
+    if (shouldSkipLiveDataDuringBuild()) {
+      return await getPersistedWhatsAppSettings({ seedIfEmpty: false, fallbackOnError: false });
     }
+    return await getPersistedWhatsAppSettings({ seedIfEmpty: false, fallbackOnError: false });
   },
   ["whatsapp-settings"],
   { revalidate: STATIC_STORE_DATA_REVALIDATE_SECONDS, tags: ["whatsapp-settings", HOMEPAGE_CACHE_TAG] }
@@ -449,15 +393,7 @@ export const getCachedWhatsAppSettings = unstable_cache(
 
 export const getCachedSocialLinks = unstable_cache(
   async () => {
-    try {
-      return await getPersistedSocialLinks({ seedIfEmpty: false, fallbackOnError: false });
-    } catch (error) {
-      console.error("[SocialLinks] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
-    }
+    return await getPersistedSocialLinks({ seedIfEmpty: false, fallbackOnError: false });
   },
   ["social-links"],
   { revalidate: STATIC_STORE_DATA_REVALIDATE_SECONDS, tags: ["social-links", HOMEPAGE_CACHE_TAG] }
@@ -465,19 +401,11 @@ export const getCachedSocialLinks = unstable_cache(
 
 export const getCachedHomepageBlogPosts = unstable_cache(
   async () => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return await getPublishedBlogPosts(4);
-      }
-
-      return await getPublishedBlogPosts(4);
-    } catch (error) {
-      console.error("[HomepageBlogPosts] DB error, not caching fallback:", error);
-      if (isPrismaConnectionError(error)) {
-        return [];
-      }
-      throw error;
+    if (shouldSkipLiveDataDuringBuild()) {
+      return [];
     }
+
+    return await getPublishedBlogPosts(4);
   },
   ["homepage-blog-posts"],
   { revalidate: 600, tags: ["blogs", HOMEPAGE_CACHE_TAG] }
@@ -485,35 +413,30 @@ export const getCachedHomepageBlogPosts = unstable_cache(
 
 export const getCachedHomepageLatestReviews = unstable_cache(
   async () => {
-    try {
-      if (shouldSkipLiveDataDuringBuild()) {
-        return [];
-      }
-
-      return await prisma.review.findMany({
-        where: { isApproved: true },
-        orderBy: { createdAt: "desc" },
-        take: 3,
-        select: {
-          id: true,
-          authorName: true,
-          authorCity: true,
-          rating: true,
-          title: true,
-          content: true,
-          createdAt: true,
-          product: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      });
-    } catch (error) {
-      console.error("[HomepageLatestReviews] DB error, returning empty fallback:", error);
+    if (shouldSkipLiveDataDuringBuild()) {
       return [];
     }
+
+    return await prisma.review.findMany({
+      where: { isApproved: true },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        authorName: true,
+        authorCity: true,
+        rating: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        product: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
   },
   ["homepage-latest-reviews"],
   { revalidate: 120, tags: ["reviews", HOMEPAGE_CACHE_TAG] }
