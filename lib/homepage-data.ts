@@ -249,20 +249,17 @@ export const getCachedAnnouncements = unstable_cache(
     if (shouldSkipLiveDataDuringBuild()) {
       return [];
     }
-    return await prisma.announcement.findMany({
-      where: {
-        isActive: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-      },
-      orderBy: { order: "asc" },
+    return await prisma.announcementMessage.findMany({
+      where: { isActive: true },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
-        message: true,
-        ctaText: true,
-        ctaLink: true,
-        isHighlight: true,
+        text: true,
+        icon: true,
+        link: true,
+        bgColor: true,
+        textColor: true,
         isActive: true,
-        expiresAt: true,
         order: true,
         createdAt: true,
         updatedAt: true,
