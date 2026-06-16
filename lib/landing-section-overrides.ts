@@ -2,13 +2,9 @@ import { unstable_cache } from "next/cache";
 import { shouldUseMockData } from "@/lib/live-data-mode";
 import { prisma } from "@/lib/prisma";
 import type { LandingSection, LandingSectionOverride, Product } from "@/types";
+import { LANDING_SECTIONS } from "@/types";
 
-export const LANDING_SECTIONS: LandingSection[] = [
-  "popular",
-  "trending",
-  "new_arrivals",
-  "recommended",
-];
+
 
 export const LANDING_OVERRIDES_CACHE_TAG = "landing-overrides";
 

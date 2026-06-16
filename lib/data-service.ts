@@ -367,7 +367,12 @@ function toCatalogListProduct(product: CatalogProductListRow): Product {
     ...product,
     description: "",
     gender: product.gender as Product["gender"],
-    images: product.images.length > 0 ? [product.images[0]] : [],
+    images: (() => {
+      const realImage = product.images.find(img => !img.startsWith("data:image/"));
+      if (realImage) return [realImage];
+      const variantImg = product.variants.find(v => v.variantImageUrl)?.variantImageUrl;
+      return variantImg ? [variantImg] : [];
+    })(),
   };
 }
 

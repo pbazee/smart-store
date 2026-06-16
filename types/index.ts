@@ -35,6 +35,13 @@ export interface Product {
 
 export type LandingSection = "popular" | "trending" | "new_arrivals" | "recommended";
 
+export const LANDING_SECTIONS: LandingSection[] = [
+  "popular",
+  "trending",
+  "new_arrivals",
+  "recommended",
+];
+
 export interface LandingSectionOverride {
   id: number;
   section: LandingSection;

@@ -19,9 +19,9 @@ import {
   upsertLandingOverrideAction,
 } from "@/app/admin/landing-overrides/actions";
 import { RippleSpinner } from "@/components/ui/ripple-loader";
-import { LANDING_SECTIONS } from "@/lib/landing-section-overrides";
-import { cn } from "@/lib/utils";
-import type { LandingSection, LandingSectionOverride, Product } from "@/types";
+import { LANDING_SECTIONS } from '@/types';
+import { cn } from '@/lib/utils';
+import type { LandingSection, LandingSectionOverride, Product } from '@/types';
 import {
   Dialog,
   DialogClose,
@@ -30,13 +30,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 const SECTION_LABELS: Record<LandingSection, string> = {
-  popular: "Popular Products",
-  trending: "Trending Products",
-  new_arrivals: "New Arrivals",
-  recommended: "Recommended Products",
+  popular: 'Popular Products',
+  trending: 'Trending Products',
+  new_arrivals: 'New Arrivals',
+  recommended: 'Recommended Products',
 };
 
 type OverridesBySection = Record<LandingSection, LandingSectionOverride[]>;
@@ -64,7 +64,7 @@ function groupOverrides(list: LandingSectionOverride[]): OverridesBySection {
 }
 
 function formatDisplayDate(value?: string | Date | null) {
-  if (!value) return "—";
+  if (!value) return '—';
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-KE", {
@@ -434,3 +434,4 @@ export function LandingOverridesManager({
     </div>
   );
 }
+

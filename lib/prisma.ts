@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -23,7 +25,7 @@ function getPrismaDatasourceUrl() {
     url.searchParams.set("connection_limit", process.env.PRISMA_CONNECTION_LIMIT || (isDev ? "5" : "3"));
     url.searchParams.set("pool_timeout", process.env.PRISMA_POOL_TIMEOUT || (isDev ? "30" : "15"));
     url.searchParams.set("connect_timeout", "15");
-    url.searchParams.set("sslmode", "require");
+    url.searchParams.delete("sslmode");
 
     return url.toString();
   } catch {
@@ -38,8 +40,18 @@ export const prisma =
   (() => {
     const datasourceUrl = getPrismaDatasourceUrl();
     console.log(`[Prisma] Initializing with URL: ${datasourceUrl?.replace(/:[^:@]+@/, ":****@")}`);
+    
+    let adapter;
+    if (datasourceUrl) {
+      const pool = new Pool({
+        connectionString: datasourceUrl,
+        ssl: { rejectUnauthorized: false },
+      });
+      adapter = new PrismaPg(pool);
+    }
+    
     return new PrismaClient({
-      datasourceUrl,
+      adapter,
       log: ["error"],
     });
   })();

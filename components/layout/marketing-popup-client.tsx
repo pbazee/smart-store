@@ -57,9 +57,10 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
       return;
     }
 
+    const delay = Math.max(activePopup.delaySeconds * 1000, 1000);
     const timer = window.setTimeout(() => {
       setOpen(true);
-    }, activePopup.delaySeconds * 1000);
+    }, delay);
 
     return () => {
       window.clearTimeout(timer);
@@ -82,13 +83,15 @@ export function MarketingPopupClient({ popups }: { popups: Popup[] }) {
     setOpen(false);
   };
 
+  const safeImageUrl = activePopup.imageUrl?.startsWith("data:") ? null : activePopup.imageUrl;
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? handleDismiss() : setOpen(nextOpen))}>
       <DialogContent className="max-w-xl overflow-hidden border-zinc-800 bg-zinc-950 p-0 text-zinc-100">
-        {activePopup.imageUrl ? (
+        {safeImageUrl ? (
           <div className="relative h-56 w-full">
             <Image
-              src={activePopup.imageUrl}
+              src={safeImageUrl}
               alt={activePopup.title}
               fill
               className="object-cover"
