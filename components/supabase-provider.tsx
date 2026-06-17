@@ -209,18 +209,18 @@ export function SupabaseProvider({
   }, [isSessionResolved, serverUser, session?.user, supabaseSessionUser]);
 
   const handleSignOut = useCallback(async () => {
-    if (sessionUser?.authProvider === "local") {
+    try {
       await fetch("/api/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      setServerUser(null);
-      return;
+    } catch (error) {
+      console.error("Failed to sign out of local auth:", error);
     }
-
-    await supabase.auth.signOut();
+    
     setServerUser(null);
-  }, [sessionUser?.authProvider, supabase.auth]);
+    await supabase.auth.signOut();
+  }, [supabase.auth]);
 
   const contextValue = useMemo(
     () => ({
