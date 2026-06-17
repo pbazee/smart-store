@@ -14,23 +14,26 @@ import {
   HomepageReviewsSection,
 } from "@/components/shop/homepage-sections";
 import {
-  getHomepagePageData,
+  getHomepageHeroSlides,
+  getHomepageCategories,
+  getHomepageCriticalProductSectionsData,
+  getHomepageDeferredProductSectionsData,
+  getHomepageLatestReviews,
+  getHomepageBlogPosts,
 } from "@/lib/homepage-data";
 
-// Force dynamic rendering so every request gets a fresh server render.
-// Data caching is handled at the data layer via unstable_cache (3600s TTL).
-// This avoids the ISR pitfall where Vercel can cache a build-time-empty page
-// (skeleton fallbacks only) and serve it to the first visitor after deployment.
-export const dynamic = "force-dynamic";
+// Allow Next.js to statically generate and cache this page.
+// This enables aggressive client-side prefetching, making navigation from /shop back to / instant.
+// Data is revalidated every 1 hour (3600s).
+export const revalidate = 3600;
 
 export default async function HomePage() {
-  const homepageDataPromise = getHomepagePageData();
-  const heroSlidesPromise = homepageDataPromise.then((data) => data.heroSlides);
-  const homepageCategoriesPromise = homepageDataPromise.then((data) => data.categories);
-  const homepageCriticalProductsPromise = homepageDataPromise.then((data) => data.criticalProducts);
-  const homepageDeferredProductsPromise = homepageDataPromise.then((data) => data.deferredProducts);
-  const latestReviewsPromise = homepageDataPromise.then((data) => data.latestReviews);
-  const blogPostsPromise = homepageDataPromise.then((data) => data.blogPosts);
+  const heroSlidesPromise = getHomepageHeroSlides();
+  const homepageCategoriesPromise = getHomepageCategories();
+  const homepageCriticalProductsPromise = getHomepageCriticalProductSectionsData();
+  const homepageDeferredProductsPromise = getHomepageDeferredProductSectionsData();
+  const latestReviewsPromise = getHomepageLatestReviews();
+  const blogPostsPromise = getHomepageBlogPosts();
 
   return (
     <div>
