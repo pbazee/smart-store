@@ -9,14 +9,40 @@ import { normalizeUserRole } from "@/lib/user-role";
 export async function getSessionUser(): Promise<SessionUser | null> {
   const localAuthSession = await getLocalAuthSession();
   if (localAuthSession) {
+    let role = resolveAuthenticatedRole({
+      email: localAuthSession.email,
+      role: localAuthSession.role,
+    });
+
+    if (role !== "admin" && localAuthSession.email) {
+      try {
+        const persistedUser = await prisma.user.findUnique({
+          where: { email: localAuthSession.email },
+          select: { role: true },
+        });
+
+        if (persistedUser?.role) {
+          role = normalizeUserRole(persistedUser.role);
+        }
+      } catch (error) {
+        if (isPrismaConnectionError(error)) {
+          console.warn("[SessionUser] Skipping persisted role lookup because the database pool is busy.");
+        } else {
+          console.error("Failed to resolve persisted localAuth role:", error);
+        }
+      }
+    }
+
+    role = resolveAuthenticatedRole({
+      email: localAuthSession.email,
+      role,
+    });
+
     return {
       id: localAuthSession.userId,
       fullName: localAuthSession.name,
       email: localAuthSession.email,
-      role: resolveAuthenticatedRole({
-        email: localAuthSession.email,
-        role: localAuthSession.role,
-      }),
+      role,
       isDemo: false,
       authProvider: "local",
     };
