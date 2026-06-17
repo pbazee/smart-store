@@ -9,7 +9,7 @@ import { normalizeUserRole } from "@/lib/user-role";
 export async function getSessionUser(): Promise<SessionUser | null> {
   const localAuthSession = await getLocalAuthSession();
   if (localAuthSession) {
-    let role = resolveAuthenticatedRole({
+    let role: "admin" | "customer" | "guest" = resolveAuthenticatedRole({
       email: localAuthSession.email,
       role: localAuthSession.role,
     });
